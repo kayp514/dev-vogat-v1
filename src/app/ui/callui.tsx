@@ -8,7 +8,7 @@ interface CallUIProps {
 
 export default function CallUI({ phoneNumber, onEndCall }: CallUIProps) {
   return (
-    <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-lg flex flex-col">
+    <div className="fixed top-14 right-0 bottom-0 h-full w-80 bg-white shadow-lg flex flex-col">
       <div className="p-4 border-b border-gray-200">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-900">Calling</h2>
