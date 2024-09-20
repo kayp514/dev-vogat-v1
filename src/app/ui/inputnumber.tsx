@@ -24,7 +24,7 @@ interface InputNumberProps {
 export default function InputNumber({ onCall } : InputNumberProps) {
   const [showNumbers, setShowNumbers] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const { handleCall } = useCall()
+  const { handleOutgoingCall } = useCall()
 
   const toggleNumbers = () => {
     setShowNumbers(!showNumbers);
@@ -40,7 +40,7 @@ export default function InputNumber({ onCall } : InputNumberProps) {
 
   const initiateCall = () => {
     if (phoneNumber.trim() !== '') {
-      handleCall(phoneNumber);
+      handleOutgoingCall(phoneNumber);
     }
   };
 
