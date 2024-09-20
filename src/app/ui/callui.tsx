@@ -32,15 +32,28 @@ export default function CallUI({ phoneNumber, onEndCall, callType }: CallUIProps
           </button>
         </div>
       </div>
-      <div className="flex-grow flex flex-col justify-start items-center pt-4 px-4">
-        <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-3">
-          <PhoneIcon className="h-10 w-10 text-gray-500" aria-hidden="true" />
-        </div>
-        <p className="text-xl font-bold text-gray-900 mb-1">{phoneNumber}</p>
+      <div className="flex-grow flex flex-col justify-start items-center">
+        <div className="w-80">
+        <div 
+        className="p-6"
+        style={{
+          background: 'linear-gradient(135deg, rgba(255,128,181,0.3) 0%, rgba(144,137,252,0.3) 100%)',
+        }}
+      >
+        <div className="flex flex-col items-center justify-center">
+        <span className="inline-block h-14 w-14 overflow-hidden rounded-full bg-gray-100">
+        <svg fill="currentColor" viewBox="0 0 24 24" className="h-full w-full text-gray-300">
+          <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      </span>
+        <p className="text-xl font-bold text-gray-900 mb-1 p-2">{phoneNumber}</p>
         <p className="text-sm text-gray-500 mb-6">
           {callType === 'outgoing' ? 'Calling...' : 'Incoming call'}
         </p>
-        <div className="grid grid-cols-3 gap-4 w-full">
+        </div>
+        </div>
+        </div>
+        <div className="py-4 grid grid-cols-3 gap-4 w-full">
           <button className="flex flex-col items-center justify-center p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
             <MicrophoneIcon className="h-6 w-6 text-gray-600 mb-1" />
             <span className="text-xs text-gray-600">Mute</span>
