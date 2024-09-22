@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BarsArrowDownIcon, PhoneIcon } from '@heroicons/react/20/solid'
 import { useCall } from '../callcontext';
 
@@ -25,6 +25,17 @@ export default function InputNumber({ onCall } : InputNumberProps) {
   const [showNumbers, setShowNumbers] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const { handleOutgoingCall } = useCall()
+  const [isRinging, setIsRinging] = useState(false)
+  const [audio] = useState(new Audio('/path/to/ringtone.mp3'))
+
+  useEffect(() => {
+    audio.loop = true
+    return () => {
+      audio.pause()
+      audio.currentTime = 0
+    }
+  }, [audio])
+
 
   const toggleNumbers = () => {
     setShowNumbers(!showNumbers);
@@ -39,7 +50,7 @@ export default function InputNumber({ onCall } : InputNumberProps) {
   };
 
   const initiateCall = () => {
-    if (phoneNumber.trim() !== '') {
+    if (phoneNumber.trim() !== ''){
       handleOutgoingCall(phoneNumber);
     }
   };

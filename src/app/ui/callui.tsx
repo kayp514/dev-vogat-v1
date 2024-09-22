@@ -4,11 +4,62 @@ import { MicrophoneIcon, SpeakerWaveIcon, PhoneIcon, ArrowPathRoundedSquareIcon,
 import { PhoneCall, PhoneOutgoing, PhoneMissed, Voicemail, SignalIcon, Mic, Phone, PhoneForwarded} from "lucide-react"
 import { MobileIcon } from "@radix-ui/react-icons"
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from "@/components/ui/input"
 
 interface CallUIProps {
   phoneNumber: string;
   onEndCall: () => void;
   callType: 'outgoing' | 'incoming';
+}
+
+function DTMFDialPad () {
+  const [dtmfInput, setDtmfInput] = useState('')
+
+  const dialpadButtons = [
+    { id: 1, name: '1' },
+    { id: 2, name: '2' },
+    { id: 3, name: '3' },
+    { id: 4, name: '4' },
+    { id: 5, name: '5' },
+    { id: 6, name: '6' },
+    { id: 7, name: '7' },
+    { id: 8, name: '8' },
+    { id: 9, name: '9' },
+    { id: 10, name: '*' },
+    { id: 11, name: '0' },
+    { id: 12, name: '#' },
+  ]
+
+  const handleDTMFInput = (value: string) => {
+    setDtmfInput(prev => prev + value)
+    // Here you would typically send the DTMF tone
+    console.log(`Sending DTMF tone: ${value}`)
+  }
+
+  return (
+    <div className="w-full max-w-xs mx-auto">
+      <Input
+        type="text"
+        value={dtmfInput}
+        readOnly
+        className="mb-4 text-center text-lg"
+        placeholder="DTMF Input"
+      />
+      <div className="grid grid-cols-3 gap-2">
+        {dialpadButtons.map((number) => (
+          <Button
+            key={number.id}
+            variant="outline"
+            onClick={() => handleDTMFInput(number.name)}
+            className="h-10 text-lg font-semibold"
+          >
+            {number.name}
+          </Button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function CallUI({ phoneNumber, onEndCall, callType }: CallUIProps) {
@@ -117,10 +168,17 @@ export default function CallUI({ phoneNumber, onEndCall, callType }: CallUIProps
           </Button>
           </div>
           <div className="grid grid-cols-3 gap-4">
+            <Popover>
+              <PopoverTrigger asChild>
           <Button className="items-center justify-center p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
             <CalculatorIcon className="h-6 w-6 text-gray-600 mb-1 mr-2" />
             <span className="text-xs text-gray-600">Dialpad</span>
           </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-0">
+            <DTMFDialPad />
+          </PopoverContent>
+          </Popover>
           <Button 
           variant="destructive"
           className="items-center justify-center p-3 col-span-2"
