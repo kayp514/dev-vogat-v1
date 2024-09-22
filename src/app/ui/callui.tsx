@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon, SpeakerWaveIcon, PhoneIcon, ArrowPathRoundedSquareIcon, CalculatorIcon } from '@heroicons/react/24/solid'
 import { PhoneCall, PhoneOutgoing, PhoneMissed, Voicemail, SignalIcon, Mic, Phone, PhoneForwarded} from "lucide-react"
@@ -6,12 +6,8 @@ import { MobileIcon } from "@radix-ui/react-icons"
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from "@/components/ui/input"
+import { useCall } from '../callcontext';
 
-interface CallUIProps {
-  phoneNumber: string;
-  onEndCall: () => void;
-  callType: 'outgoing' | 'incoming';
-}
 
 function DTMFDialPad () {
   const [dtmfInput, setDtmfInput] = useState('')
@@ -62,19 +58,49 @@ function DTMFDialPad () {
   )
 }
 
-export default function CallUI({ phoneNumber, onEndCall, callType }: CallUIProps) {
+export default function CallUI() {
+  const { activeNumber, callState, callType, handleEndCall } = useCall()
   const [isMuted, setIsMuted] = useState(false)
   const [isSpeakerOn, setIsSpeakerOn] = useState(false)
   const [isTransferring, setIsTransferring] = useState(false)
   const [isDialpadOpen, setIsDialpadOpen] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCallDuration((prev) => prev + 1)
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+    audioRef.current = new Audio('/ctu24.mp3')
+    audioRef.current.loop = true
+
+    if (callState === 'ringing') {
+      audioRef.current.play()
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+      }
+    }
+  }, [callState])
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+
+    if (callState === 'active') {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+      }
+      interval = setInterval(() => {
+        setCallDuration((prev) => prev + 1)
+      }, 1000)
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [callState])
 
   const formatDuration = (seconds: number) => {
   const mins = Math.floor(seconds / 60)
@@ -86,6 +112,16 @@ export default function CallUI({ phoneNumber, onEndCall, callType }: CallUIProps
   const handleSpeaker = () => setIsSpeakerOn(!isSpeakerOn)
   const handleTransfer = () => setIsTransferring(!isTransferring)
   const handleDialpad = () => setIsDialpadOpen(!isDialpadOpen)
+
+  const onEndCall = () => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+    handleEndCall()
+  }
+
+  if (callState === 'idle') return null
 
   return (
     <div className="fixed top-16 right-0 bottom-0 w-80 bg-gray-100 shadow-lg flex flex-col z-50">
@@ -118,7 +154,7 @@ export default function CallUI({ phoneNumber, onEndCall, callType }: CallUIProps
             <span className="text-xs text-gray-600">Excellent</span>
           </div>
           <div className="text-xs pl-40 text-gray-600">
-            {formatDuration(callDuration)}
+          {callState === 'ringing' ? 'Ringing...' : formatDuration(callDuration)}
           </div>
         </div>
 
@@ -135,9 +171,11 @@ export default function CallUI({ phoneNumber, onEndCall, callType }: CallUIProps
           <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
       </span>
-        <p className="text-xl font-bold text-gray-900 mb-1 p-2">{phoneNumber}</p>
+        <p className="text-xl font-bold text-gray-900 mb-1 p-2">{activeNumber}</p>
         <p className="text-sm text-gray-500 mb-6">
-          {callType === 'outgoing' ? 'Calling...' : 'Incoming call'}
+           {callState === 'ringing' 
+              ? (callType === 'outgoing' ? 'Calling...' : 'Incoming call') 
+              : 'Connected'}
         </p>
         </div>
         </div>
