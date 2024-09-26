@@ -25,5 +25,6 @@ export default function Login({
   const encodedRedirect = encodeURIComponent(redirectUrl);
   const loginUrl = `${AUTH_APP_URL}/api/auth/login?callback=${encodedCallback}&redirect=${encodedRedirect}`;
 
+  console.log('Redirecting to login URL:', loginUrl);
   redirect(loginUrl);
 }

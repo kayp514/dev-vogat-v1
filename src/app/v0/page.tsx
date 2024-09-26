@@ -1,8 +1,9 @@
-import { headers } from "next/headers";
+
 import { redirect } from "next/navigation";
 import { cookies } from 'next/headers';
 import SideBar from "@/app/ui/sidebar";
 import UserInfo from './userinfo';
+import { error } from "console";
 
 const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
 
@@ -39,8 +40,10 @@ export default async function VzeroPage() {
   const token = cookieStore.get('auth_token');
 
   if (!token) {
+    console.error('no token found in cookies')
     redirect('/login');
   }
+  console.log('Auth token found:', token.value);
 
   try {
     const userData = await getUserData(token.value);
@@ -55,16 +58,6 @@ export default async function VzeroPage() {
     );
   } catch (error) {
     console.error('Error in VzeroPage:', error);
-    return (
-      <div className="flex h-screen">
-        <SideBar />
-        <main className="flex-1 p-4 overflow-auto">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <strong className="font-bold">Error:</strong>
-            <span className="block sm:inline"> Failed to load user data. Please try again later or contact support.</span>
-          </div>
-        </main>
-      </div>
-    );
+    redirect('/login');
   }
 }
