@@ -23,7 +23,7 @@ export default function Login({
   
   // Include both the callback URL and the final redirect URL in the auth request
   const encodedRedirect = encodeURIComponent(redirectUrl);
-  const loginUrl = `${AUTH_APP_URL}/api/login?callback=${encodedCallback}&redirect=${encodedRedirect}`;
+  const loginUrl = `${AUTH_APP_URL}/api/auth/login?callback=${encodedCallback}&redirect=${encodedRedirect}`;
 
   redirect(loginUrl);
 }
