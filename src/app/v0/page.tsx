@@ -8,32 +8,28 @@ import { error } from "console";
 const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
 
 async function getUserData(token: string) {
-  try {
-    const response = await fetch(`${AUTH_APP_URL}/api/user`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      cache: 'no-store'
-    });
-
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") !== -1) {
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to fetch user data: ${errorData.error || response.statusText}`);
+    try {
+      const response = await fetch(`${AUTH_APP_URL}/api/auth/user`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        cache: 'no-store'
+      });
+  
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        return await response.json();
+      } else {
+        // If the response is not JSON, read it as text
+        const text = await response.text();
+        console.error('Received non-JSON response:', text);
+        throw new Error('Received non-JSON response from server');
       }
-      return response.json();
-    } else {
-      // If the response is not JSON, read it as text
-      const text = await response.text();
-      console.error('Received non-JSON response:', text);
-      throw new Error('Received non-JSON response from server');
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    throw error;
   }
-}
 
 export default async function VzeroPage() {
   const cookieStore = cookies();
@@ -56,8 +52,15 @@ export default async function VzeroPage() {
         </main>
       </div>
     );
-  } catch (error) {
-    console.error('Error in VzeroPage:', error);
-    redirect('/login');
+} catch (error) {
+    console.error('Error in V0Page:', error);
+    return (
+      <div className="flex h-screen">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error:</strong>
+          <span className="block sm:inline"> Failed to load user data. Please try again later or contact support.</span>
+        </div>
+      </div>
+    );
   }
 }

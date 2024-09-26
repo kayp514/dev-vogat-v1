@@ -1,14 +1,14 @@
-
-
+// middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const AUTH_APP_URL = process.env.AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
+const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
 
   if (!token) {
+    console.log('No token found in middleware, redirecting to login');
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -24,6 +24,7 @@ export async function middleware(request: NextRequest) {
     const data = await res.json();
 
     if (!data.valid) {
+      console.log('Invalid token, redirecting to login');
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
@@ -42,5 +43,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  matcher: ['/v0/:path*', '/dashboard/:path*'],
 };

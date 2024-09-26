@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   response.cookies.set('auth_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV !== 'development',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 1 week
     path: '/',
   });
