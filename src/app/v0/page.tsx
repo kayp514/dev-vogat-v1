@@ -2,7 +2,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from 'next/headers';
 import SideBar from "@/app/ui/sidebar";
-import UserInfo from './userinfo';
 
 const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
 
@@ -43,14 +42,8 @@ export default async function VzeroPage() {
   try {
     const userData = await getUserData(token.value);
 
-    return (
-      <div className="flex h-screen">
-        <SideBar />
-        <main className="flex-1 p-4 overflow-auto">
-          <UserInfo userData={userData} />
-        </main>
-      </div>
-    );
+    return <SideBar userData={userData} />
+    
 } catch (error) {
     console.error('Error in V0Page:', error);
     return (

@@ -17,6 +17,13 @@ import {
     TransitionChild,
   } from '@headlessui/react'
 
+interface UserData {
+    displayName?: string;
+    email: string;
+    photoURL?: string;
+    uid: string;
+}
+
 const navigation = [
     { name: 'Chat', id: 'chat', icon: ChatBubbleOvalLeftEllipsisIcon, current: true },
     { name: 'Calls', id: 'call', icon: DevicePhoneMobileIcon, current: false },
@@ -24,8 +31,8 @@ const navigation = [
   ]
 
   const userNavigation = [
-    { name: 'Your profile', href: '#' },
-    { name: 'Sign out', href: '#' },
+    { name: 'Your profile' },
+    { name: 'Sign out' },
   ]
 
   function Call() {
@@ -36,12 +43,25 @@ const navigation = [
     return <div><ChatService /></div>
   }
 
-export default function SideBar() {
-    const [activeTab, setActiveTab] = useState('chat'); 
+export default function SideBar({ userData }: { userData: UserData }) {
+    const [activeTab, setActiveTab] = useState('chat');
 
     const handleTabClick = (tab: string) => {
       setActiveTab(tab);
     };
+
+    const handleSignOut = async () => {
+      const response = await fetch('/api/auth/signout', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json'
+         },
+        })
+      if (response.ok) {
+          window.location.href = '/login';
+      }
+  }
+
     return (
         <div className="h-screen ">
         <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-15 lg:bg-gray-100 lg:pb-4">
@@ -114,7 +134,7 @@ export default function SideBar() {
                     />
                     <span className="hidden lg:flex lg:items-center">
                       <span aria-hidden="true" className="ml-4 text-sm font-semibold leading-6 text-gray-900">
-                        Tom Cook
+                        {userData.displayName || userData.email}
                       </span>
                       <ChevronDownIcon aria-hidden="true" className="ml-2 h-5 w-5 text-gray-400" />
                     </span>
@@ -125,12 +145,20 @@ export default function SideBar() {
                   >
                     {userNavigation.map((item) => (
                       <MenuItem key={item.name}>
-                        <a
-                          href={item.href}
-                          className="block px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
-                        >
+                        {item.name === 'Sign out' ? (
+                          <button
+                            onClick={handleSignOut}
+                            className="block w-full px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
+                          >
+                            {item.name}
+                          </button>
+                        ) : (
+                          <button
+                            className="block px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
+                          >
                           {item.name}
-                        </a>
+                        </button>
+                        )}
                       </MenuItem>
                     ))}
                   </MenuItems>
