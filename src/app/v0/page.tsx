@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { cookies } from 'next/headers';
 import SideBar from "@/app/ui/sidebar";
 import UserInfo from './userinfo';
-import { error } from "console";
 
 const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
 
