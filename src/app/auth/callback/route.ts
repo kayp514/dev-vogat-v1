@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const token = searchParams.get('token');
-  const redirectUrl = searchParams.get('redirect') || '/dashboard';
+  const redirectUrl = searchParams.get('redirect') || '/';
 
   if (!token) {
     return NextResponse.redirect(new URL('/login', request.url));

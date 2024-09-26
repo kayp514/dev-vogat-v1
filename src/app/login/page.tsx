@@ -15,7 +15,7 @@ export default function Login({
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
 
   const redirectParam = searchParams.redirect;
-  const redirectUrl = typeof redirectParam === 'string' ? redirectParam : '/dashboard';
+  const redirectUrl = typeof redirectParam === 'string' ? redirectParam : '/';
   
   // Create a callback URL that points back to our application
   const callbackUrl = `${protocol}://${host}/auth/callback`;
