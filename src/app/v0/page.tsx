@@ -1,11 +1,10 @@
 
-import SideBar from "./ui/sidebar"
+import SideBar from "@/app/ui/sidebar"
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router"
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cookies } from 'next/headers';
-import VzeroPage from "./v0/page";
 
 const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
 
@@ -25,7 +24,7 @@ async function getUserData(token: string) {
 }
 
 
-export default async function Page() {
+export default async function VzeroPage() {
   const cookieStore = cookies();
   const token = cookieStore.get('auth_token');
 
@@ -39,7 +38,7 @@ export default async function Page() {
   return (
     <div>
       Email: {userData.email}
-      <VzeroPage />
+      <SideBar />
     </div>
   )
 } catch (error) {
