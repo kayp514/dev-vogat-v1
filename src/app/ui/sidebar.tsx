@@ -51,16 +51,26 @@ export default function SideBar({ userData }: { userData: UserData }) {
     };
 
     const handleSignOut = async () => {
-      const response = await fetch('/api/auth/signout', {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/json'
-         },
+      try {
+        const response = await fetch('/auth/logout', { 
+          method: 'POST',
+          credentials: 'include',
         })
-      if (response.ok) {
-          window.location.href = '/login';
+        
+        if (response.ok) {
+  
+          // Redirect to login page
+          window.location.reload()
+        } else {
+          const data = await response.json()
+          console.error('Sign out failed:', data.error)
+          alert('Sign out failed. Please try again.')
+        }
+      } catch (error) {
+        console.error('Error during sign out:', error)
+        alert('An error occurred during sign out. Please try again.')
       }
-  }
+    }
 
     return (
         <div className="h-screen ">
