@@ -4,9 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router"
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cookies } from 'next/headers';
 
-async function getUserData(userId: string) {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_AUTH_URL}/api/user/${userId}`, {
+const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
+
+async function getUserData(token: string) {
+  const response = await fetch(`${AUTH_APP_URL}/api/user`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
     cache: 'no-store'
   });
 
@@ -19,16 +25,15 @@ async function getUserData(userId: string) {
 
 
 export default async function Page() {
-  const headersList = headers();
-  const userId = headersList.get('x-user-id');
+  const cookieStore = cookies();
+  const token = cookieStore.get('auth_token');
 
-  if (!userId) {
-    console.error('User ID not found in request headers');
+  if (!token) {
     redirect('/login');
   }
 
   try {
-    const userData = await getUserData(userId);
+    const userData = await getUserData(token.value);
 
   return (
     <div>
