@@ -15,7 +15,7 @@ export default function Login({
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
 
   const redirectParam = searchParams.redirect;
-  const redirectUrl = typeof redirectParam === 'string' ? redirectParam : '/';
+  const redirectUrl = typeof redirectParam === 'string' ? redirectParam : '/dashboard';
   
   // Create a callback URL that points back to our application
   const callbackUrl = `${protocol}://${host}/auth/callback`;
@@ -23,7 +23,7 @@ export default function Login({
   
   // Include both the callback URL and the final redirect URL in the auth request
   const encodedRedirect = encodeURIComponent(redirectUrl);
-  const loginUrl = `${AUTH_APP_URL}/login?callback=${encodedCallback}&redirect=${encodedRedirect}`;
+  const loginUrl = `${AUTH_APP_URL}/api/login?callback=${encodedCallback}&redirect=${encodedRedirect}`;
 
   redirect(loginUrl);
 }
