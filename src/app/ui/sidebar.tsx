@@ -4,10 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import CallService from './callservice'
 import ChatService from './chatservice'
+import SettingsScreen from './settingsScreen'
 import { ChatBubbleOvalLeftEllipsisIcon, DevicePhoneMobileIcon,Bars3Icon,BellIcon, DivideIcon, } from '@heroicons/react/24/outline'
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import {
-    Dialog,
+    
     DialogBackdrop,
     DialogPanel,
     Menu,
@@ -16,6 +17,16 @@ import {
     MenuItems,
     TransitionChild,
   } from '@headlessui/react'
+
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+  } from "@/components/ui/dialog"
 
 interface UserData {
     displayName?: string;
@@ -45,6 +56,7 @@ const navigation = [
 
 export default function SideBar({ userData }: { userData: UserData }) {
     const [activeTab, setActiveTab] = useState('chat');
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
     const handleTabClick = (tab: string) => {
       setActiveTab(tab);
@@ -70,7 +82,11 @@ export default function SideBar({ userData }: { userData: UserData }) {
         console.error('Error during sign out:', error)
         alert('An error occurred during sign out. Please try again.')
       }
-    }
+    };
+
+    const handleProfileClick = () => {
+      setIsSettingsOpen(true)
+    };
 
     return (
         <div className="h-screen ">
@@ -164,7 +180,10 @@ export default function SideBar({ userData }: { userData: UserData }) {
                           </button>
                         ) : (
                           <button
-                            className="block px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
+                            onClick={handleProfileClick}
+                            className={`${
+                              activeTab === 'profile' ? 'bg-gray-50' : ''
+                            } block w-full px-3 py-1 text-left text-sm leading-6 text-gray-900`}
                           >
                           {item.name}
                         </button>
@@ -181,8 +200,13 @@ export default function SideBar({ userData }: { userData: UserData }) {
         {activeTab === 'call' && <Call />}
         {activeTab === 'chat' && <Chat />}
         </main>
-      </div>
 
+        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="max-w-4xl w-[90vw] h-[80vh] p-0 bg-white">
+          <SettingsScreen userData={userData} />
+        </DialogContent>
+      </Dialog>
+      </div>
     );
 
 }
