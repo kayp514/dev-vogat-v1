@@ -100,6 +100,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
       transportOptions,
       authorizationUsername: sipConfig.username,
       authorizationPassword: sipConfig.password,
+      userAgentString: 'Vogat/1.0',
     };
 
     userAgent = new UserAgent(userAgentOptions);
