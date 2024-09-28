@@ -90,7 +90,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
 
     
     const transportOptions = {
-      server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/ws`,
+      server: `${sipConfig.socket}://${sipConfig.server}:1443/wss/sip/`,
       connectionTimeout: 10000,
     };
 
