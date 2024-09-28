@@ -1,5 +1,6 @@
 import {
   UserAgent,
+  UserAgentOptions,
   Inviter,
   SessionState,
   Registerer,
@@ -16,53 +17,103 @@ import {
   SessionDescriptionHandler,
 } from 'sip.js';
 
+import { Transport, TransportOptions } from 'sip.js/lib/platform/web/transport';
+
+
 let userAgent: UserAgent | null = null;
 let registerer: Registerer | null = null;
 let currentSession: Session | null = null;
 
-interface SIPResponse {
+export type SIPResponse = {
   status: 'success' | 'warning' | 'error';
   message: string;
   data?: any;
+}
+
+export type SIPConfig = {
+  username: string;
+  password: string;
+  server: string;
+  port: number;
+  protocol: 'udp' | 'tcp' | 'tls';
+  socket: string;
 }
 
 interface CustomSessionDescriptionHandlerOptions extends SessionDescriptionHandlerOptions {
   hold?: boolean;
 }
 
+
+class CustomTransport extends Transport {
+  constructor(logger: any, options: any) {
+    super(logger, options);
+  }
+
+  public send(message: string): Promise<void> {
+    console.log('Sending message:', message);
+    return super.send(message);
+  }
+
+  public async connect(): Promise<void> {
+    console.log('Connecting transport');
+    await super.connect();
+  }
+
+  public async disconnect(): Promise<void> {
+    console.log('Disconnecting transport');
+    await super.disconnect();
+  }
+
+}
+
 function isInviterOrInvitation(session: Session): session is Inviter | Invitation {
   return 'terminate' in session && typeof session.terminate === 'function';
 }
 
-export async function initializeSIP(uriString: string, wsServer: string, username: string, password: string): Promise<SIPResponse> {
+export async function initializeSIP(): Promise<SIPResponse> {
   if (userAgent) {
     console.log('UserAgent already initialized');
     return { status: 'warning', message: 'UserAgent already initialized' };
   }
+
+  const sipConfig = getSavedSIPConfig();
+  if (!sipConfig) {
+    return { status: 'error', message: 'SIP configuration not found' };
+  }
+
   try {
-    const uri = new URI('sip', username, wsServer);
-    const userAgentOptions = {
-    uri,
-    transportOptions: {
-      server: `wss://${wsServer}`,
-    },
-    authorizationUsername: username,
-    authorizationPassword: password,
-  };
+    const uri = UserAgent.makeURI(`sip:${sipConfig.username}@${sipConfig.server}`);
+    if (!uri) {
+      throw new Error('Failed to create SIP URI');
+      return { status: 'error', message: 'Failed to create SIP URI' };
+    }
 
-  userAgent = new UserAgent(userAgentOptions);
+    
+    const transportOptions = {
+      server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/ws`,
+      connectionTimeout: 10000,
+    };
 
-  await userAgent.start();
+    const userAgentOptions: UserAgentOptions = {
+      uri,
+      transportConstructor: CustomTransport,
+      transportOptions,
+      authorizationUsername: sipConfig.username,
+      authorizationPassword: sipConfig.password,
+    };
 
-  const registerOptions: RegistererOptions = {
-    registrar: new URI('sip', username, wsServer),
-  };
+    userAgent = new UserAgent(userAgentOptions);
 
-  registerer = new Registerer(userAgent, registerOptions);
-  registerer.stateChange.addListener(handleRegistrationStateChange);
+    await userAgent.start();
 
-  await registerUserAgent();
+    const registerOptions: RegistererOptions = {
+      registrar: uri,
+    };
 
+    registerer = new Registerer(userAgent, registerOptions);
+    registerer.stateChange.addListener(handleRegistrationStateChange);
+
+    await registerUserAgent();
 
     userAgent.delegate = {
       onInvite: (invitation: Invitation) => {
@@ -74,8 +125,27 @@ export async function initializeSIP(uriString: string, wsServer: string, usernam
     return { status: 'success', message: 'UserAgent initiated and registered' };
   } catch (error) {
     console.error("SIP initialization failed:", error);
-    return { status: 'error', message: 'SIP initialization failed' };
+    return { status: 'error', message: `SIP initialization failed` };
   }
+}
+
+function getSavedSIPConfig(): SIPConfig | null {
+  const username = localStorage.getItem('sipUsername');
+  const password = localStorage.getItem('sipPassword');
+  const securityInfo = JSON.parse(localStorage.getItem('sipSecurityInfo') || '{}');
+
+  if (!username || !password || !securityInfo.server || !securityInfo.port || !securityInfo.protocol || !securityInfo.socket) {
+    return null;
+  }
+
+  return {
+    username: username.split('@')[0],
+    password,
+    server: securityInfo.server,
+    port: parseInt(securityInfo.port, 10),
+    protocol: securityInfo.protocol as 'udp' | 'tcp' | 'tls',
+    socket: securityInfo.socket,
+  };
 }
 
 export function isUserAgentRegistered(): boolean {
@@ -188,7 +258,7 @@ function handleIncomingCall(invitation: Invitation): void {
   });
 }
 
-export async function makeOutgoingCall(targetUri: string): Promise<SIPResponse> {
+export async function makeOutgoingCall(phoneNumber: string): Promise<SIPResponse> {
   const registrationStatus = await ensureUserAgentRegistered();
   if (registrationStatus.status !== 'success') {
     return registrationStatus;
@@ -199,7 +269,7 @@ export async function makeOutgoingCall(targetUri: string): Promise<SIPResponse> 
   }
 
   try {
-    const target = UserAgent.makeURI(targetUri);
+    const target = UserAgent.makeURI(`sip:${phoneNumber}@${getSavedSIPConfig()?.server}`);
     if (!target) {
       throw new Error('Failed to create target URI');
     }
@@ -659,4 +729,13 @@ export function setDisplayName(displayName: string): SIPResponse {
     console.error('Error setting display name:', error);
     return { status: 'error', message: 'Failed to set display name' };
   }
+}
+
+export function monitorSIPStatus(): SIPResponse {
+  if (!userAgent) {
+    return { status: 'error', message: 'SIP is no longer initialized' };
+  } else if (!isUserAgentRegistered()) {
+    return { status: 'error', message: 'SIP is no longer registered' };
+  }
+  return { status: 'success', message: 'SIP is still initialized and registered' };
 }

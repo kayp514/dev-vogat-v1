@@ -2,6 +2,8 @@
 import { redirect } from "next/navigation";
 import { cookies } from 'next/headers';
 import SideBar from "@/app/ui/sidebar";
+import { CallSIPProvider } from "@/app/callSIPContext";
+
 
 const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
 
@@ -33,6 +35,7 @@ export default async function VzeroPage() {
   const cookieStore = cookies();
   const token = cookieStore.get('auth_token');
 
+
   if (!token) {
     console.error('no token found in cookies')
     redirect('/login');
@@ -42,7 +45,11 @@ export default async function VzeroPage() {
   try {
     const userData = await getUserData(token.value);
 
-    return <SideBar userData={userData} />
+    return (
+      <CallSIPProvider>
+        <SideBar userData={userData} />
+       </CallSIPProvider>
+    );
     
 } catch (error) {
     console.error('Error in V0Page:', error);

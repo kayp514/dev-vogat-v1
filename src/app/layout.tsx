@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import SideBar from "./ui/sidebar";
-import { CallProvider } from "./callcontext";
+import { CallSIPProvider } from "./callSIPContext";
+
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -32,9 +32,10 @@ export default function RootLayout({
       >
         {/* {children} */}
         
-        <CallProvider>
+      
+        <CallSIPProvider>
           {children}
-        </CallProvider>
+        </CallSIPProvider>
       </body>
     </html>
   );

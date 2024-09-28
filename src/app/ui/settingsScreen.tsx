@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { UserCircle, Bell, Settings, Phone } from 'lucide-react'
@@ -9,17 +9,18 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-interface UserData {
+type UserData = {
   displayName?: string;
   email: string;
   photoURL?: string;
   uid: string;
 }
 
-interface SipSecurityInfo {
+type SipSecurityInfo = {
   protocol: string;
   port: string;
   socket: string;
+  server: string;
 }
 
 const settingsMenu = [
@@ -36,9 +37,25 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
   const [sipSecurityInfo, setSipSecurityInfo] = useState<SipSecurityInfo>({
     protocol: '',
     port: '',
-    socket: ''
+    socket: '',
+    server: ''
   })
   const [savedSipSecurityInfo, setSavedSipSecurityInfo] = useState<SipSecurityInfo | null>(null)
+
+  useEffect(() => {
+    // Load saved data from localStorage when component mounts
+    const savedPassword = localStorage.getItem('sipPassword')
+    const savedSecurityInfo = JSON.parse(localStorage.getItem('sipSecurityInfo') || '{}')
+
+
+    if (savedPassword) setSavedSipPassword(savedPassword)
+    if (savedSecurityInfo) setSavedSipSecurityInfo(savedSecurityInfo)
+
+    localStorage.setItem('sipUsername', userData.email)
+
+    const serverFromEmail = userData.email.split('@')[1]
+    setSipSecurityInfo(prev=> ({ ...prev, server: serverFromEmail}))
+  }, [userData.email])
 
   const handleSettingClick = (setting: any) => {
     setSelectedSetting(setting)
@@ -46,24 +63,34 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
 
   const handleSavePassword = () => {
     setSavedSipPassword(sipPassword)
+    localStorage.setItem('sipPassword', sipPassword)
     setSipPassword('')
   }
 
   const handleDeletePassword = () => {
     setSavedSipPassword('')
+    localStorage.removeItem('sipPassword')
   }
 
   const handleSaveSipSecurityInfo = () => {
-    setSavedSipSecurityInfo(sipSecurityInfo)
+    const updatedSipSecurityInfo = { 
+        ...sipSecurityInfo,
+        server: userData.email.split('@')[1],
+        port: sipSecurityInfo.port.toString()
+    }
+    setSavedSipSecurityInfo(updatedSipSecurityInfo)
+    localStorage.setItem('sipSecurityInfo', JSON.stringify(updatedSipSecurityInfo))
   }
 
   const handleDeleteSipSecurityInfo = () => {
     setSavedSipSecurityInfo(null)
     setSipSecurityInfo({
-      protocol: '',
+      protocol: 'udp',
       port: '',
-      socket: ''
+      socket: '',
+      server: ''
     })
+    localStorage.removeItem('sipSecurityInfo')
   }
 
   return (
@@ -156,14 +183,14 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
                       <h3 className="text-lg font-semibold mb-4">SIP Information</h3>
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="sip-username">SIP Username</Label>
-                          <Input id="sip-username" value={userData.email} disabled />
+                          <Label htmlFor="sipUsername">SIP Username</Label>
+                          <Input id="sipUsername" value={userData.email} disabled />
                         </div>
                         <div>
-                          <Label htmlFor="sip-password">SIP Password</Label>
+                          <Label htmlFor="sipPassword">SIP Password</Label>
                           <div className="flex space-x-2">
                             <Input
-                              id="sip-password"
+                              id="sipPassword"
                               type="password"
                               value={sipPassword}
                               onChange={(e) => setSipPassword(e.target.value)}
@@ -184,9 +211,9 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
                       <h3 className="text-lg font-semibold mb-4">SIP Security Settings</h3>
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="sip-protocol">SIP Protocol</Label>
-                          <Select onValueChange={(value) => setSipSecurityInfo({...sipSecurityInfo, protocol: value})}>
-                            <SelectTrigger id="sip-protocol">
+                          <Label htmlFor="sipProtocol">SIP Protocol</Label>
+                          <Select onValueChange={(value: 'udp' | 'tcp' | 'tls') => setSipSecurityInfo(prev => ({...prev, protocol: value}))}>
+                            <SelectTrigger id="sipProtocol">
                               <SelectValue placeholder="Select SIP protocol" />
                             </SelectTrigger>
                             <SelectContent>
@@ -197,9 +224,9 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
                           </Select>
                         </div>
                         <div>
-                          <Label htmlFor="websocket-protocol">WebSocket Protocol</Label>
+                          <Label htmlFor="sipSocket">WebSocket Protocol</Label>
                           <Select onValueChange={(value) => setSipSecurityInfo({...sipSecurityInfo, socket: value})}>
-                            <SelectTrigger id="websocket-protocol">
+                            <SelectTrigger id="sipSocket">
                               <SelectValue placeholder="Select WebSocket protocol" />
                             </SelectTrigger>
                             <SelectContent>
@@ -208,17 +235,28 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div>
-                          <Label htmlFor="sip-port">SIP Port</Label>
-                          <Select onValueChange={(value) => setSipSecurityInfo({...sipSecurityInfo, port: value})}>
-                            <SelectTrigger id="sip-port">
-                              <SelectValue placeholder="Select SIP port" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="5060">5060</SelectItem>
-                              <SelectItem value="6050">6050</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <div className="flex space-x-2">
+                          <div className="flex-1">
+                            <Label htmlFor="sipServer">SIP Server</Label>
+                            <Input
+                              id="sipServer"
+                              value={sipSecurityInfo.server}
+                              disabled
+                              placeholder="Sip Server is set automatically"
+                            />
+                          </div>
+                          <div className="w-1/3">
+                            <Label htmlFor="sipPort">SIP Port</Label>
+                            <Select onValueChange={(value) => setSipSecurityInfo({...sipSecurityInfo, port: value})}>
+                              <SelectTrigger id="sipPort">
+                                <SelectValue placeholder="Select SIP port" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="6050">6050</SelectItem>
+                                <SelectItem value="6051">6051</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                         <div className="flex space-x-2">
                           <Button onClick={handleSaveSipSecurityInfo}>Save</Button>
@@ -227,6 +265,7 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
                         {savedSipSecurityInfo && (
                           <div className="text-sm text-gray-600">
                             <p>Protocol: {savedSipSecurityInfo.protocol}</p>
+                            <p>Server: {savedSipSecurityInfo.server}</p>
                             <p>Port: {savedSipSecurityInfo.port}</p>
                             <p>Socket: {savedSipSecurityInfo.socket}</p>
                           </div>

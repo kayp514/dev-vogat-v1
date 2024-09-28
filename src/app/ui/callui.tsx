@@ -2,11 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon, SpeakerWaveIcon, PhoneIcon, ArrowPathRoundedSquareIcon, CalculatorIcon } from '@heroicons/react/24/solid'
 import { PhoneCall, PhoneOutgoing, PhoneMissed, Voicemail, SignalIcon, Mic, Phone, PhoneForwarded} from "lucide-react"
-import { MobileIcon } from "@radix-ui/react-icons"
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from "@/components/ui/input"
-import { useCall } from '../callcontext';
+import { CallState, CallType } from '@/app/callSIPContext';
+import { mute, unmute, sendDTMF, terminateCall, getNetworkType, getCallDuration } from '../../lib/call'
+
+interface CallUIProps {
+  activeNumber: string
+  callState: CallState
+  callType: CallType
+  handleEndCall: () => void
+  setIsCallActive: React.Dispatch<React.SetStateAction<boolean>>
+}
 
 
 function DTMFDialPad () {
@@ -27,10 +35,9 @@ function DTMFDialPad () {
     { id: 12, name: '#' },
   ]
 
-  const handleDTMFInput = (value: string) => {
-    setDtmfInput(prev => prev + value)
-    // Here you would typically send the DTMF tone
-    console.log(`Sending DTMF tone: ${value}`)
+  const handleDTMFInput = (digit: string) => {
+    setDtmfInput(prev => prev + digit)
+    sendDTMF(digit)
   }
 
   return (
@@ -58,54 +65,121 @@ function DTMFDialPad () {
   )
 }
 
-export default function CallUI() {
-  const { activeNumber, callState, callType, handleEndCall } = useCall()
+export default function CallUI({ activeNumber, callState, callType, setIsCallActive, handleEndCall }: CallUIProps) {
   const [isMuted, setIsMuted] = useState(false)
   const [isSpeakerOn, setIsSpeakerOn] = useState(false)
   const [isTransferring, setIsTransferring] = useState(false)
   const [isDialpadOpen, setIsDialpadOpen] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
+  const [networkQuality, setNetworkQuality] = useState('Excellent')
   const audioRef = useRef<HTMLAudioElement | null>(null)
+
   
+  const handleMuteToggle = () => {
+    if (isMuted) {
+      unmute()
+    } else {
+      mute()
+    }
+    setIsMuted(!isMuted)
+  }
+
+  const handleSpeakerToggle = () => {
+    // Implement speaker toggle logic here
+    setIsSpeakerOn(!isSpeakerOn)
+  }
+
+  const handleHangUp = () => {
+    terminateCall()
+    handleEndCall()
+  }
 
   useEffect(() => {
-    audioRef.current = new Audio('/ctu24.mp3')
-    audioRef.current.loop = true
+    let intervalId: NodeJS.Timeout
+    let playPromise: Promise<void> | null = null
 
-    if (callState === 'ringing') {
-      audioRef.current.play()
-    }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.currentTime = 0
+    const updateNetworkQuality = () => {
+      const networkInfo = getNetworkType()
+      if (networkInfo.status === 'success' && networkInfo.data) {
+        setNetworkQuality(networkInfo.data)
       }
     }
-  }, [callState])
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
+    const updateCallDuration = () => {
+      const durationInfo = getCallDuration()
+      if (durationInfo.status === 'success') {
+        const durationInSeconds = parseInt(durationInfo.message.split(': ')[1])
+        setCallDuration(durationInSeconds)
+      }
+    }
+
+    const handleAudio = () => {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/ctu24.mp3')
+        audioRef.current.loop = true
+      }
+
+      if (callState === 'ringing') {
+        if (audioRef.current.paused) {
+          playPromise = audioRef.current.play()
+          playPromise?.catch(error => {
+            if (error.name !== 'AbortError') {
+              console.error('Error playing ringtone:', error)
+            }
+          })
+        }
+      } else {
+        if (playPromise) {
+          playPromise
+            .then(() => {
+              if (audioRef.current) {
+                audioRef.current.pause()
+                audioRef.current.currentTime = 0
+              }
+            })
+            .catch(error => {
+              if (error.name !== 'AbortError') {
+                console.error('Error handling audio:', error)
+              }
+            })
+        } else if (audioRef.current) {
+          audioRef.current.pause()
+          audioRef.current.currentTime = 0
+        }
+      }
+    }
+
+    handleAudio()
 
     if (callState === 'active') {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.currentTime = 0
-      }
-      interval = setInterval(() => {
-        setCallDuration((prev) => prev + 1)
+      intervalId = setInterval(() => {
+        updateNetworkQuality()
+        updateCallDuration()
       }, 1000)
     }
 
+    intervalId = setInterval(() => {
+      updateNetworkQuality()
+      updateCallDuration()
+    }, 1000)
+
     return () => {
-      if (interval) clearInterval(interval)
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
+
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+      }
     }
   }, [callState])
 
+
   const formatDuration = (seconds: number) => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
   const handleMute = () => setIsMuted(!isMuted)
@@ -119,6 +193,7 @@ export default function CallUI() {
       audioRef.current.currentTime = 0
     }
     handleEndCall()
+    setIsCallActive(false)
   }
 
   if (callState === 'idle') return null
@@ -151,7 +226,7 @@ export default function CallUI() {
       <div className="bg-white p-2 flex w-80">
           <div className="flex space-x-2">
             <SignalIcon className="h-4 w-4 text-green-500" aria-hidden="true" />
-            <span className="text-xs text-gray-600">Excellent</span>
+            <span className="text-xs text-gray-600">{networkQuality}</span>
           </div>
           <div className="text-xs pl-40 text-gray-600">
           {callState === 'ringing' ? 'Ringing...' : formatDuration(callDuration)}
@@ -173,9 +248,7 @@ export default function CallUI() {
       </span>
         <p className="text-xl font-bold text-gray-900 mb-1 p-2">{activeNumber}</p>
         <p className="text-sm text-gray-500 mb-6">
-           {callState === 'ringing' 
-              ? (callType === 'outgoing' ? 'Calling...' : 'Incoming call') 
-              : 'Connected'}
+        {callType === 'incoming' ? 'Incoming Call' : 'Outgoing Call'} - {callState}
         </p>
         </div>
         </div>
@@ -185,7 +258,7 @@ export default function CallUI() {
           <Button
           variant="outline"
           className="items-center justify-center p-2 ${isMuted ? 'bg-fuchsia-300' : 'bg-gray-100'}`}"
-          onClick={handleMute}
+          onClick={handleMuteToggle}
           >
             <Mic className="h-6 w-6 mb-1 mr-2 text-gray-600" />
             <span className="text-xs text-gray-600">Mute</span>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import CallService from './callservice'
 import ChatService from './chatservice'
@@ -21,12 +21,11 @@ import {
   import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
   } from "@/components/ui/dialog"
+
+
+import CallUI from '@/app/ui/callui'
+import { useCallSIP } from '@/app/callSIPContext'
 
 interface UserData {
     displayName?: string;
@@ -56,7 +55,9 @@ const navigation = [
 
 export default function SideBar({ userData }: { userData: UserData }) {
     const [activeTab, setActiveTab] = useState('chat');
+    const { isCallActive, activeNumber, callState, callType, sipStatus, handleEndCall, setIsCallActive } = useCallSIP();
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
 
     const handleTabClick = (tab: string) => {
       setActiveTab(tab);
@@ -200,6 +201,15 @@ export default function SideBar({ userData }: { userData: UserData }) {
         {activeTab === 'call' && <Call />}
         {activeTab === 'chat' && <Chat />}
         </main>
+        {isCallActive && (
+          <CallUI
+          activeNumber={activeNumber}
+        callState={callState}
+        callType={callType}
+        handleEndCall={handleEndCall}
+        setIsCallActive={setIsCallActive}
+         />
+         )}
 
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
         <DialogContent className="max-w-4xl w-[90vw] h-[80vh] p-0 bg-white">

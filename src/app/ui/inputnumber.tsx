@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BarsArrowDownIcon, PhoneIcon } from '@heroicons/react/20/solid'
-import { useCall } from '../callcontext';
+import { toast } from '@/hooks/use-toast'
+import { Toaster } from '@/components/ui/toaster';
+
 
 const numbers = [
   { id: 1, name: '1' },
@@ -21,10 +23,10 @@ interface InputNumberProps {
   onCall: (phoneNumber: string) => void;
 }
 
-export default function InputNumber({ onCall } : InputNumberProps) {
+export default function InputNumber({ onCall }: InputNumberProps) {
   const [showNumbers, setShowNumbers] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const { handleOutgoingCall } = useCall()
+  const [isCallInitiating, setIsCallInitiating] = useState(false)
 
   
   const toggleNumbers = () => {
@@ -39,10 +41,14 @@ export default function InputNumber({ onCall } : InputNumberProps) {
     setPhoneNumber(phoneNumber + number);
   };
 
-  const initiateCall = () => {
-    if (phoneNumber.trim() !== ''){
-      handleOutgoingCall(phoneNumber)
-      onCall(phoneNumber)
+  const initiateCall = async () => {
+    if (phoneNumber) {
+      setIsCallInitiating(true)
+      try {
+        await onCall(phoneNumber)
+      } finally {
+        setIsCallInitiating(false)
+      }
     }
   };
 
@@ -149,6 +155,7 @@ export default function InputNumber({ onCall } : InputNumberProps) {
          Call
         </button>
       </div>
+      <Toaster />
     </div>
   )
 }
