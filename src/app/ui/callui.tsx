@@ -5,7 +5,7 @@ import { PhoneCall, PhoneOutgoing, PhoneMissed, Voicemail, SignalIcon, Mic, Phon
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from "@/components/ui/input"
-import { CallState, CallType } from '@/app/callSIPContext';
+import { CallState, CallType } from '@/app/CallSIPContext';
 import { mute, unmute, sendDTMF, terminateCall, getNetworkType, getCallDuration } from '../../lib/call'
 
 interface CallUIProps {

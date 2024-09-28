@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import CallHistory from './callhistory';
 import InputNumber from './inputnumber';
-import { useCallSIP } from '@/app/callSIPContext';
-
+import { useCallSIP } from '@/app/CallSIPContext';
 export default function CallService() {
   
   const { handleOutgoingCall } = useCallSIP();

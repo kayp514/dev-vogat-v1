@@ -25,7 +25,7 @@ import {
 
 
 import CallUI from '@/app/ui/callui'
-import { useCallSIP } from '@/app/callSIPContext'
+import { useCallSIP } from '@/app/CallSIPContext'
 
 interface UserData {
     displayName?: string;

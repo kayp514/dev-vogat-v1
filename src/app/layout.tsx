@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { CallSIPProvider } from "./callSIPContext";
+import { CallSIPProvider } from "./CallSIPContext";
 
 
 const geistSans = localFont({

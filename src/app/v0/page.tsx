@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from 'next/headers';
 import SideBar from "@/app/ui/sidebar";
-import { CallSIPProvider } from "@/app/callSIPContext";
+import { CallSIPProvider } from "@/app/CallSIPContext";
 
 
 const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
