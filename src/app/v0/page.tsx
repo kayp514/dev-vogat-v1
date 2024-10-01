@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { cookies } from 'next/headers';
 import SideBar from "@/app/ui/sidebar";
 import { CallSIPProvider } from "@/app/CallSIPContext";
+import { SIPProvider } from "@/app/SIPContext";
+import { SIPInitializer } from "../SIPInitializer";
 
 
 const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
@@ -44,11 +46,13 @@ export default async function VzeroPage() {
 
   try {
     const userData = await getUserData(token.value);
-
     return (
-      <CallSIPProvider>
+      <SIPProvider>
+        <CallSIPProvider>
+        <SIPInitializer />
         <SideBar userData={userData} />
        </CallSIPProvider>
+       </SIPProvider>
     );
     
 } catch (error) {

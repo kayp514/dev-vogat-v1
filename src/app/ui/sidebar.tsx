@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { useState } from 'react'
 import CallService from './callservice'
 import ChatService from './chatservice'
 import SettingsScreen from './settingsScreen'
@@ -26,6 +25,7 @@ import {
 
 import CallUI from '@/app/ui/callui'
 import { useCallSIP } from '@/app/CallSIPContext'
+import { useSIP } from '@/app/SIPContext'
 
 interface UserData {
     displayName?: string;
@@ -55,7 +55,8 @@ const navigation = [
 
 export default function SideBar({ userData }: { userData: UserData }) {
     const [activeTab, setActiveTab] = useState('chat');
-    const { isCallActive, activeNumber, callState, callType, sipStatus, handleEndCall, setIsCallActive } = useCallSIP();
+    const { isInitialized, isRegistered } = useSIP()
+    const { isCallActive, activeNumber, callState, callType, handleEndCall, setIsCallActive} = useCallSIP();
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
 

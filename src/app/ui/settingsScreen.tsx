@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { debugAudioState } from '@/lib/call'
 
 type UserData = {
   displayName?: string;
@@ -41,6 +42,10 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
     server: ''
   })
   const [savedSipSecurityInfo, setSavedSipSecurityInfo] = useState<SipSecurityInfo | null>(null)
+
+  const handleDebug = () => {
+    debugAudioState()
+  }
 
   useEffect(() => {
     // Load saved data from localStorage when component mounts
@@ -176,6 +181,13 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
                     <CardContent className="pt-6">
                       <h3 className="text-lg font-semibold mb-4">Audio Settings</h3>
                       <p>Configure your microphone and speaker settings for calls.</p>
+                      <Button 
+                        variant="outline"
+                        className="items-center justify-center p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        onClick={handleDebug}
+>
+                        <span className="text-xs text-gray-600">Debug Audio</span>
+                      </Button>
                     </CardContent>
                   </Card>
                   <Card>

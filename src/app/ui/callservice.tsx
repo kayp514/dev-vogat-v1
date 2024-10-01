@@ -1,10 +1,13 @@
-import { useEffect } from 'react';
+'use client'
+
 import CallHistory from './callhistory';
 import InputNumber from './inputnumber';
 import { useCallSIP } from '@/app/CallSIPContext';
+
 export default function CallService() {
   
   const { handleOutgoingCall } = useCallSIP();
+
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-white">

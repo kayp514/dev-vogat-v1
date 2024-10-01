@@ -23,6 +23,14 @@ import { Transport, TransportOptions } from 'sip.js/lib/platform/web/transport';
 let userAgent: UserAgent | null = null;
 let registerer: Registerer | null = null;
 let currentSession: Session | null = null;
+let isRegistering = false;
+let remoteAudio: HTMLAudioElement | null = null;
+
+let registrationStateChangeHandler: ((state: RegistrationState) => void) | null = null;
+let callStateChangeHandler: ((state: CallState) => void) | null = null
+
+export type RegistrationState = 'Initial' | 'Registered' | 'Unregistered' | 'Terminated';
+
 
 export type SIPResponse = {
   status: 'success' | 'warning' | 'error';
@@ -38,6 +46,8 @@ export type SIPConfig = {
   protocol: 'udp' | 'tcp' | 'tls';
   socket: string;
 }
+
+export type CallState = 'idle' | 'establishing' | 'established' | 'terminating' | 'terminated' | 'error'
 
 interface CustomSessionDescriptionHandlerOptions extends SessionDescriptionHandlerOptions {
   hold?: boolean;
@@ -68,6 +78,36 @@ class CustomTransport extends Transport {
 
 function isInviterOrInvitation(session: Session): session is Inviter | Invitation {
   return 'terminate' in session && typeof session.terminate === 'function';
+}
+
+function mapSessionStateToCallState(sessionState: SessionState): CallState {
+  switch(sessionState){
+    case SessionState.Initial:
+      return 'idle'
+    case SessionState.Establishing:
+      return 'establishing'
+    case SessionState.Established:
+      return 'established'
+    case SessionState.Terminating:
+      return 'terminating'
+    case SessionState.Terminated:
+      return 'terminated'
+    default:
+      return 'error'
+  }
+}
+
+function createRemoteAudio() {
+  if (!remoteAudio) {
+    remoteAudio = new Audio();
+    remoteAudio.autoplay = true;
+    document.body.appendChild(remoteAudio);
+  }
+  return remoteAudio;
+}
+
+export function handleCallStateChange(callback: (state: CallState) => void) {
+  callStateChangeHandler = callback;
 }
 
 export async function initializeSIP(): Promise<SIPResponse> {
@@ -112,7 +152,9 @@ export async function initializeSIP(): Promise<SIPResponse> {
     };
 
     registerer = new Registerer(userAgent, registerOptions);
-    registerer.stateChange.addListener(handleRegistrationStateChange);
+    handleRegistrationStateChange((state) => {
+      console.log(`Registration state changed to ${state}`);
+    });
 
     await registerUserAgent();
 
@@ -150,63 +192,93 @@ function getSavedSIPConfig(): SIPConfig | null {
 }
 
 export function isUserAgentRegistered(): boolean {
-  return registerer !== null && registerer.state === RegistererState.Registered;
+  return registerer?.state === RegistererState.Registered
 }
 
 export async function registerUserAgent(): Promise<SIPResponse> {
   if (!userAgent) {
-    return { status: 'error', message: 'UserAgent not initialized' };
+    return { status: 'error', message: 'User agent not initialized' };
   }
 
   if (isUserAgentRegistered()) {
-    return { status: 'warning', message: 'UserAgent is already registered' };
+    return { status: 'success', message: 'User agent already registered' };
+  }
+
+  if (isRegistering) {
+    return { status: 'error', message: 'Registration already in progress' };
   }
 
   try {
+    isRegistering = true;
     if (!registerer) {
-      const registerOptions: RegistererOptions = {
-      };
-      registerer = new Registerer(userAgent, registerOptions);
+      registerer = new Registerer(userAgent);
     }
-
     await registerer.register();
-    return { status: 'success', message: 'UserAgent registered successfully' };
+    return { status: 'success', message: 'User agent registered successfully' };
   } catch (error) {
-    console.error('Error registering UserAgent:', error);
-    return { status: 'error', message: 'Failed to register UserAgent' };
+    return { status: 'error', message: 'Failed to register user agent' };
+  } finally {
+    isRegistering = false;
   }
 }
 
 export async function unregisterUserAgent(): Promise<SIPResponse> {
-  if (!registerer) {
-    return { status: 'warning', message: 'UserAgent is not registered' };
+  if (!userAgent || !registerer) {
+    return { status: 'error', message: 'User agent not initialized or not registered' };
+  }
+
+  if (registerer.state === RegistererState.Terminated) {
+    return { status: 'success', message: 'User agent already unregistered' };
   }
 
   try {
     await registerer.unregister();
-    registerer = null;
-    return { status: 'success', message: 'UserAgent unregistered successfully' };
+    return { status: 'success', message: 'User agent unregistered successfully' };
   } catch (error) {
-    console.error('Error unregistering UserAgent:', error);
-    return { status: 'error', message: 'Failed to unregister UserAgent' };
+    return { status: 'error', message: 'Failed to unregister user agent' };
   }
 }
 
-export function getRegistrationState(): RegistererState | null {
-  return registerer ? registerer.state : null;
+export function getRegistrationState(): RegistrationState {
+  if (!registerer) {
+    return 'Unregistered';
+  }
+  switch (registerer.state) {
+    case RegistererState.Initial:
+      return 'Initial';
+    case RegistererState.Registered:
+      return 'Registered';
+    case RegistererState.Unregistered:
+      return 'Unregistered';
+    case RegistererState.Terminated:
+      return 'Terminated';
+    default:
+      return 'Unregistered';
+  }
 }
 
-export function handleRegistrationStateChange(newState: RegistererState): void {
-  console.log(`Registration state changed to: ${newState}`);
+export function handleRegistrationStateChange(callback: (state: RegistrationState) => void) {
+  registrationStateChangeHandler = callback;
+  if (registerer) {
+    registerer.stateChange.addListener((newState) => {
+      if (registrationStateChangeHandler) {
+        registrationStateChangeHandler(getRegistrationState());
+      }
+    });
+  }
 }
 
 export async function ensureUserAgentRegistered(): Promise<SIPResponse> {
-  if (isUserAgentRegistered()) {
-    return { status: 'success', message: 'UserAgent is already registered' };
+    if (!userAgent) {
+      return { status: 'error', message: 'User agent not initialized' };
+    }
+  
+    if (isUserAgentRegistered()) {
+      return { status: 'success', message: 'User agent already registered' };
+    }
+  
+    return registerUserAgent();
   }
-
-  return await registerUserAgent();
-}
 
 function handleIncomingCall(invitation: Invitation): void {
   if (!isUserAgentRegistered()) {
@@ -259,19 +331,22 @@ function handleIncomingCall(invitation: Invitation): void {
   });
 }
 
-export async function makeOutgoingCall(phoneNumber: string): Promise<SIPResponse> {
+export async function makeOutgoingCall(phoneNumber: string, onStateChange: (state: CallState) => void): Promise<SIPResponse> {
   const registrationStatus = await ensureUserAgentRegistered();
   if (registrationStatus.status !== 'success') {
+    onStateChange('error');
     return registrationStatus;
   }
 
   if (!userAgent) {
+    onStateChange('error');
     return { status: 'error', message: 'UserAgent not initialized' };
   }
 
   try {
     const target = UserAgent.makeURI(`sip:${phoneNumber}@${getSavedSIPConfig()?.server}`);
     if (!target) {
+      onStateChange('error');
       throw new Error('Failed to create target URI');
     }
 
@@ -282,9 +357,19 @@ export async function makeOutgoingCall(phoneNumber: string): Promise<SIPResponse
     };
 
     const inviter = new Inviter(userAgent, target, inviterOptions);
+    let currentCallState : CallState = 'establishing';
+    onStateChange(currentCallState);
 
     inviter.stateChange.addListener((state: SessionState) => {
-      console.log(`Outgoing call state changed to ${state}`);
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] Outgoing call state changed to ${state}`);
+      currentCallState = mapSessionStateToCallState(state);
+      onStateChange(currentCallState);
+
+      if (callStateChangeHandler) {
+        callStateChangeHandler(currentCallState);
+      }
+
       switch (state) {
         case SessionState.Establishing:
           console.log('Outgoing call is being established...');
@@ -307,7 +392,7 @@ export async function makeOutgoingCall(phoneNumber: string): Promise<SIPResponse
     });
 
     await inviter.invite();
-    return { status: 'success', message: 'Outgoing call initiated' };
+    return { status: 'success', message: currentCallState };
   } catch (error) {
     console.error('Error making outgoing call:', error);
     return { status: 'error', message: 'Failed to make outgoing call' };
@@ -315,58 +400,65 @@ export async function makeOutgoingCall(phoneNumber: string): Promise<SIPResponse
 }
 
 function handleSession(session: Session): void {
+  console.log('Handling new session');
+  const audio = createRemoteAudio();
 
-  const remoteStream = new MediaStream();
-  const remoteAudio = new Audio();
-  remoteAudio.autoplay = true;
-  remoteAudio.srcObject = remoteStream;
-
-  if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
-    session.sessionDescriptionHandler.peerConnectionDelegate = {
+  if (session.sessionDescriptionHandler) {
+    const peerConnectionDelegate = {
       ontrack: (event: RTCTrackEvent) => {
-        const track = event.track;
-        if (track.kind === 'audio') {
-          remoteStream.addTrack(track);
+        console.log('Received remote track:', event.track.kind);
+        const [remoteStream] = event.streams;
+        if (audio && remoteStream) {
+          audio.srcObject = remoteStream;
         }
       }
     };
 
-    session.delegate = {
-      onSessionDescriptionHandler: (sessionDescriptionHandler: Web.SessionDescriptionHandler, provisional: boolean) => {
-        console.log(`session description handler created: ${provisional} ? 'provisionally' : ''`);
+    if ('peerConnectionDelegate' in session.sessionDescriptionHandler) {
+      (session.sessionDescriptionHandler as any).peerConnectionDelegate = peerConnectionDelegate;
+    } else {
+      console.warn('peerConnectionDelegate not available on sessionDescriptionHandler');
+    }
 
-        const peerConnection = sessionDescriptionHandler.peerConnection;
+    if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
+      const peerConnection = session.sessionDescriptionHandler.peerConnection;
 
-        peerConnection?.getReceivers().forEach((receiver) => {
-          if (receiver.track) {
-            remoteStream.addTrack(receiver.track);
+      peerConnection?.addEventListener('connectionstatechange', () => {
+        console.log('PeerConnection state changed:', peerConnection?.connectionState);
+        if (peerConnection?.connectionState === 'connected') {
+          const remoteStream = new MediaStream(
+            peerConnection.getReceivers().map((receiver) => receiver.track)
+          );
+          if (audio) {
+            audio.srcObject = remoteStream;
           }
-        });
+        }
+      });
 
-        peerConnection?.addEventListener('track', (event: RTCTrackEvent) => {
-          const track = event.track;
-          if (track.kind === 'audio') {
-            remoteStream.addTrack(track);
-          }
-        });
-      }
-    };
-  } else {
-    console.error('Unsupported session description handler');
+      peerConnection?.addEventListener('track', (event: RTCTrackEvent) => {
+        console.log('Received track directly on peerConnection:', event.track.kind);
+        const [remoteStream] = event.streams;
+        if (audio && remoteStream) {
+          audio.srcObject = remoteStream;
+        }
+      });
+    }
   }
 
   session.stateChange.addListener((state: SessionState) => {
     console.log(`Session state changed to ${state}`);
     switch (state) {
-      case SessionState.Terminating:
-        console.log('Session is terminating...');
+      case SessionState.Established:
+        console.log('Call established, ensuring audio is playing');
+        audio.play().catch(error => console.error('Error playing remote audio:', error));
         break;
       case SessionState.Terminated:
         console.log('Session has been terminated');
-        if (remoteAudio) {
-          remoteAudio.srcObject = null;
+        if (audio.srcObject) {
+          const tracks = (audio.srcObject as MediaStream).getTracks();
+          tracks.forEach(track => track.stop());
         }
-        currentSession = null;
+        audio.srcObject = null;
         break;
     }
   });
@@ -378,14 +470,18 @@ export function terminateCall(): SIPResponse {
       currentSession.bye()
         .then(() => {
           console.log('Call terminated successfully');
+          cleanupCall();
         })
         .catch((error: Error) => {
           console.error('Error terminating call:', error);
+          cleanupCall();
         });
     } else if (isInviterOrInvitation(currentSession)) {
       currentSession.dispose();
+      cleanupCall();
     } else {
       console.warn('Unable to terminate the current session');
+      cleanupCall();
       return { status: 'error', message: 'Unable to terminate the current session' };
     }
     return { status: 'success', message: 'Call termination initiated' };
@@ -442,42 +538,20 @@ export function sendDTMF(tone: string): SIPResponse {
   return { status: 'warning', message: 'No active call to send DTMF' };
 }
 
-export async function cleanup(): Promise<void> {
-  if (currentSession) {
-    try {
-      if (currentSession.state === SessionState.Established) {
-        await currentSession.bye();
-      } else if ('dispose' in currentSession && typeof currentSession.dispose === 'function') {
-        currentSession.dispose();
-      } else {
-        console.warn('Unable to terminate the current session');
-      }
-      console.log('Active call terminated during cleanup');
-    } catch (error) {
-      console.error('Error terminating active call during cleanup:', error);
+function cleanupCall() {
+  currentSession = null;
+  if (remoteAudio) {
+    if (remoteAudio.srcObject) {
+      const tracks = (remoteAudio.srcObject as MediaStream).getTracks();
+      tracks.forEach(track => track.stop());
     }
-    currentSession = null;
+    remoteAudio.srcObject = null;
+    remoteAudio.remove();
+    remoteAudio = null;
   }
-
-  if (registerer) {
-    try {
-      await unregisterUserAgent();
-    } catch (error) {
-      console.error('Error unregistering UserAgent:', error);
-    }
+  if (callStateChangeHandler) {
+    callStateChangeHandler('idle');
   }
-
-  if (userAgent) {
-    try {
-      await userAgent.stop();
-      console.log('UserAgent stopped');
-    } catch (error) {
-      console.error('Error stopping UserAgent:', error);
-    }
-    userAgent = null;
-  }
-
-  console.log('SIP resources cleaned up');
 }
 
 export function getCallStatus(): SIPResponse {
@@ -599,6 +673,21 @@ export async function setAudioDevice(deviceId: string): Promise<SIPResponse> {
     console.error('Error setting audio device:', error);
     return { status: 'error', message: `Failed to set audio device: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
+}
+
+export function setAudioOutputDevice(deviceId: string): SIPResponse {
+  if (currentSession) {
+    const remoteAudio = document.getElementById('remoteAudio') as HTMLAudioElement;
+    if (remoteAudio && 'setSinkId' in remoteAudio) {
+      try {
+        (remoteAudio as any).setSinkId(deviceId);
+        return { status: 'success', message: 'Audio output device set successfully' };
+      } catch (error) {
+        return { status: 'error', message: 'Failed to set audio output device' };
+      }
+    }
+  }
+  return { status: 'warning', message: 'No active call or audio element not found' };
 }
 
 export function getCallDuration(): SIPResponse {
@@ -739,4 +828,30 @@ export function monitorSIPStatus(): SIPResponse {
     return { status: 'error', message: 'SIP is no longer registered' };
   }
   return { status: 'success', message: 'SIP is still initialized and registered' };
+}
+
+export function debugAudioState(): void {
+  if (currentSession && currentSession.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
+    const peerConnection = currentSession.sessionDescriptionHandler.peerConnection;
+    console.log('Current session state:', currentSession.state);
+    console.log('Peer connection state:', peerConnection?.connectionState);
+    console.log('ICE connection state:', peerConnection?.iceConnectionState);
+    console.log('Signaling state:', peerConnection?.signalingState);
+    
+    peerConnection?.getReceivers().forEach((receiver, index) => {
+      console.log(`Receiver ${index}:`, receiver.track ? receiver.track.kind : 'No track');
+    });
+
+    if (remoteAudio) {
+      console.log('Remote audio element:', remoteAudio);
+      console.log('Remote audio srcObject:', remoteAudio.srcObject);
+      if (remoteAudio.srcObject instanceof MediaStream) {
+        console.log('Remote audio tracks:', remoteAudio.srcObject.getTracks());
+      }
+    } else {
+      console.log('No remote audio element');
+    }
+  } else {
+    console.log('No active session or invalid session description handler');
+  }
 }

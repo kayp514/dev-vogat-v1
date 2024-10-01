@@ -9,11 +9,11 @@ import { CallState, CallType } from '@/app/CallSIPContext';
 import { mute, unmute, sendDTMF, terminateCall, getNetworkType, getCallDuration } from '../../lib/call'
 
 interface CallUIProps {
-  activeNumber: string
-  callState: CallState
-  callType: CallType
+  activeNumber: string;
+  callState: CallState;
+  callType: CallType;
   handleEndCall: () => void
-  setIsCallActive: React.Dispatch<React.SetStateAction<boolean>>
+  setIsCallActive: (isActive: boolean) => void
 }
 
 
@@ -73,6 +73,7 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
   const [callDuration, setCallDuration] = useState(0)
   const [networkQuality, setNetworkQuality] = useState('Excellent')
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const callStartTimeRef = useRef<number | null>(null)
 
   
   const handleMuteToggle = () => {
@@ -95,8 +96,8 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
   }
 
   useEffect(() => {
+    console.log('callState:', callState)
     let intervalId: NodeJS.Timeout
-    let playPromise: Promise<void> | null = null
 
     const updateNetworkQuality = () => {
       const networkInfo = getNetworkType()
@@ -106,10 +107,9 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
     }
 
     const updateCallDuration = () => {
-      const durationInfo = getCallDuration()
-      if (durationInfo.status === 'success') {
-        const durationInSeconds = parseInt(durationInfo.message.split(': ')[1])
-        setCallDuration(durationInSeconds)
+      if (callStartTimeRef.current && callState === 'established') {
+        const currentDuration = Math.floor((Date.now() - callStartTimeRef.current) / 1000)
+        setCallDuration(currentDuration)
       }
     }
 
@@ -119,49 +119,36 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
         audioRef.current.loop = true
       }
 
-      if (callState === 'ringing') {
-        if (audioRef.current.paused) {
-          playPromise = audioRef.current.play()
-          playPromise?.catch(error => {
+      if (callState === 'establishing') {
+        console.log('callui playing ringtone')
+          audioRef.current.play().catch(error => {
             if (error.name !== 'AbortError') {
               console.error('Error playing ringtone:', error)
             }
           })
-        }
       } else {
-        if (playPromise) {
-          playPromise
-            .then(() => {
-              if (audioRef.current) {
-                audioRef.current.pause()
-                audioRef.current.currentTime = 0
-              }
-            })
-            .catch(error => {
-              if (error.name !== 'AbortError') {
-                console.error('Error handling audio:', error)
-              }
-            })
-        } else if (audioRef.current) {
-          audioRef.current.pause()
-          audioRef.current.currentTime = 0
-        }
+        console.log('callui pausing ringtone')
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
       }
     }
 
     handleAudio()
 
-    if (callState === 'active') {
+    if (callState === 'established') {
+      console.log('callui setting callStartTimeRef')
+      if (!callStartTimeRef.current) {
+        callStartTimeRef.current = Date.now()
+      }
       intervalId = setInterval(() => {
         updateNetworkQuality()
         updateCallDuration()
       }, 1000)
+    } else {
+      console.log('callui resetting callStartTimeRef')
+      callStartTimeRef.current = null
+      setCallDuration(0)
     }
-
-    intervalId = setInterval(() => {
-      updateNetworkQuality()
-      updateCallDuration()
-    }, 1000)
 
     return () => {
       if (intervalId) {
@@ -229,7 +216,7 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
             <span className="text-xs text-gray-600">{networkQuality}</span>
           </div>
           <div className="text-xs pl-40 text-gray-600">
-          {callState === 'ringing' ? 'Ringing...' : formatDuration(callDuration)}
+          {callState === 'establishing' ? 'Ringing...' : (callState === 'established' ? `Duration: ${formatDuration(callDuration)}` : '')}
           </div>
         </div>
 
