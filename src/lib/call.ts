@@ -323,7 +323,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
     console.log('using viaHost:', viaHost)
   
     const transportOptions: TransportOptions = {
-      server: `ws://4.239.250.193:6050/ws`,
+      server: `wss://sips.lifesprintcare.ca:6051/ws`,
       connectionTimeout: 15000,
       keepAliveInterval: 30000,
       traceSip: true,
@@ -563,6 +563,9 @@ export async function registerUserAgent(): Promise<SIPResponse> {
         if (!registerer) {
           const registerOptions: RegistererOptions = {
             registrar: userAgent.configuration.uri,
+            extraHeaders: [
+              'Contact: <sip:9lifesprint999@172.110.70.155:57432;transport=tcp>',
+            ],
           };
           registerer = new Registerer(userAgent, registerOptions);
           
