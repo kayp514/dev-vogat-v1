@@ -8,7 +8,8 @@ import { initializeSIP,
     unregisterUserAgent, 
     getRegistrationState, 
     handleRegistrationStateChange, 
-    RegistrationState } from '@/lib/call'
+    RegistrationState,
+ } from '@/lib/call'
 import { toast } from '@/hooks/use-toast'
 
 type SIPStatus = 'uninitialized' | 'initializing' | 'initialized' | 'registering' | 'registered' | 'unregistering' | 'error'
@@ -60,10 +61,9 @@ export function SIPProvider({ children }: { children: ReactNode }) {
     setSipStatus('initializing')
     const response = await initializeSIP()
     if (response.status === 'success') {
-      setSipStatus('initialized')
+      setSipStatus('registered')
       setIsInitialized(true)
-      const registrationState = getRegistrationState()
-      updateRegistrationState(registrationState)
+      setIsRegistered(true)
     } else {
       setSipStatus('error')
       toast({
@@ -72,7 +72,7 @@ export function SIPProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       })
     }
-  }, [updateRegistrationState])
+  }, [])
 
   const register = useCallback(async () => {
     if (!isInitialized) {
@@ -89,12 +89,7 @@ export function SIPProvider({ children }: { children: ReactNode }) {
     }
 
     if (sipStatus === 'registering') {
-      toast({
-        title: "Registration in Progress",
-        description: "A registration attempt is already in progress.",
-        variant: "default",
-      })
-      return
+      return // Already registering, do nothing
     }
 
     setSipStatus('registering')
@@ -103,20 +98,15 @@ export function SIPProvider({ children }: { children: ReactNode }) {
       if (response.status === 'success') {
         setSipStatus('registered')
         setIsRegistered(true)
+      } else if (response.status === 'warning') {
+        // Registration already in progress, do nothing
       } else {
-        // Even if an error is returned, check if we're actually registered
-        const actualRegistrationState = getRegistrationState()
-        if (actualRegistrationState === 'Registered') {
-          setSipStatus('registered')
-          setIsRegistered(true)
-        } else {
-          setSipStatus('error')
-          toast({
-            title: "SIP Registration Failed",
-            description: response.message,
-            variant: "destructive",
-          })
-        }
+        setSipStatus('error')
+        toast({
+          title: "SIP Registration Failed",
+          description: response.message,
+          variant: "destructive",
+        })
       }
     } catch (error) {
       setSipStatus('error')

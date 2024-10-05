@@ -1,12 +1,21 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
-import { makeOutgoingCall, terminateCall, SIPResponse, CallState } from '@/lib/call'
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react'
+import { makeOutgoingCall, 
+  terminateCall, 
+  SIPResponse, 
+  CallState, 
+  handleCallStateChange, 
+  listenForIncomingCalls, 
+  acceptIncomingCall, 
+  type Invitation,
+  getUserAgent,
+  setCallStateChangeHandler } from '@/lib/call'
 import { toast } from '@/hooks/use-toast'
 import { useSIP } from './SIPContext'
 
 export type CallType = 'outgoing' | 'incoming'
-export type {CallState} from '@/lib/call'
+export type { CallState } from '@/lib/call'
 
 
 interface CallSIPContextType {
@@ -15,7 +24,7 @@ interface CallSIPContextType {
   callType: CallType
   callState: CallState
   handleOutgoingCall: (phoneNumber: string) => Promise<void>
-  handleIncomingCall: (phoneNumber: string) => void
+  handleIncomingCall: (invitation: Invitation) => void
   handleEndCall: () => void
   setIsCallActive: (isCallActive: boolean) => void
 }
@@ -30,19 +39,25 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
   const [isCallActive, setIsCallActive] = useState(false)
 
 
-  const handleCallStateChange = useCallback((newState: CallState) => {
-    console.log('Call state changed to:', newState)
-    setCallState(newState)
+  const handleCallStateChangeContext = useCallback((newState: CallState) => {
+    console.log('Call state changed to:', newState);
+    setCallState(newState);
     if (newState === 'terminated' || newState === 'error') {
-      setIsCallActive(false)
-      setActiveNumber('')
+      setIsCallActive(false);
+      setActiveNumber('');
+    } else if (newState === 'established') {
+      setIsCallActive(true);
     }
-  }, [])
+  }, []);
+
+  useEffect(() => {
+    setCallStateChangeHandler(handleCallStateChangeContext)
+  }, [handleCallStateChangeContext])
 
 
-  const handleOutgoingCall = async (phoneNumber: string) => {
+  const handleOutgoingCall = useCallback(async (phoneNumber: string) => {
     if (!isInitialized || !isRegistered) {
-      handleCallStateChange('error')
+      handleCallStateChangeContext('error')
       toast({
         title: "Call Failed",
         description: "SIP is not initialized or registered. Please try again later.",
@@ -55,13 +70,13 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
     setIsCallActive(true)
     setActiveNumber(phoneNumber)
     setCallType('outgoing')
-    handleCallStateChange('establishing')
+    handleCallStateChangeContext('establishing')
 
     try {
-      const response: SIPResponse = await makeOutgoingCall(phoneNumber, handleCallStateChange)
+      const response: SIPResponse = await makeOutgoingCall(phoneNumber, handleCallStateChangeContext)
         console.log('makeOutgoingCall:', response)
         if (response.status !== 'success') {
-          handleCallStateChange('error')
+          handleCallStateChangeContext('error')
           toast({
             title: "Call Failed",
             description: response.message,
@@ -70,35 +85,67 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
         }
     } catch (error) {
       console.error('Error in makeOutgoingCall:', error)
-      handleCallStateChange('error')
+      handleCallStateChangeContext('error')
       toast({
         title: "Call Failed",
         description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       })
     }
-  }
+  }, [isInitialized, isRegistered, makeOutgoingCall, handleCallStateChangeContext])
 
-  const handleIncomingCall = (phoneNumber: string) => {
-    console.log('handleIncomingCall triggered with number:', phoneNumber)
-    setActiveNumber(phoneNumber)
-    setCallType('incoming')
-    handleCallStateChange('establishing')
-  }
+  const handleIncomingCall = useCallback((invitation: Invitation) => {
+    console.log('handleIncomingCall triggered with invitation:', invitation);
+    setIsCallActive(true);
+    setActiveNumber(invitation.request?.ruri?.user || 'unknown');
+    setCallType('incoming');
+    handleCallStateChangeContext('establishing');
 
-  const handleEndCall = () => {
+    acceptIncomingCall(invitation)
+      .then(() => {
+        console.log('Call accepted successfully');
+        handleCallStateChangeContext('established');
+      })
+      .catch((error) => {
+        console.error('Error accepting call:', error);
+        toast({
+          title: "Call Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        handleCallStateChangeContext('error');
+      });
+  }, [handleCallStateChangeContext]);
+
+
+  const handleEndCall = useCallback(() => {
     console.log('handleEndCall triggered')
     const response: SIPResponse = terminateCall()
-    if (response.status === 'success') {
-      handleCallStateChange('terminated')
-    } else {
-      toast({
-        title: "Error Ending Call",
-        description: response.message,
-        variant: "destructive",
-      })
+    toast({
+      title: "Error Ending Call",
+      description: response.message,
+      variant: "destructive",
+    })
+  }, [])
+
+useEffect(() => {
+    if (isInitialized && isRegistered) {
+      console.log('Setting up listener for incoming calls')
+      const userAgent = getUserAgent()
+      if (userAgent) {
+        const cleanupListener = listenForIncomingCalls((invitation) => {
+          console.log('Incoming call received:', invitation);
+          handleIncomingCall(invitation);
+        });
+        return () => {
+          console.log('Cleaning up listener')
+          cleanupListener()
+        }
+      } else {
+        console.error('UserAgent not initialized')
+      }
     }
-  }
+  }, [isInitialized, isRegistered, handleIncomingCall])
 
 
   return (

@@ -17,10 +17,10 @@ export function SIPInitializer() {
   }, [sipStatus, initializeSIP])
 
   useEffect(() => {
-    if (isInitialized && !isRegistered) {
+    if (isInitialized && !isRegistered && sipStatus !== 'registering') {
       register()
     }
-  }, [isInitialized, isRegistered, register])
+  }, [isInitialized, isRegistered, sipStatus, register])
 
   if (sipStatus === 'registered') {
     return null

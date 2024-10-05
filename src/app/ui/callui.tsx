@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon, SpeakerWaveIcon, PhoneIcon, ArrowPathRoundedSquareIcon, CalculatorIcon } from '@heroicons/react/24/solid'
 import { PhoneCall, PhoneOutgoing, PhoneMissed, Voicemail, SignalIcon, Mic, Phone, PhoneForwarded} from "lucide-react"
@@ -90,10 +90,10 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
     setIsSpeakerOn(!isSpeakerOn)
   }
 
-  const handleHangUp = () => {
+  const handleHangUp = useCallback(() => {
     terminateCall()
     handleEndCall()
-  }
+  }, [handleEndCall])
 
   useEffect(() => {
     console.log('callState:', callState)
@@ -174,14 +174,14 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
   const handleTransfer = () => setIsTransferring(!isTransferring)
   const handleDialpad = () => setIsDialpadOpen(!isDialpadOpen)
 
-  const onEndCall = () => {
+  const onEndCall = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.currentTime = 0
     }
     handleEndCall()
     setIsCallActive(false)
-  }
+  }, [handleEndCall, setIsCallActive])
 
   if (callState === 'idle') return null
 

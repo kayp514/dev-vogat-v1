@@ -16,9 +16,9 @@ import {
   SessionDescriptionHandlerOptions,
   SessionDescriptionHandler,
 } from 'sip.js';
+import { IncomingInviteRequest, IncomingRequestMessage } from 'sip.js/lib/core/messages';
 
 import { Transport, TransportOptions } from 'sip.js/lib/platform/web/transport';
-
 
 let userAgent: UserAgent | null = null;
 let registerer: Registerer | null = null;
@@ -27,9 +27,21 @@ let isRegistering = false;
 let remoteAudio: HTMLAudioElement | null = null;
 
 let registrationStateChangeHandler: ((state: RegistrationState) => void) | null = null;
-let callStateChangeHandler: ((state: CallState) => void) | null = null
+let callState: CallState = 'idle';
+let callStateChangeHandler: ((state: CallState) => void) | null = null;
+let incomingCallHandler: ((invitation: Invitation) => void) | null = null;
+
+let registrationAttemptInProgress = false;
+let registrationRetryCount = 0;
+const MAX_REGISTRATION_RETRIES = 3;
+
+let registrationQueue: (() => Promise<void>)[] = [];
+let isProcessingQueue = false;
+const REGISTER_TIMEOUT = 32000;
 
 export type RegistrationState = 'Initial' | 'Registered' | 'Unregistered' | 'Terminated';
+
+export type { Invitation } ;
 
 
 export type SIPResponse = {
@@ -45,9 +57,98 @@ export type SIPConfig = {
   port: number;
   protocol: 'udp' | 'tcp' | 'tls';
   socket: string;
+  outboundProxy?: string;
+  phoneNumber?: number;
+  sipExtension?: number; 
+}
+
+interface CallMatchingConfig {
+  blackList?: string[];
+  whiteList?: string[];
+  customMatch?: (invitation: Invitation) => Promise<boolean>;
+  earlyMedia?: boolean;
+}
+
+interface ListenForIncomingCallsOptions{
+  userAgent: UserAgent;
+  handler: (invitation: Invitation) => void;
+  config?: {
+    blackList?: string[];
+    whiteList?: string[];
+    customMatch?: (invitation: Invitation) => Promise<boolean>;
+    earlyMedia?: boolean;
+  };
+}
+
+interface AliasMapping {
+  [key: string]: string;
+}
+
+const CONFIG = {
+  ourDomain: 'sips.lifesprintcare.ca',
+  fallbackIp: '172.110.70.155',
+  domain: 'sips.lifesprintcare.ca',
+  localIP: '172.110.70.155',
+};
+
+interface UserInfo {
+  username: string;
+  phoneNumber: string;
+}
+
+
+async function fetchUserInfo(identifier: string): Promise<UserInfo> {
+  // In a real implementation, this would be an API call to your backend
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // Simulating a server-side lookup
+      const phoneNumber = `1${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+      resolve({ username: identifier, phoneNumber: phoneNumber });
+    }, 300); // Simulating network delay
+  });
+}
+
+function normalizePhoneNumber(phoneNumber: string): string {
+  const cleaned = phoneNumber.replace(/\D/g, '');
+  return cleaned.startsWith('1') ? cleaned : `1${cleaned}`;
+}
+
+
+function normalizeNumberGoogle(number: string): string {
+  const digitsOnly = number.replace(/\D/g, '');
+  return digitsOnly.startsWith('1') ? digitsOnly : '1' + digitsOnly;
+}
+
+function parseUri(uriString: string): URI | undefined {
+  try {
+    return UserAgent.makeURI(uriString);
+  } catch (error) {
+    console.error('Error parsing URI:', error);
+    return undefined;
+  }
+}
+
+function logSipEvent(event: string, details: any): void {
+  console.log(`SIP Event: ${event}`, JSON.stringify(details, null, 2));
+}
+
+function validateAndCorrectUri(uri: URI): URI {
+  if (uri.host.endsWith('.invalid')) {
+    uri.host = CONFIG.ourDomain;
+  }
+  return uri;
+  }
+
+export function setUserAgent(ua: UserAgent) {
+  userAgent = ua;
+}
+
+export function getUserAgent(): UserAgent | null {
+  return userAgent;
 }
 
 export type CallState = 'idle' | 'establishing' | 'established' | 'terminating' | 'terminated' | 'error'
+
 
 interface CustomSessionDescriptionHandlerOptions extends SessionDescriptionHandlerOptions {
   hold?: boolean;
@@ -55,25 +156,49 @@ interface CustomSessionDescriptionHandlerOptions extends SessionDescriptionHandl
 
 
 class CustomTransport extends Transport {
+  private connectionState: boolean = false;
+
   constructor(logger: any, options: any) {
     super(logger, options);
   }
 
   public send(message: string): Promise<void> {
+    if (!this.connectionState) {
+      console.error('Transport not connected. Cannot send message:', message);
+      return Promise.reject(new Error('Transport not connected'));
+    }
     console.log('Sending message:', message);
-    return super.send(message);
+    return super.send(message).catch((error: Error) => {
+      console.error('Error sending message:', error);
+      throw error;
+    });
   }
 
   public async connect(): Promise<void> {
     console.log('Connecting transport');
-    await super.connect();
+    try {
+      await super.connect();
+      this.connectionState = true; // Track connection state
+    } catch (error) {
+      console.error('Error connecting transport:', error);
+      throw error;
+    }
   }
 
   public async disconnect(): Promise<void> {
     console.log('Disconnecting transport');
-    await super.disconnect();
+    try {
+      await super.disconnect();
+      this.connectionState = false; // Update connection state
+    } catch (error) {
+      console.error('Error disconnecting transport:', error);
+      throw error;
+    }
   }
 
+  public isConnected(): boolean {
+    return this.connectionState;
+  }
 }
 
 function isInviterOrInvitation(session: Session): session is Inviter | Invitation {
@@ -106,6 +231,73 @@ function createRemoteAudio() {
   return remoteAudio;
 }
 
+function getAssociatedNumber(request: IncomingRequestMessage): string | undefined {
+  const pCalledPartyId = request.getHeader('P-Called-Party-ID');
+  if (pCalledPartyId) {
+    const pCalledPartyIdUri = parseUri(pCalledPartyId);
+    if (pCalledPartyIdUri) {
+      return pCalledPartyIdUri.user;
+    }
+  }
+
+  const toUri = request.to?.uri;
+  if (toUri) {
+    return toUri.user;
+  }
+
+  if (request.ruri) {
+    return request.ruri.user;
+  }
+
+  return undefined;
+}
+
+function getAssociatedNumbers(request: IncomingRequestMessage): string[] {
+  const numbers: string[] = [];
+
+  const pAssertedIdentity = request.getHeader('P-Asserted-Identity');
+  if (pAssertedIdentity) {
+    const pAssertedIdentityUri = parseUri(pAssertedIdentity);
+    if (pAssertedIdentityUri && pAssertedIdentityUri.user) {
+      numbers.push(pAssertedIdentityUri.user);
+    }
+  }
+
+  if (request.from?.uri.user) {
+    numbers.push(request.from.uri.user);
+  }
+
+  if (request.to?.uri.user) {
+    numbers.push(request.to.uri.user);
+  }
+
+  if (request.ruri?.user) {
+    numbers.push(request.ruri.user);
+  }
+
+  const uniqueNumbers = new Set(numbers.map(normalizeNumberGoogle));
+  return Array.from(uniqueNumbers);
+}
+
+function isRequestComplete(request: IncomingRequestMessage): boolean {
+  const contentLengthHeader = request.getHeader('content-length');
+  const contentLength = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
+  
+  const body = request.body || '';
+  
+  return body.length >= contentLength;
+}
+
+function normalizePhoneNumberOLD(number: string): string {
+  return number.replace(/\D/g, '').replace(/^1/, '');
+}
+
+function isNumberMatch(num1: string, num2: string): boolean {
+  const norm1 = normalizePhoneNumber(num1);
+  const norm2 = normalizePhoneNumber(num2);
+  return norm1 === norm2 || norm1.endsWith(norm2) || norm2.endsWith(norm1);
+}
+
 export function handleCallStateChange(callback: (state: CallState) => void) {
   callStateChangeHandler = callback;
 }
@@ -125,50 +317,201 @@ export async function initializeSIP(): Promise<SIPResponse> {
     const uri = UserAgent.makeURI(`sip:${sipConfig.username}@${sipConfig.server}`);
     if (!uri) {
       throw new Error('Failed to create SIP URI');
-      return { status: 'error', message: 'Failed to create SIP URI' };
     }
 
-    
-    const transportOptions = {
-      server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/${sipConfig.socket}`,
-      connectionTimeout: 10000,
+    const viaHost = await getViaHost();
+    console.log('using viaHost:', viaHost)
+  
+    const transportOptions: TransportOptions = {
+      server: `ws://4.239.250.193:6050/ws`,
+      connectionTimeout: 15000,
+      keepAliveInterval: 30000,
+      traceSip: true,
     };
-
+  
     const userAgentOptions: UserAgentOptions = {
       uri,
-      transportConstructor: CustomTransport,
+      transportConstructor: CustomTransport, // Use CustomTransport
       transportOptions,
+      delegate: {
+        onInvite: (invitation: Invitation) => {
+          console.log('Incoming call accepted');
+          console.log('From:', invitation.remoteIdentity.uri.toString());
+          console.log('To:', invitation.localIdentity.uri.toString());
+        }
+      },
       authorizationUsername: sipConfig.username,
       authorizationPassword: sipConfig.password,
+      displayName: sipConfig.username,
+      contactName: sipConfig.username,
+      logLevel: 'debug',
+      logConfiguration: true,
+      hackAllowUnregisteredOptionTags: true,
+      hackViaTcp: true,
+      contactParams: { transport: 'TCP', rinstance: Math.floor(Math.random() * 10000000).toString() },
+      allowLegacyNotifications: true,
+      noAnswerTimeout: 60,
+      viaHost: await getViaHost(),
       userAgentString: 'Vogat/1.0',
     };
 
+
     userAgent = new UserAgent(userAgentOptions);
 
+
+// Set the contact URI manually after creating the UserAgent
+const contactUri = UserAgent.makeURI(`sip:6472438101@${userAgent.configuration.viaHost}:57432;transport=${userAgent.configuration.contactParams?.transport}`);
+if (contactUri) {
+  if (userAgent.contact) {
+    userAgent.contact.uri = contactUri;
+    console.log('Contact URI set to:', userAgent.contact.uri);
+  } else {
+    console.warn('UserAgent contact is null, unable to set contact URI');
+  }
+} else {
+  console.warn('Failed to create contact URI or contact URI parameters are null');
+}
+
+    
+
+    // Add event listeners for connection status
+    userAgent.transport.onConnect = () => console.log('Transport connected');
+    userAgent.transport.onDisconnect = (error) => console.error('Transport disconnected:', error);
+
     await userAgent.start();
+    console.log('UserAgent started');
 
-    const registerOptions: RegistererOptions = {
-      registrar: uri,
+
+    const acceptOptions = {
+      sessionDescriptionHandlerOptions: {
+        constraints: { audio: true, video: false }
+      },
     };
 
-    registerer = new Registerer(userAgent, registerOptions);
-    handleRegistrationStateChange((state) => {
-      console.log(`Registration state changed to ${state}`);
-    });
+    const registrationResult = await registerUserAgent();
+    if (registrationResult.status !== 'success') {
+      throw new Error(registrationResult.message);
+    }
 
-    await registerUserAgent();
 
-    userAgent.delegate = {
-      onInvite: (invitation: Invitation) => {
-        console.log('Incoming call received');
-        handleIncomingCall(invitation);
-      }
-    };
-
-    return { status: 'success', message: 'UserAgent initiated and registered' };
+    return { status: 'success', message: 'SIP initialized successfully' };
   } catch (error) {
     console.error("SIP initialization failed:", error);
-    return { status: 'error', message: `SIP initialization failed` };
+    return { status: 'error', message: `SIP initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+}
+
+
+export function listenForIncomingCalls(handler: (invitation: Invitation) => void): () => void {
+  if (!userAgent) {
+    console.warn('UserAgent not initialized');
+    return () => {};
+  }
+
+  userAgent.delegate = {
+    onInvite: (invitation: Invitation) => {
+      console.log('Incoming call received');
+      console.log('From:', invitation.remoteIdentity.uri.toString());
+      console.log('To:', invitation.localIdentity.uri.toString());
+
+        if (!isUserAgentRegistered()) {
+    console.warn('Received incoming call while not registered. Rejecting.');
+    invitation.reject({ statusCode: 480, reasonPhrase: 'Temporarily Unavailable' });
+    return;
+  }
+
+  if (currentSession) {
+    console.log('Already in a call, rejecting incoming call');
+    invitation.reject({ statusCode: 486, reasonPhrase: 'Busy Here' });
+    return;
+  }
+
+  updateCallState('establishing');
+
+
+      invitation.stateChange.addListener((newState: SessionState) => {
+        console.log(`Incoming call session state changed to: ${newState}`);
+        switch (newState) {
+          case SessionState.Establishing:
+            updateCallState('establishing');
+            break;
+          case SessionState.Established:
+            console.log('Incoming call has been established');
+            currentSession = invitation;
+            handleSession(invitation);
+            updateCallState('established');
+            break;
+          case SessionState.Terminating:
+            updateCallState('terminating');
+            break;
+          case SessionState.Terminated:
+            console.log('Incoming call has been terminated');
+            updateCallState('terminated');
+            currentSession = null;
+            break;
+          default:
+            console.log(`Unhandled session state: ${newState}`);
+        }
+      });
+
+      handler(invitation);
+    }
+  };
+
+  console.log('Listening for incoming calls');
+  return () => {
+    if (userAgent) {
+      userAgent.delegate = {};
+    }
+    console.log('Stopped listening for incoming calls');
+  };
+}
+
+function attemptFallback(invitation: Invitation, handler: (invitation: Invitation) => void) {
+  console.log('Attempting fallback for incoming call');
+  
+  const toHeader = invitation.request.to;
+  const sipConfig = getSavedSIPConfig();
+
+  if (toHeader && sipConfig && sipConfig.username) {
+    const toUri = toHeader.uri;
+    
+    // Compare the last 10 digits of the To header user with our username
+    const incomingLastTen = toUri.user?.replace(/\D/g, '').slice(-10);
+    const ourLastTen = sipConfig.username.replace(/\D/g, '').slice(-10);
+
+    if (incomingLastTen === ourLastTen) {
+      console.log('Fallback: Accepting call based on last 10 digits match');
+      handler(invitation);
+    } else {
+      console.warn('Fallback: No match found. Rejecting call.');
+      invitation.reject({ statusCode: 404, reasonPhrase: 'Not Found' });
+    }
+  } else {
+    console.warn('Fallback: Invalid To header or username. Rejecting call.');
+    invitation.reject({ statusCode: 404, reasonPhrase: 'Not Found' });
+  }
+}
+
+async function getPublicIPAddress(): Promise<string> {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    return data.ip;
+  } catch (error) {
+    console.error('Error fetching public IP:', error);
+    return ''; // Return an empty string or a default value
+  }
+}
+
+async function getViaHost(): Promise<string> {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    return data.ip;
+  } catch (error) {
+    console.error('Error fetching public IP:', error);
+    return window.location.hostname; // Fallback to the current hostname
   }
 }
 
@@ -200,26 +543,76 @@ export async function registerUserAgent(): Promise<SIPResponse> {
     return { status: 'error', message: 'User agent not initialized' };
   }
 
-  if (isUserAgentRegistered()) {
-    return { status: 'success', message: 'User agent already registered' };
+  if (registerer?.state === RegistererState.Registered) {
+    return { status: 'success', message: 'User already registered' };
   }
 
   if (isRegistering) {
-    return { status: 'error', message: 'Registration already in progress' };
+    return { status: 'warning', message: 'Registration already in progress' };
   }
 
-  try {
-    isRegistering = true;
-    if (!registerer) {
-      registerer = new Registerer(userAgent);
+  isRegistering = true;
+
+  return new Promise((resolve) => {
+    const registrationAttempt = async () => {
+      try {
+        if (!userAgent) {
+          throw new Error('User agent not initialized');
+        }
+
+        if (!registerer) {
+          const registerOptions: RegistererOptions = {
+            registrar: userAgent.configuration.uri,
+          };
+          registerer = new Registerer(userAgent, registerOptions);
+          
+          registerer.stateChange.addListener((newState) => {
+            console.log(`Registration state changed to: ${newState}`);
+            if (registrationStateChangeHandler) {
+              registrationStateChangeHandler(getRegistrationState());
+            }
+
+            if (newState === RegistererState.Registered || newState === RegistererState.Unregistered) {
+              isRegistering = false;
+            }
+          });
+        }
+
+        const registerPromise = registerer.register();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Registration timed out')), REGISTER_TIMEOUT);
+        });
+
+        await Promise.race([registerPromise, timeoutPromise]);
+        console.log('Registration successful');
+        resolve({ status: 'success', message: 'User registered successfully' });
+      } catch (error) {
+        console.error('Registration failed:', error);
+        resolve({ status: 'error', message: 'Failed to register user' });
+      } finally {
+        isRegistering = false;
+        processNextInQueue();
+      }
+    };
+
+    registrationQueue.push(registrationAttempt);
+    if (!isProcessingQueue) {
+      processNextInQueue();
     }
-    await registerer.register();
-    return { status: 'success', message: 'User agent registered successfully' };
-  } catch (error) {
-    return { status: 'error', message: 'Failed to register user agent' };
-  } finally {
-    isRegistering = false;
+});
+}
+
+function processNextInQueue() {
+  if (registrationQueue.length === 0) {
+    isProcessingQueue = false;
+    return;
   }
+
+  isProcessingQueue = true;
+  const nextRegistrationAttempt = registrationQueue.shift();
+  if (nextRegistrationAttempt) {
+    nextRegistrationAttempt();
+      }
 }
 
 export async function unregisterUserAgent(): Promise<SIPResponse> {
@@ -288,7 +681,20 @@ function handleIncomingCall(invitation: Invitation): void {
   }
 
   console.log('Handling incoming call');
-  
+
+  const remoteIdentity = invitation.remoteIdentity;
+  let phoneNumber = 'unknown';
+
+  if (remoteIdentity.uri instanceof URI) {
+    phoneNumber = remoteIdentity.uri.user || 'unknown';
+  }
+
+  console.log('Incoming call from:', phoneNumber);
+
+  if (callStateChangeHandler) {
+    callStateChangeHandler('establishing');
+  }
+ 
   const acceptOptions: InvitationAcceptOptions = {
     sessionDescriptionHandlerOptions: {
       constraints: { audio: true, video: false }
@@ -300,35 +706,85 @@ function handleIncomingCall(invitation: Invitation): void {
       console.log('Call accepted');
       currentSession = invitation;
       handleSession(invitation);
+      if (callStateChangeHandler) {
+        callStateChangeHandler('established');
+      }
     })
     .catch((error: Error) => {
       console.error('Error accepting call:', error);
+      if (callStateChangeHandler) {
+        callStateChangeHandler('error');
+      }
     });
 
   invitation.stateChange.addListener((newState: SessionState) => {
     console.log(`Incoming call session state changed to: ${newState}`);
     switch (newState) {
+      case SessionState.Initial:
+        console.log('Incoming call is being initialized...');
+        break;
       case SessionState.Establishing:
         console.log('Incoming call is being established...');
-        // Add any specific logic for the establishing state
+        if (callStateChangeHandler) callStateChangeHandler('establishing');
         break;
       case SessionState.Established:
         console.log('Incoming call has been established');
-        // Add any specific logic for the established state
+        if (callStateChangeHandler) callStateChangeHandler('established');
         break;
       case SessionState.Terminating:
         console.log('Incoming call is terminating...');
-        // Add any cleanup logic for the terminating state
+        if (callStateChangeHandler) callStateChangeHandler('terminating');
         break;
       case SessionState.Terminated:
         console.log('Incoming call has been terminated');
+        if (callStateChangeHandler) callStateChangeHandler('terminated');
         currentSession = null;
-        // Add any final cleanup logic
         break;
       default:
         console.log(`Unhandled session state: ${newState}`);
     }
   });
+}
+
+function updateCallState(newState: CallState) {
+  callState = newState;
+  if (callStateChangeHandler) {
+    callStateChangeHandler(newState);
+  }
+}
+
+export function setCallStateChangeHandler(handler: (state: CallState) => void) {
+  callStateChangeHandler = handler;
+}
+
+
+// Helper function to compare URIs
+function compareURIs(uri1: URI, uri2: URI): boolean {
+  return uri1.user === uri2.user && uri1.host === uri2.host;
+}
+
+export function acceptIncomingCall(invitation: Invitation): Promise<void> {
+  if (currentSession) {
+    return Promise.reject(new Error('Already in a call'));
+  }
+
+  const acceptOptions: InvitationAcceptOptions = {
+    sessionDescriptionHandlerOptions: {
+      constraints: { audio: true, video: false }
+    }
+  };
+
+  return invitation.accept(acceptOptions)
+    .then(() => {
+      console.log('Call accepted');
+      currentSession = invitation;
+      handleSession(invitation);
+      updateCallState('established');
+    })
+    .catch((error) => {
+      console.error('Error accepting call:', error);
+      updateCallState('error');
+    });
 }
 
 export async function makeOutgoingCall(phoneNumber: string, onStateChange: (state: CallState) => void): Promise<SIPResponse> {
@@ -403,65 +859,66 @@ function handleSession(session: Session): void {
   console.log('Handling new session');
   const audio = createRemoteAudio();
 
-  if (session.sessionDescriptionHandler) {
-    const peerConnectionDelegate = {
-      ontrack: (event: RTCTrackEvent) => {
-        console.log('Received remote track:', event.track.kind);
-        const [remoteStream] = event.streams;
-        if (audio && remoteStream) {
+  if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
+    const peerConnection = session.sessionDescriptionHandler.peerConnection;
+
+    peerConnection?.addEventListener('connectionstatechange', () => {
+      console.log('PeerConnection state changed:', peerConnection?.connectionState);
+      if (peerConnection?.connectionState === 'connected') {
+        const remoteStream = new MediaStream(
+          peerConnection.getReceivers().map((receiver) => receiver.track)
+        );
+        if (audio) {
           audio.srcObject = remoteStream;
         }
       }
-    };
+    });
 
-    if ('peerConnectionDelegate' in session.sessionDescriptionHandler) {
-      (session.sessionDescriptionHandler as any).peerConnectionDelegate = peerConnectionDelegate;
-    } else {
-      console.warn('peerConnectionDelegate not available on sessionDescriptionHandler');
+    peerConnection?.addEventListener('track', (event: RTCTrackEvent) => {
+      console.log('Received track directly on peerConnection:', event.track.kind);
+      const [remoteStream] = event.streams;
+      if (audio && remoteStream) {
+        audio.srcObject = remoteStream;
+      }
+    });
+
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      const originalSetDescription = session.sessionDescriptionHandler.setDescription.bind(session.sessionDescriptionHandler);
+      session.sessionDescriptionHandler.setDescription  = async (sdp: string, options?: any) => {
+        if (sdp && !sdp.includes('a=fingerprint')) {
+          // Add a dummy DTLS fingerprint if it's missing
+          sdp += '\na=fingerprint:sha-256 00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00';
+        }
+        return originalSetDescription(sdp, options);
+      };
+      }
     }
 
-    if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
-      const peerConnection = session.sessionDescriptionHandler.peerConnection;
-
-      peerConnection?.addEventListener('connectionstatechange', () => {
-        console.log('PeerConnection state changed:', peerConnection?.connectionState);
-        if (peerConnection?.connectionState === 'connected') {
-          const remoteStream = new MediaStream(
-            peerConnection.getReceivers().map((receiver) => receiver.track)
-          );
-          if (audio) {
-            audio.srcObject = remoteStream;
+    session.stateChange.addListener((state: SessionState) => {
+      console.log(`Session state changed to ${state}`);
+      switch (state) {
+        case SessionState.Established:
+          console.log('Call established, ensuring audio is playing');
+          // Use a user interaction to trigger audio playback
+          document.addEventListener('click', function playAudio() {
+            audio.play().catch(error => console.error('Error playing remote audio:', error));
+            document.removeEventListener('click', playAudio);
+          }, { once: true });
+          break;
+        case SessionState.Terminated:
+          console.log('Session has been terminated');
+          if (audio.srcObject) {
+            const tracks = (audio.srcObject as MediaStream).getTracks();
+            tracks.forEach(track => track.stop());
           }
-        }
-      });
+          audio.srcObject = null;
+          break;
+      }
+    });
+}
 
-      peerConnection?.addEventListener('track', (event: RTCTrackEvent) => {
-        console.log('Received track directly on peerConnection:', event.track.kind);
-        const [remoteStream] = event.streams;
-        if (audio && remoteStream) {
-          audio.srcObject = remoteStream;
-        }
-      });
-    }
-  }
-
-  session.stateChange.addListener((state: SessionState) => {
-    console.log(`Session state changed to ${state}`);
-    switch (state) {
-      case SessionState.Established:
-        console.log('Call established, ensuring audio is playing');
-        audio.play().catch(error => console.error('Error playing remote audio:', error));
-        break;
-      case SessionState.Terminated:
-        console.log('Session has been terminated');
-        if (audio.srcObject) {
-          const tracks = (audio.srcObject as MediaStream).getTracks();
-          tracks.forEach(track => track.stop());
-        }
-        audio.srcObject = null;
-        break;
-    }
-  });
+export function getCurrentSession(): Session | null {
+  return currentSession;
 }
 
 export function terminateCall(): SIPResponse {
@@ -704,17 +1161,21 @@ export function getCallDuration(): SIPResponse {
   return { status: 'success', message: `Call duration: ${duration} seconds` };
 }
 
-export async function reconnect(): Promise<SIPResponse> {
+export async function reconnectSIP(): Promise<SIPResponse> {
   if (!userAgent) {
     return { status: 'error', message: 'UserAgent not initialized' };
   }
 
   try {
     await userAgent.reconnect();
-    return { status: 'success', message: 'Reconnected successfully' };
+    const registrationResult = await registerUserAgent();
+    if (registrationResult.status !== 'success') {
+      throw new Error(registrationResult.message);
+    }
+    return { status: 'success', message: 'Reconnected and re-registered successfully' };
   } catch (error) {
-    console.error('Error reconnecting:', error);
-    return { status: 'error', message: 'Failed to reconnect' };
+    console.error('Reconnection failed:', error);
+    return { status: 'error', message: 'Failed to reconnect and re-register' };
   }
 }
 
