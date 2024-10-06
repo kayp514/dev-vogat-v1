@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react'
 import { makeOutgoingCall, 
   terminateCall, 
   SIPResponse, 
@@ -13,6 +13,7 @@ import { makeOutgoingCall,
   setCallStateChangeHandler } from '@/lib/call'
 import { toast } from '@/hooks/use-toast'
 import { useSIP } from './SIPContext'
+import { SessionState } from 'sip.js'
 
 export type CallType = 'outgoing' | 'incoming'
 export type { CallState } from '@/lib/call'
@@ -25,6 +26,8 @@ interface CallSIPContextType {
   callState: CallState
   handleOutgoingCall: (phoneNumber: string) => Promise<void>
   handleIncomingCall: (invitation: Invitation) => void
+  handleAcceptCall: () => void
+  handleRejectCall: () => void
   handleEndCall: () => void
   setIsCallActive: (isCallActive: boolean) => void
 }
@@ -37,6 +40,8 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
   const [callType, setCallType] = useState<CallType>('outgoing')
   const [callState, setCallState] = useState<CallState>('idle')
   const [isCallActive, setIsCallActive] = useState(false)
+  const [incomingInvitation, setIncomingInvitation] = useState<Invitation | null>(null);
+  
 
 
   const handleCallStateChangeContext = useCallback((newState: CallState) => {
@@ -45,6 +50,7 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
     if (newState === 'terminated' || newState === 'error') {
       setIsCallActive(false);
       setActiveNumber('');
+      setIncomingInvitation(null);
     } else if (newState === 'established') {
       setIsCallActive(true);
     }
@@ -95,27 +101,50 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
   }, [isInitialized, isRegistered, makeOutgoingCall, handleCallStateChangeContext])
 
   const handleIncomingCall = useCallback((invitation: Invitation) => {
-    console.log('handleIncomingCall triggered with invitation:', invitation);
-    setIsCallActive(true);
-    setActiveNumber(invitation.request?.ruri?.user || 'unknown');
-    setCallType('incoming');
-    handleCallStateChangeContext('establishing');
+    console.log('handleIncomingCall triggered with invitation:', invitation)
+    setIsCallActive(true)
+    setActiveNumber(invitation.remoteIdentity.uri.user || 'unknown')
+    setCallType('incoming')
+    setIncomingInvitation(invitation)
+    handleCallStateChangeContext('establishing')
 
-    acceptIncomingCall(invitation)
-      .then(() => {
-        console.log('Call accepted successfully');
-        handleCallStateChangeContext('established');
-      })
-      .catch((error) => {
-        console.error('Error accepting call:', error);
-        toast({
-          title: "Call Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        handleCallStateChangeContext('error');
-      });
+    invitation.stateChange.addListener((state: SessionState) => {
+      console.log(`Incoming call session state changed to: ${state}`)
+      if (state === SessionState.Terminated) {
+        console.log('Incoming call terminated before being answered')
+        handleCallStateChangeContext('terminated')
+      }
+    })
   }, [handleCallStateChangeContext]);
+
+
+  const handleAcceptCall = useCallback(() => {
+    if (incomingInvitation) {
+      acceptIncomingCall(incomingInvitation)
+        .then(() => {
+          console.log('Call accepted successfully');
+          handleCallStateChangeContext('established');
+          setIsCallActive(true);
+        })
+        .catch((error) => {
+          console.error('Error accepting call:', error);
+          toast({
+            title: "Call Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+          handleCallStateChangeContext('error');
+        });
+    }
+  }, [incomingInvitation, handleCallStateChangeContext]);
+
+
+  const handleRejectCall = useCallback(() => {
+    if (incomingInvitation) {
+      incomingInvitation.reject({ statusCode: 486, reasonPhrase: 'Busy Here' });
+      handleCallStateChangeContext('terminated');
+    }
+  }, [incomingInvitation, handleCallStateChangeContext]);
 
 
   const handleEndCall = useCallback(() => {
@@ -157,7 +186,9 @@ useEffect(() => {
       handleOutgoingCall,
       handleIncomingCall,
       handleEndCall,
-      setIsCallActive 
+      handleAcceptCall,
+      handleRejectCall,
+      setIsCallActive
     }}>
       {children}
     </CallSIPContext.Provider>

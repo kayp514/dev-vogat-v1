@@ -348,7 +348,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
       logConfiguration: true,
       hackAllowUnregisteredOptionTags: true,
       hackViaTcp: true,
-      contactParams: { transport: 'TCP', rinstance: Math.floor(Math.random() * 10000000).toString() },
+      contactParams: { transport: 'WSS', rinstance: Math.floor(Math.random() * 10000000).toString() },
       allowLegacyNotifications: true,
       noAnswerTimeout: 60,
       viaHost: await getViaHost(),
@@ -428,6 +428,8 @@ export function listenForIncomingCalls(handler: (invitation: Invitation) => void
 
   updateCallState('establishing');
 
+  let isAnswered = false;
+
 
       invitation.stateChange.addListener((newState: SessionState) => {
         console.log(`Incoming call session state changed to: ${newState}`);
@@ -440,6 +442,7 @@ export function listenForIncomingCalls(handler: (invitation: Invitation) => void
             currentSession = invitation;
             handleSession(invitation);
             updateCallState('established');
+            isAnswered = true;
             break;
           case SessionState.Terminating:
             updateCallState('terminating');
@@ -466,6 +469,32 @@ export function listenForIncomingCalls(handler: (invitation: Invitation) => void
     console.log('Stopped listening for incoming calls');
   };
 }
+
+export function acceptIncomingCall(invitation: Invitation): Promise<void> {
+  if (currentSession) {
+    return Promise.reject(new Error('Already in a call'));
+  }
+
+  const acceptOptions: InvitationAcceptOptions = {
+    sessionDescriptionHandlerOptions: {
+      constraints: { audio: true, video: false }
+    }
+  };
+
+
+  return invitation.accept(acceptOptions)
+    .then(() => {
+      console.log('Call accepted');
+      currentSession = invitation;
+      handleSession(invitation);
+      updateCallState('established');
+    })
+    .catch((error) => {
+      console.error('Error accepting call:', error);
+      updateCallState('error');
+    });
+}
+
 
 function attemptFallback(invitation: Invitation, handler: (invitation: Invitation) => void) {
   console.log('Attempting fallback for incoming call');
@@ -563,9 +592,6 @@ export async function registerUserAgent(): Promise<SIPResponse> {
         if (!registerer) {
           const registerOptions: RegistererOptions = {
             registrar: userAgent.configuration.uri,
-            extraHeaders: [
-              'Contact: <sip:9lifesprint999@172.110.70.155:57432;transport=tcp>',
-            ],
           };
           registerer = new Registerer(userAgent, registerOptions);
           
@@ -676,79 +702,6 @@ export async function ensureUserAgentRegistered(): Promise<SIPResponse> {
     return registerUserAgent();
   }
 
-function handleIncomingCall(invitation: Invitation): void {
-  if (!isUserAgentRegistered()) {
-    console.warn('Received incoming call while not registered. Rejecting.');
-    invitation.reject();
-    return;
-  }
-
-  console.log('Handling incoming call');
-
-  const remoteIdentity = invitation.remoteIdentity;
-  let phoneNumber = 'unknown';
-
-  if (remoteIdentity.uri instanceof URI) {
-    phoneNumber = remoteIdentity.uri.user || 'unknown';
-  }
-
-  console.log('Incoming call from:', phoneNumber);
-
-  if (callStateChangeHandler) {
-    callStateChangeHandler('establishing');
-  }
- 
-  const acceptOptions: InvitationAcceptOptions = {
-    sessionDescriptionHandlerOptions: {
-      constraints: { audio: true, video: false }
-    }
-  };
-
-  invitation.accept(acceptOptions)
-    .then(() => {
-      console.log('Call accepted');
-      currentSession = invitation;
-      handleSession(invitation);
-      if (callStateChangeHandler) {
-        callStateChangeHandler('established');
-      }
-    })
-    .catch((error: Error) => {
-      console.error('Error accepting call:', error);
-      if (callStateChangeHandler) {
-        callStateChangeHandler('error');
-      }
-    });
-
-  invitation.stateChange.addListener((newState: SessionState) => {
-    console.log(`Incoming call session state changed to: ${newState}`);
-    switch (newState) {
-      case SessionState.Initial:
-        console.log('Incoming call is being initialized...');
-        break;
-      case SessionState.Establishing:
-        console.log('Incoming call is being established...');
-        if (callStateChangeHandler) callStateChangeHandler('establishing');
-        break;
-      case SessionState.Established:
-        console.log('Incoming call has been established');
-        if (callStateChangeHandler) callStateChangeHandler('established');
-        break;
-      case SessionState.Terminating:
-        console.log('Incoming call is terminating...');
-        if (callStateChangeHandler) callStateChangeHandler('terminating');
-        break;
-      case SessionState.Terminated:
-        console.log('Incoming call has been terminated');
-        if (callStateChangeHandler) callStateChangeHandler('terminated');
-        currentSession = null;
-        break;
-      default:
-        console.log(`Unhandled session state: ${newState}`);
-    }
-  });
-}
-
 function updateCallState(newState: CallState) {
   callState = newState;
   if (callStateChangeHandler) {
@@ -764,30 +717,6 @@ export function setCallStateChangeHandler(handler: (state: CallState) => void) {
 // Helper function to compare URIs
 function compareURIs(uri1: URI, uri2: URI): boolean {
   return uri1.user === uri2.user && uri1.host === uri2.host;
-}
-
-export function acceptIncomingCall(invitation: Invitation): Promise<void> {
-  if (currentSession) {
-    return Promise.reject(new Error('Already in a call'));
-  }
-
-  const acceptOptions: InvitationAcceptOptions = {
-    sessionDescriptionHandlerOptions: {
-      constraints: { audio: true, video: false }
-    }
-  };
-
-  return invitation.accept(acceptOptions)
-    .then(() => {
-      console.log('Call accepted');
-      currentSession = invitation;
-      handleSession(invitation);
-      updateCallState('established');
-    })
-    .catch((error) => {
-      console.error('Error accepting call:', error);
-      updateCallState('error');
-    });
 }
 
 export async function makeOutgoingCall(phoneNumber: string, onStateChange: (state: CallState) => void): Promise<SIPResponse> {
@@ -871,53 +800,43 @@ function handleSession(session: Session): void {
         const remoteStream = new MediaStream(
           peerConnection.getReceivers().map((receiver) => receiver.track)
         );
-        if (audio) {
-          audio.srcObject = remoteStream;
-        }
+        audio.srcObject = remoteStream;
       }
-    });
+    })
 
     peerConnection?.addEventListener('track', (event: RTCTrackEvent) => {
       console.log('Received track directly on peerConnection:', event.track.kind);
       const [remoteStream] = event.streams;
-      if (audio && remoteStream) {
+      if (remoteStream) {
         audio.srcObject = remoteStream;
       }
     });
+  }
 
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      const originalSetDescription = session.sessionDescriptionHandler.setDescription.bind(session.sessionDescriptionHandler);
-      session.sessionDescriptionHandler.setDescription  = async (sdp: string, options?: any) => {
-        if (sdp && !sdp.includes('a=fingerprint')) {
-          // Add a dummy DTLS fingerprint if it's missing
-          sdp += '\na=fingerprint:sha-256 00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00';
+  session.stateChange.addListener((state: SessionState) => {
+    console.log(`Session state changed to ${state}`);
+    switch (state) {
+      case SessionState.Establishing:
+        console.log('Call is being established');
+        break;
+      case SessionState.Established:
+        console.log('Call established, ensuring audio is playing');
+        audio.play().catch(error => console.error('Error playing remote audio:', error));
+        break;
+      case SessionState.Terminating:
+        console.log('Call is terminating');
+        break;
+      case SessionState.Terminated:
+        console.log('Call has been terminated');
+        if (audio.srcObject) {
+          const tracks = (audio.srcObject as MediaStream).getTracks();
+          tracks.forEach(track => track.stop());
         }
-        return originalSetDescription(sdp, options);
-      };
-      }
+        audio.srcObject = null;
+        currentSession = null;
+        break;
     }
-
-    session.stateChange.addListener((state: SessionState) => {
-      console.log(`Session state changed to ${state}`);
-      switch (state) {
-        case SessionState.Established:
-          console.log('Call established, ensuring audio is playing');
-          // Use a user interaction to trigger audio playback
-          document.addEventListener('click', function playAudio() {
-            audio.play().catch(error => console.error('Error playing remote audio:', error));
-            document.removeEventListener('click', playAudio);
-          }, { once: true });
-          break;
-        case SessionState.Terminated:
-          console.log('Session has been terminated');
-          if (audio.srcObject) {
-            const tracks = (audio.srcObject as MediaStream).getTracks();
-            tracks.forEach(track => track.stop());
-          }
-          audio.srcObject = null;
-          break;
-      }
-    });
+  });
 }
 
 export function getCurrentSession(): Session | null {

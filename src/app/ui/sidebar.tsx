@@ -26,6 +26,7 @@ import {
 import CallUI from '@/app/ui/callui'
 import { useCallSIP } from '@/app/CallSIPContext'
 import { useSIP } from '@/app/SIPContext'
+import { CallNotification } from './callnotify'
 
 interface UserData {
     displayName?: string;
@@ -56,7 +57,7 @@ const navigation = [
 export default function SideBar({ userData }: { userData: UserData }) {
     const [activeTab, setActiveTab] = useState('chat');
     const { isInitialized, isRegistered } = useSIP()
-    const { isCallActive, activeNumber, callState, callType, handleEndCall, setIsCallActive} = useCallSIP();
+    const { isCallActive, activeNumber, callState, callType, handleEndCall, setIsCallActive, handleAcceptCall, handleRejectCall } = useCallSIP();
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
 
@@ -202,7 +203,24 @@ export default function SideBar({ userData }: { userData: UserData }) {
         {activeTab === 'call' && <Call />}
         {activeTab === 'chat' && <Chat />}
         </main>
-        {isCallActive && (
+        {isCallActive && callType === 'outgoing' && (
+          <CallUI
+          activeNumber={activeNumber}
+        callState={callState}
+        callType={callType}
+        handleEndCall={handleEndCall}
+        setIsCallActive={setIsCallActive}
+         />
+         )}
+         {isCallActive && callType === 'incoming' && callState === 'establishing' && (
+          <CallNotification
+          callerNumber={activeNumber}
+          onAccept={handleAcceptCall}
+          onReject={handleRejectCall}
+        />
+         )}
+
+         {isCallActive && callType === 'incoming' && callState === 'established' && (
           <CallUI
           activeNumber={activeNumber}
         callState={callState}
