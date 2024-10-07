@@ -9,12 +9,14 @@ import { makeOutgoingCall,
   listenForIncomingCalls, 
   acceptIncomingCall, 
   type Invitation,
+  cleanupCall,
   getUserAgent,
+  setCurrentSession,
   getCurrentSession,
   setCallStateChangeHandler } from '@/lib/call'
 import { toast } from '@/hooks/use-toast'
 import { useSIP } from './SIPContext'
-import { Inviter, SessionState } from 'sip.js'
+import { Inviter, Session, SessionState } from 'sip.js'
 
 export type CallType = 'outgoing' | 'incoming'
 export type { CallState } from '@/lib/call'
@@ -43,6 +45,27 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
   const [isCallActive, setIsCallActive] = useState(false)
   const [incomingInvitation, setIncomingInvitation] = useState<Invitation | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null)
+  const currentSessionRef = useRef<Session | null>(null)
+  const isResettingRef = useRef(false)
+
+
+  const resetCallState = useCallback(() => {
+    if (isResettingRef.current) return;
+    isResettingRef.current = true;
+
+    setCallState('idle')
+    setIsCallActive(false)
+    setActiveNumber('')
+    setIncomingInvitation(null)
+    if (cleanupRef.current) {
+      cleanupRef.current()
+      cleanupRef.current = null
+    }
+    currentSessionRef.current = null
+    cleanupCall()
+
+    isResettingRef.current = false;
+  }, [])
 
 
   const handleCallStateChangeContext = useCallback((newState: CallState) => {
@@ -59,9 +82,9 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
     } else if (newState === 'established') {
       setIsCallActive(true);
     }
-  }, []);
+  }, [])
 
-  useEffect(() => {
+    useEffect(() => {
     setCallStateChangeHandler(handleCallStateChangeContext)
   }, [handleCallStateChangeContext])
 
@@ -136,6 +159,7 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
           console.log('Call accepted successfully');
           handleCallStateChangeContext('established');
           setIsCallActive(true);
+          currentSessionRef.current = getCurrentSession()
         })
         .catch((error) => {
           console.error('Error accepting call:', error);
@@ -193,9 +217,11 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
     }
   }, [handleCallStateChangeContext, setIsCallActive, setActiveNumber, setIncomingInvitation]);
 
-useEffect(() => {
+  useEffect(() => {
+    
     if (isInitialized && isRegistered) {
       console.log('Setting up listener for incoming calls')
+      console.log('callState:', callState)
       const userAgent = getUserAgent()
       if (userAgent) {
         const cleanupListener = listenForIncomingCalls((invitation) => {
