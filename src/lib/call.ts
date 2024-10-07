@@ -17,7 +17,7 @@ import {
   SessionDescriptionHandler,
 } from 'sip.js';
 import { IncomingInviteRequest, IncomingRequestMessage } from 'sip.js/lib/core/messages';
-
+import { Emitter } from 'sip.js/lib/api/emitter';
 import { Transport, TransportOptions } from 'sip.js/lib/platform/web/transport';
 
 let userAgent: UserAgent | null = null;
@@ -323,7 +323,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
     console.log('using viaHost:', viaHost)
   
     const transportOptions: TransportOptions = {
-      server: `wss://sips.lifesprintcare.ca:6051/ws`,
+      server: `wss://sips.lifesprintcare.ca:6051/wss`,
       connectionTimeout: 15000,
       keepAliveInterval: 30000,
       traceSip: true,
@@ -338,7 +338,11 @@ export async function initializeSIP(): Promise<SIPResponse> {
           console.log('Incoming call accepted');
           console.log('From:', invitation.remoteIdentity.uri.toString());
           console.log('To:', invitation.localIdentity.uri.toString());
-        }
+        },
+        onDisconnect: (error: Error) => {
+          console.log('Transport disconnected:', error);
+          cleanupCall();
+        },
       },
       authorizationUsername: sipConfig.username,
       authorizationPassword: sipConfig.password,
@@ -477,8 +481,8 @@ export function acceptIncomingCall(invitation: Invitation): Promise<void> {
 
   const acceptOptions: InvitationAcceptOptions = {
     sessionDescriptionHandlerOptions: {
-      constraints: { audio: true, video: false }
-    }
+      constraints: { audio: true, video: false },
+    },
   };
 
 
@@ -739,6 +743,7 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
     }
 
     const inviterOptions: InviterOptions = {
+      earlyMedia: true,
       sessionDescriptionHandlerOptions: {
         constraints: { audio: true, video: false }
       }
@@ -844,29 +849,83 @@ export function getCurrentSession(): Session | null {
 }
 
 export function terminateCall(): SIPResponse {
-  if (currentSession) {
-    if (currentSession.state === SessionState.Established) {
-      currentSession.bye()
-        .then(() => {
-          console.log('Call terminated successfully');
-          cleanupCall();
-        })
-        .catch((error: Error) => {
-          console.error('Error terminating call:', error);
-          cleanupCall();
-        });
-    } else if (isInviterOrInvitation(currentSession)) {
-      currentSession.dispose();
-      cleanupCall();
-    } else {
-      console.warn('Unable to terminate the current session');
-      cleanupCall();
-      return { status: 'error', message: 'Unable to terminate the current session' };
-    }
-    return { status: 'success', message: 'Call termination initiated' };
-  } else {
+  if (!currentSession) {
     console.log('No active call to terminate');
     return { status: 'warning', message: 'No active call to terminate' };
+  }
+
+  const terminateAndCleanup = (): SIPResponse => {
+    cleanupCall();
+    return { status: 'success', message: 'Call terminated successfully' };
+  };
+
+  if (currentSession.state === SessionState.Established) {
+    currentSession.bye()
+      .then(() => {
+        console.log('Call terminated successfully');
+      })
+      .catch((error: Error) => {
+        console.error('Error terminating call:', error);
+      })
+      .finally(terminateAndCleanup);
+  } else if (currentSession.state === SessionState.Establishing) {
+    if ('cancel' in currentSession) {
+      (currentSession as any).cancel()
+        .then(() => {
+          console.log('Outgoing call cancelled successfully');
+        })
+        .catch((error: Error) => {
+          console.error('Error cancelling outgoing call:', error);
+        })
+        .finally(terminateAndCleanup);
+    } else if ('reject' in currentSession) {
+      (currentSession as any).reject()
+        .then(() => {
+          console.log('Incoming call rejected successfully');
+        })
+        .catch((error: Error) => {
+          console.error('Error rejecting incoming call:', error);
+        })
+        .finally(terminateAndCleanup);
+    } else {
+      console.warn('Unable to terminate the current session');
+      return terminateAndCleanup();
+    }
+  } else {
+    console.warn('Session in unexpected state:', currentSession.state);
+    return terminateAndCleanup();
+  }
+
+  return { status: 'success', message: 'Call termination initiated' };
+}
+
+
+function cleanupCall() {
+  if (currentSession) {
+    // Remove all listeners from the stateChange emitter
+    const emitter = currentSession.stateChange;
+    const removeAllListeners = (emitter: Emitter<SessionState>) => {
+      // Remove listeners for all possible SessionState values
+      Object.values(SessionState).forEach(state => {
+        emitter.removeListener((newState: SessionState) => newState === state);
+      });
+    };
+    removeAllListeners(emitter);
+    currentSession = null;
+  }
+
+  if (remoteAudio) {
+    if (remoteAudio.srcObject) {
+      const tracks = (remoteAudio.srcObject as MediaStream).getTracks();
+      tracks.forEach(track => track.stop());
+    }
+    remoteAudio.srcObject = null;
+    remoteAudio.remove();
+    remoteAudio = null;
+  }
+
+  if (callStateChangeHandler) {
+    callStateChangeHandler('idle');
   }
 }
 
@@ -915,22 +974,6 @@ export function sendDTMF(tone: string): SIPResponse {
     return { status: 'success', message: `DTMF tone ${tone} sent` };
   }
   return { status: 'warning', message: 'No active call to send DTMF' };
-}
-
-function cleanupCall() {
-  currentSession = null;
-  if (remoteAudio) {
-    if (remoteAudio.srcObject) {
-      const tracks = (remoteAudio.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-    }
-    remoteAudio.srcObject = null;
-    remoteAudio.remove();
-    remoteAudio = null;
-  }
-  if (callStateChangeHandler) {
-    callStateChangeHandler('idle');
-  }
 }
 
 export function getCallStatus(): SIPResponse {

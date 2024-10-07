@@ -41,7 +41,7 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
   const [callState, setCallState] = useState<CallState>('idle')
   const [isCallActive, setIsCallActive] = useState(false)
   const [incomingInvitation, setIncomingInvitation] = useState<Invitation | null>(null);
-  
+  const cleanupRef = useRef<(() => void) | null>(null)
 
 
   const handleCallStateChangeContext = useCallback((newState: CallState) => {
@@ -51,6 +51,10 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
       setIsCallActive(false);
       setActiveNumber('');
       setIncomingInvitation(null);
+      if (cleanupRef.current) {
+        cleanupRef.current()
+        cleanupRef.current = null
+      }
     } else if (newState === 'established') {
       setIsCallActive(true);
     }
@@ -108,13 +112,19 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
     setIncomingInvitation(invitation)
     handleCallStateChangeContext('establishing')
 
-    invitation.stateChange.addListener((state: SessionState) => {
+    const stateChangeListener = (state: SessionState) => {
       console.log(`Incoming call session state changed to: ${state}`)
       if (state === SessionState.Terminated) {
         console.log('Incoming call terminated before being answered')
         handleCallStateChangeContext('terminated')
       }
-    })
+    }
+
+    invitation.stateChange.addListener(stateChangeListener)
+
+    cleanupRef.current = () => {
+      invitation.stateChange.removeListener(stateChangeListener)
+    }
   }, [handleCallStateChangeContext]);
 
 
@@ -148,14 +158,17 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
 
 
   const handleEndCall = useCallback(() => {
-    console.log('handleEndCall triggered')
-    const response: SIPResponse = terminateCall()
-    toast({
-      title: "Error Ending Call",
-      description: response.message,
-      variant: "destructive",
-    })
-  }, [])
+    console.log('handleEndCall triggered');
+    const response = terminateCall();
+    if (response.status !== 'success') {
+      toast({
+        title: "Call Termination",
+        description: response.message,
+        variant: "destructive",
+      });
+    }
+    handleCallStateChangeContext('terminated');
+  }, [handleCallStateChangeContext]);
 
 useEffect(() => {
     if (isInitialized && isRegistered) {
@@ -169,6 +182,10 @@ useEffect(() => {
         return () => {
           console.log('Cleaning up listener')
           cleanupListener()
+          if (cleanupRef.current) {
+            cleanupRef.current()
+            cleanupRef.current = null
+          }
         }
       } else {
         console.error('UserAgent not initialized')
