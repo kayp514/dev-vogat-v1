@@ -405,7 +405,6 @@ if (contactUri) {
   }
 }
 
-
 export function listenForIncomingCalls(handler: (invitation: Invitation) => void): () => void {
   if (!userAgent) {
     console.warn('UserAgent not initialized');
@@ -717,8 +716,6 @@ export function setCallStateChangeHandler(handler: (state: CallState) => void) {
   callStateChangeHandler = handler;
 }
 
-
-// Helper function to compare URIs
 function compareURIs(uri1: URI, uri2: URI): boolean {
   return uri1.user === uri2.user && uri1.host === uri2.host;
 }
@@ -743,13 +740,13 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
     }
 
     const inviterOptions: InviterOptions = {
-      earlyMedia: true,
       sessionDescriptionHandlerOptions: {
         constraints: { audio: true, video: false }
       }
     };
 
     const inviter = new Inviter(userAgent, target, inviterOptions);
+    setCurrentSession(inviter);
     let currentCallState : CallState = 'establishing';
     onStateChange(currentCallState);
 
@@ -758,10 +755,6 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
       console.log(`[${timestamp}] Outgoing call state changed to ${state}`);
       currentCallState = mapSessionStateToCallState(state);
       onStateChange(currentCallState);
-
-      if (callStateChangeHandler) {
-        callStateChangeHandler(currentCallState);
-      }
 
       switch (state) {
         case SessionState.Establishing:
@@ -784,16 +777,33 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
       }
     });
 
-    await inviter.invite();
+    const timeoutPromise = new Promise<SIPResponse>((_, reject) => {
+      setTimeout(() => {
+        if (inviter.state !== SessionState.Established) {
+          inviter.dispose();
+          onStateChange('terminated');
+          reject({ status: 'error', message: 'Call timed out' });
+        }
+      }, 60000); // 60 seconds timeout
+    })
+
+    await Promise.race([
+      inviter.invite(),
+      timeoutPromise
+    ]);
+
     return { status: 'success', message: currentCallState };
   } catch (error) {
     console.error('Error making outgoing call:', error);
+    setCurrentSession(null);
+    onStateChange('error');
     return { status: 'error', message: 'Failed to make outgoing call' };
   }
 }
 
 function handleSession(session: Session): void {
   console.log('Handling new session');
+  currentSession = session;
   const audio = createRemoteAudio();
 
   if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
@@ -848,55 +858,68 @@ export function getCurrentSession(): Session | null {
   return currentSession;
 }
 
-export function terminateCall(): SIPResponse {
-  if (!currentSession) {
-    console.log('No active call to terminate');
-    return { status: 'warning', message: 'No active call to terminate' };
-  }
+export function setCurrentSession(session: Session | null): void {
+  currentSession = session;
+}
 
-  const terminateAndCleanup = (): SIPResponse => {
-    cleanupCall();
-    return { status: 'success', message: 'Call terminated successfully' };
-  };
-
-  if (currentSession.state === SessionState.Established) {
-    currentSession.bye()
-      .then(() => {
-        console.log('Call terminated successfully');
-      })
-      .catch((error: Error) => {
-        console.error('Error terminating call:', error);
-      })
-      .finally(terminateAndCleanup);
-  } else if (currentSession.state === SessionState.Establishing) {
-    if ('cancel' in currentSession) {
-      (currentSession as any).cancel()
-        .then(() => {
-          console.log('Outgoing call cancelled successfully');
-        })
-        .catch((error: Error) => {
-          console.error('Error cancelling outgoing call:', error);
-        })
-        .finally(terminateAndCleanup);
-    } else if ('reject' in currentSession) {
-      (currentSession as any).reject()
-        .then(() => {
-          console.log('Incoming call rejected successfully');
-        })
-        .catch((error: Error) => {
-          console.error('Error rejecting incoming call:', error);
-        })
-        .finally(terminateAndCleanup);
-    } else {
-      console.warn('Unable to terminate the current session');
-      return terminateAndCleanup();
+export function terminateCall(): Promise<SIPResponse> {
+  return new Promise((resolve) => {
+    const session = getCurrentSession();
+    if (!session) {
+      console.log('No active call to terminate');
+      resolve({ status: 'warning', message: 'No active call to terminate' });
+      return;
     }
-  } else {
-    console.warn('Session in unexpected state:', currentSession.state);
-    return terminateAndCleanup();
-  }
 
-  return { status: 'success', message: 'Call termination initiated' };
+    const terminateAndCleanup = (): SIPResponse => {
+      setCurrentSession(null);
+      cleanupCall();
+      return { status: 'success', message: 'Call terminated successfully' };
+    };
+
+    const forceTerminate = () => {
+      console.warn('Forced call termination due to timeout');
+      currentSession?.dispose();
+      resolve(terminateAndCleanup());
+    };
+
+    const terminationTimeout = setTimeout(forceTerminate, 5000); // 5 seconds timeout
+
+    const finalizeTermination = () => {
+      clearTimeout(terminationTimeout);
+      resolve(terminateAndCleanup());
+    };
+
+    if (session.state === SessionState.Established) {
+      session.bye()
+        .then(() => {
+          console.log('Call terminated successfully');
+        })
+        .catch((error: Error) => {
+          console.error('Error terminating call:', error);
+        })
+        .finally(finalizeTermination);
+    } else if (session.state === SessionState.Establishing) {
+      if (currentSession instanceof Inviter) {
+        currentSession.cancel()
+          .then(() => {
+            console.log('Outgoing call cancelled successfully');
+          })
+          .catch((error: Error) => {
+            console.error('Error cancelling outgoing call:', error);
+          })
+          .finally(finalizeTermination);
+        } else {
+          // For incoming calls that are not yet established
+          session.dispose();
+          console.log('Incoming call disposed');
+          finalizeTermination();
+        }
+    } else {
+      console.warn('Session in unexpected state:', session.state);
+      finalizeTermination();
+    }
+  });
 }
 
 
@@ -925,7 +948,7 @@ function cleanupCall() {
   }
 
   if (callStateChangeHandler) {
-    callStateChangeHandler('idle');
+    callStateChangeHandler('terminated');
   }
 }
 

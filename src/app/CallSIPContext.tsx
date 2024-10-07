@@ -10,10 +10,11 @@ import { makeOutgoingCall,
   acceptIncomingCall, 
   type Invitation,
   getUserAgent,
+  getCurrentSession,
   setCallStateChangeHandler } from '@/lib/call'
 import { toast } from '@/hooks/use-toast'
 import { useSIP } from './SIPContext'
-import { SessionState } from 'sip.js'
+import { Inviter, SessionState } from 'sip.js'
 
 export type CallType = 'outgoing' | 'incoming'
 export type { CallState } from '@/lib/call'
@@ -102,7 +103,7 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       })
     }
-  }, [isInitialized, isRegistered, makeOutgoingCall, handleCallStateChangeContext])
+  }, [isInitialized, isRegistered, handleCallStateChangeContext])
 
   const handleIncomingCall = useCallback((invitation: Invitation) => {
     console.log('handleIncomingCall triggered with invitation:', invitation)
@@ -151,24 +152,46 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
 
   const handleRejectCall = useCallback(() => {
     if (incomingInvitation) {
-      incomingInvitation.reject({ statusCode: 486, reasonPhrase: 'Busy Here' });
-      handleCallStateChangeContext('terminated');
+      incomingInvitation.reject({ statusCode: 486, reasonPhrase: 'Busy Here' })
+        .then(() => {
+          console.log('Call rejected successfully')
+          handleCallStateChangeContext('terminated')
+        })
+        .catch((error) => {
+          console.error('Error rejecting call:', error)
+          handleCallStateChangeContext('error')
+        });
     }
   }, [incomingInvitation, handleCallStateChangeContext]);
 
 
   const handleEndCall = useCallback(() => {
     console.log('handleEndCall triggered');
-    const response = terminateCall();
-    if (response.status !== 'success') {
-      toast({
-        title: "Call Termination",
-        description: response.message,
-        variant: "destructive",
-      });
+    const currentSession = getCurrentSession();
+    if (currentSession) {
+      terminateCall()
+        .then((response) => {
+          console.log('Call termination response:', response);
+          handleCallStateChangeContext('terminated');
+        })
+        .catch((error) => {
+          console.error('Error terminating call:', error);
+          handleCallStateChangeContext('error');
+        })
+        .finally(() => {
+          if (cleanupRef.current) {
+            cleanupRef.current();
+            cleanupRef.current = null;
+          }
+          setIsCallActive(false);
+          setActiveNumber('');
+          setIncomingInvitation(null);
+        });
+    } else {
+      console.log('No active call to terminate');
+      handleCallStateChangeContext('idle');
     }
-    handleCallStateChangeContext('terminated');
-  }, [handleCallStateChangeContext]);
+  }, [handleCallStateChangeContext, setIsCallActive, setActiveNumber, setIncomingInvitation]);
 
 useEffect(() => {
     if (isInitialized && isRegistered) {

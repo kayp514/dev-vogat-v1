@@ -176,14 +176,14 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
 
   const onEndCall = useCallback(() => {
     if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
-    handleEndCall()
-    setIsCallActive(false)
-  }, [handleEndCall, setIsCallActive])
+    handleEndCall();
+    setIsCallActive(false);
+  }, [handleEndCall, setIsCallActive]);
 
-  if (callState === 'idle') return null
+
 
   return (
     <div className="fixed top-16 right-0 bottom-0 w-80 bg-gray-100 shadow-lg flex flex-col z-50">
