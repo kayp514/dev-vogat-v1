@@ -5,7 +5,7 @@ import CallService from './callservice'
 import ChatService from './chatservice'
 import SettingsScreen from './settingsScreen'
 import { ChatBubbleOvalLeftEllipsisIcon, DevicePhoneMobileIcon,Bars3Icon,BellIcon, DivideIcon, } from '@heroicons/react/24/outline'
-import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
+import { ChevronDownIcon, MagnifyingGlassIcon, PhoneIcon } from '@heroicons/react/20/solid'
 import {
     
     DialogBackdrop,
@@ -200,6 +200,22 @@ export default function SideBar({ userData }: { userData: UserData }) {
           </div>
         </div>
         <main>
+        <div className="px-2 py-1 bg-white rounded-md shadow-sm">
+              <div className="flex items-center justify-between">
+                <PhoneIcon className={`h-5 w-5 ${isCallActive ? 'text-green-500' : 'text-gray-400'}`} />
+                <span className="text-xs font-medium text-gray-700">
+                  {isCallActive ? 'Active Call' : 'No Active Call'}
+                </span>
+              </div>
+              {isCallActive && (
+                <div className="mt-1 text-xs text-gray-500">
+                  <div>Number: {activeNumber}</div>
+                  <div>State: {callState}</div>
+                  <div>Type: {callType}</div>
+                </div>
+              )}
+            </div>
+            <p className='pl-40'>{callState}</p>
         {activeTab === 'call' && <Call />}
         {activeTab === 'chat' && <Chat />}
         </main>

@@ -90,10 +90,6 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
     setIsSpeakerOn(!isSpeakerOn)
   }
 
-  const handleHangUp = useCallback(() => {
-    terminateCall()
-    handleEndCall()
-  }, [handleEndCall])
 
   useEffect(() => {
     console.log('callState:', callState)
@@ -114,23 +110,7 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
     }
 
     const handleAudio = () => {
-      if (!audioRef.current) {
-        audioRef.current = new Audio('/ctu24.mp3')
-        audioRef.current.loop = true
-      }
 
-      if (callState === 'establishing') {
-        console.log('callui playing ringtone')
-          audioRef.current.play().catch(error => {
-            if (error.name !== 'AbortError') {
-              console.error('Error playing ringtone:', error)
-            }
-          })
-      } else {
-        console.log('callui pausing ringtone')
-        audioRef.current.pause()
-        audioRef.current.currentTime = 0
-      }
     }
 
     handleAudio()
@@ -176,12 +156,12 @@ export default function CallUI({ activeNumber, callState, callType, setIsCallAct
 
   const onEndCall = useCallback(() => {
     if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      audioRef.current.pause()
+      audioRef.current.srcObject = null
     }
-    handleEndCall();
-    setIsCallActive(false);
-  }, [handleEndCall, setIsCallActive]);
+    handleEndCall()
+    setIsCallActive(false)
+  }, [handleEndCall, setIsCallActive])
 
 
 

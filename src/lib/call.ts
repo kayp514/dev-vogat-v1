@@ -16,18 +16,24 @@ import {
   SessionDescriptionHandlerOptions,
   SessionDescriptionHandler,
 } from 'sip.js';
-import { IncomingInviteRequest, IncomingRequestMessage } from 'sip.js/lib/core/messages';
+import { IncomingInviteRequest, IncomingRequestMessage, IncomingResponse } from 'sip.js/lib/core/messages';
 import { Emitter } from 'sip.js/lib/api/emitter';
 import { Transport, TransportOptions } from 'sip.js/lib/platform/web/transport';
+import { v4 as uuidv4 } from 'uuid';
+import { register } from 'module';
 
 let userAgent: UserAgent | null = null;
+let lastSuccessfulRegistration: { callId: string, contact: string } | null = null;
 let registerer: Registerer | null = null;
 let currentSession: Session | null = null;
 let isRegistering = false;
 let remoteAudio: HTMLAudioElement | null = null;
+let previousSession: Session | null = null;
+let localStream: MediaStream | null = null;
+let instanceId = uuidv4();
 
 let registrationStateChangeHandler: ((state: RegistrationState) => void) | null = null;
-let callState: CallState = 'idle';
+let callState: CallState = 'initial';
 let callStateChangeHandler: ((state: CallState) => void) | null = null;
 let incomingCallHandler: ((invitation: Invitation) => void) | null = null;
 
@@ -148,10 +154,8 @@ export function getUserAgent(): UserAgent | null {
 }
 
 export type CallState = 
-  'idle' | 
+  'initial' | 
   'initiating' | 
-  'connecting' | 
-  'connecting-extended' |
   'establishing' | 
   'established' | 
   'terminating' | 
@@ -210,34 +214,83 @@ class CustomTransport extends Transport {
   }
 }
 
+function handleEarlyMedia(inviter: Inviter, response: IncomingResponse) {
+  const sessionDescriptionHandler = inviter.sessionDescriptionHandler;
+
+  if (sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
+      const body = response.message.body;
+      if (body) {
+
+          sessionDescriptionHandler
+          .setDescription(body)
+          .then(() => {
+              console.log('Early media description set successfully');
+
+
+              // Access currentSession within this callback
+              const peerConnection = sessionDescriptionHandler.peerConnection;
+              const currentSession = getCurrentSession(); // Get current session inside the promise chain.
+
+
+                  if (currentSession && peerConnection && !currentSession.sessionDescriptionHandler?.hasDescription('local') ) {
+                    peerConnection.createAnswer().then((answer) => {
+                      if(answer &&answer.sdp){
+                        currentSession.sessionDescriptionHandler?.setDescription(answer.sdp)
+                        .then(() =>{
+                          peerConnection.setLocalDescription(answer).catch(error => {
+                            console.error('Failed to set local description:', error);
+                            peerConnection.close();
+                            cleanupCall();
+                            updateCallState("terminated")
+                          }); 
+                      })
+                    } else {
+                      console.error('SDP is undefined in answer');
+                      peerConnection.close();
+                      cleanupCall();
+                      updateCallState("terminated")
+                    }
+                    }).catch((error) => {
+                      console.error('Failed to create answer:', error);
+                      peerConnection.close();
+                      cleanupCall();
+                      updateCallState("terminated")
+                    });
+                  }
+
+          })
+          .catch(error => console.error('Error setting early media description:', error));
+
+      } else {
+          console.log('No SDP in 183 Session Progress');
+      }
+  }
+}
+
 function isInviterOrInvitation(session: Session): session is Inviter | Invitation {
   return 'terminate' in session && typeof session.terminate === 'function';
 }
 
 function mapSessionStateToCallState(sessionState: SessionState): CallState {
-  switch(sessionState){
+  switch (sessionState) {
     case SessionState.Initial:
-      return 'idle'
+      return 'initiating';
     case SessionState.Establishing:
-      return 'establishing'
+      return 'establishing';
     case SessionState.Established:
-      return 'established'
+      return 'established';
     case SessionState.Terminating:
-      return 'terminating'
     case SessionState.Terminated:
-      return 'terminated'
+      return 'terminated';
     default:
-      return 'error'
+      return 'error';
   }
 }
 
-function createRemoteAudio() {
-  if (!remoteAudio) {
-    remoteAudio = new Audio();
-    remoteAudio.autoplay = true;
-    document.body.appendChild(remoteAudio);
-  }
-  return remoteAudio;
+function createRemoteAudio(): HTMLAudioElement {
+  const audio = new Audio();
+  audio.autoplay = true;
+  return audio;
 }
 
 function getAssociatedNumber(request: IncomingRequestMessage): string | undefined {
@@ -348,10 +401,6 @@ export async function initializeSIP(): Promise<SIPResponse> {
           console.log('From:', invitation.remoteIdentity.uri.toString());
           console.log('To:', invitation.localIdentity.uri.toString());
         },
-        onDisconnect: (error: Error) => {
-          console.log('Transport disconnected:', error);
-          cleanupCall();
-        },
       },
       authorizationUsername: sipConfig.username,
       authorizationPassword: sipConfig.password,
@@ -361,11 +410,29 @@ export async function initializeSIP(): Promise<SIPResponse> {
       logConfiguration: true,
       hackAllowUnregisteredOptionTags: true,
       hackViaTcp: true,
-      contactParams: { transport: 'WSS', rinstance: Math.floor(Math.random() * 10000000).toString() },
+      forceRport: true,
+      hackIpInContact: true,
+      logBuiltinEnabled: true,
+      instanceId: instanceId,
+      contactParams: { transport: sipConfig.socket },
       allowLegacyNotifications: true,
       noAnswerTimeout: 60,
       viaHost: await getViaHost(),
       userAgentString: 'Vogat/1.0',
+      sendInitialProvisionalResponse: true,
+      sessionDescriptionHandlerFactoryOptions:  {
+        iceGatheringTimeout: 5000,
+        constraints: {
+          audio: true,
+          video: false,
+        },
+        RTCConstraints: {
+          mandatory:{
+            OfferToReceiveAudio: true,
+            OfferToReceiveVideo: false,
+          }
+        }
+      },
     };
 
 
@@ -373,7 +440,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
 
 
 // Set the contact URI manually after creating the UserAgent
-const contactUri = UserAgent.makeURI(`sip:6472438101@${userAgent.configuration.viaHost}:57432;transport=${userAgent.configuration.contactParams?.transport}`);
+const contactUri = UserAgent.makeURI(`sip:6472438101@${userAgent.configuration.viaHost}:6051;transport=wss`);
 if (contactUri) {
   if (userAgent.contact) {
     userAgent.contact.uri = contactUri;
@@ -594,54 +661,34 @@ export async function registerUserAgent(): Promise<SIPResponse> {
 
   isRegistering = true;
 
-  return new Promise((resolve) => {
-    const registrationAttempt = async () => {
-      try {
-        if (!userAgent) {
-          throw new Error('User agent not initialized');
+  try {
+    if (!registerer) {
+      const sipConfig = getSavedSIPConfig();
+      const registerOptions: RegistererOptions = {
+        registrar: userAgent.configuration.uri,
+        logConfiguration: true,
+        //instanceId: instanceId,
+
+      };
+      registerer = new Registerer(userAgent, registerOptions);
+      
+      registerer.stateChange.addListener((newState) => {
+        console.log(`Registration state changed to: ${newState}`);
+        if (registrationStateChangeHandler) {
+          registrationStateChangeHandler(getRegistrationState());
         }
-
-        if (!registerer) {
-          const registerOptions: RegistererOptions = {
-            registrar: userAgent.configuration.uri,
-          };
-          registerer = new Registerer(userAgent, registerOptions);
-          
-          registerer.stateChange.addListener((newState) => {
-            console.log(`Registration state changed to: ${newState}`);
-            if (registrationStateChangeHandler) {
-              registrationStateChangeHandler(getRegistrationState());
-            }
-
-            if (newState === RegistererState.Registered || newState === RegistererState.Unregistered) {
-              isRegistering = false;
-            }
-          });
-        }
-
-        const registerPromise = registerer.register();
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Registration timed out')), REGISTER_TIMEOUT);
-        });
-
-        await Promise.race([registerPromise, timeoutPromise]);
+      });
+    }
+        await registerer.register();
         console.log('Registration successful');
-        resolve({ status: 'success', message: 'User registered successfully' });
+        return { status: 'success', message: 'User registered successfully' };
       } catch (error) {
         console.error('Registration failed:', error);
-        resolve({ status: 'error', message: 'Failed to register user' });
+        return { status: 'error', message: 'Failed to register user' };
       } finally {
         isRegistering = false;
-        processNextInQueue();
       }
     };
-
-    registrationQueue.push(registrationAttempt);
-    if (!isProcessingQueue) {
-      processNextInQueue();
-    }
-});
-}
 
 function processNextInQueue() {
   if (registrationQueue.length === 0) {
@@ -714,14 +761,26 @@ export async function ensureUserAgentRegistered(): Promise<SIPResponse> {
     return registerUserAgent();
   }
 
-function updateCallState(newState: CallState) {
-  callState = newState;
-  if (callStateChangeHandler) {
-    callStateChangeHandler(newState);
-  }
-}
+  const myMediaStreamFactory: Web.MediaStreamFactory = (
+    constraints: MediaStreamConstraints,
+    sessionDescriptionHandler: Web.SessionDescriptionHandler
+  ): Promise<MediaStream> => {
+    return navigator.mediaDevices.getUserMedia(constraints);
+  };
+  
+  const mySessionDescriptionHandlerFactory: Web.SessionDescriptionHandlerFactory = Web.defaultSessionDescriptionHandlerFactory(
+    myMediaStreamFactory
+  );
 
-export function setCallStateChangeHandler(handler: (state: CallState) => void) {
+  function updateCallState(newState: CallState) {
+    console.log("New state: ", newState);
+    callState = newState;
+    if (callStateChangeHandler) {
+      callStateChangeHandler(newState);
+    }
+  }
+
+export function setCallStateChangeHandler(handler: ((state: CallState) => void) | null) {
   callStateChangeHandler = handler;
 }
 
@@ -730,150 +789,292 @@ function compareURIs(uri1: URI, uri2: URI): boolean {
 }
 
 export async function makeOutgoingCall(phoneNumber: string, onStateChange: (state: CallState) => void): Promise<SIPResponse> {
-  const registrationStatus = await ensureUserAgentRegistered();
-  if (registrationStatus.status !== 'success') {
-    onStateChange('error');
-    return registrationStatus;
-  }
 
   if (!userAgent) {
-    onStateChange('error');
+    updateCallState('error');
     return { status: 'error', message: 'UserAgent not initialized' };
   }
 
-    const target = UserAgent.makeURI(`sip:${phoneNumber}@${getSavedSIPConfig()?.server}`);
-    if (!target) {
-      onStateChange('error');
-      throw new Error('Failed to create target URI');
-    }
+  if (currentSession) {
+    console.log('Already in a call, cannot make a new outgoing call');
+    return { status: 'error', message: 'Already in a call' };
+  }
 
-    const inviterOptions: InviterOptions = {
-      sessionDescriptionHandlerOptions: {
-        constraints: { audio: true, video: false }
-      }
-    };
+  const target = UserAgent.makeURI(`sip:${phoneNumber}@${getSavedSIPConfig()?.server}`);
+  if (!target) {
+    updateCallState('error');
+    throw new Error('Failed to create target URI');
+  }
 
-    const inviter = new Inviter(userAgent, target, inviterOptions);
-    setCurrentSession(inviter);
+  const sessionDescriptionHandlerOptions: SessionDescriptionHandlerOptions = {
+    constraints: { audio: true, video: false },
+
+  };
+
+  const inviterOptions: InviterOptions = {
+    earlyMedia: true,
+    params: {
+      fromDisplayName: userAgent.configuration.displayName,
+      fromUri: userAgent.configuration.uri.toString(),
+      toUri: target.toString()
+    },
+    sessionDescriptionHandlerOptions,
+  };
+
+  const remoteAudio = new Audio()
+  remoteAudio.autoplay = true
+
+  const inviter = new Inviter(userAgent, target, inviterOptions);
+  setCurrentSession(inviter);
 
 
-    const inviteOptions: InviterInviteOptions = {
-      requestDelegate: {
-        onTrying: (response) => {
-          console.log('Received 100 Trying');
-          onStateChange('establishing');
-        },
-        onProgress: (response) => {
-          console.log('Received 180 Ringing');
-          onStateChange('establishing');
-        },
-        onReject: (response) => {
-          if (response.message.statusCode === 407) {
-            console.log('Received 407, retrying with authentication');
-            inviter.invite(inviteOptions).catch(error => {
-              console.error('Error retrying invite after 407:', error);
-              onStateChange('error');
-            });
-          } else {
-            console.log('Call rejected:', response.message);
-            onStateChange('terminated');
+  inviter.delegate = {
+    onRefer(referral) {
+      // Handle incoming REFER request if needed
+      console.log('Received REFER request:', referral);
+    },
+  };
+
+
+  updateCallState('initiating');
+  callStateChangeHandler = onStateChange;
+
+
+  const inviteOptions: InviterInviteOptions = {
+    requestDelegate: {
+      onTrying: (response) => {
+        console.log('Received 100 Trying:', response);
+        updateCallState('establishing');
+      },
+      onProgress: (response) => {
+        console.log('Received progress response:', response.message);
+        updateCallState('establishing');
+        if (response.message.statusCode === 183) {
+          console.log('Received 183 Session Progress');
+          // Handle early media if needed
+          const sessionDescription = response.message.getHeader('Content-Type') === 'application/sdp'
+            ? response.message.body
+            : undefined;
+          if (sessionDescription) {
+            console.log('Received SDP in 183 response:', sessionDescription);
+            // Set up early media if required
           }
         }
+      },
+      onAccept: (response) => {
+        console.log('Call Accepted:', response.message);
+        updateCallState('established');
+      },
+      onReject: (response) => {
+        console.log('Call Rejected:', response.message);
+        updateCallState('terminated');
+        cleanupCall();
+        setCurrentSession(null);
       }
-    };
+    }
+  };
 
+
+  inviter.stateChange.addListener((newState: SessionState) => {
+    console.log(`[${new Date().toISOString()}] Outgoing call state changed to ${newState}`);
+    const mappedState = mapSessionStateToCallState(newState);
+    updateCallState(mappedState);
+
+    switch (newState) {
+      case SessionState.Establishing:
+        break;
+      case SessionState.Established:
+        handleSession(inviter);
+        break;
+      case SessionState.Terminated:
+        cleanupCall();
+        setCurrentSession(null);
+        break;
+      default:
+        break;
+    }
+  });
+
+    //inviter.invite(inviteOptions)
     try {
-      onStateChange('establishing');
       await inviter.invite(inviteOptions);
-      
-      inviter.stateChange.addListener((state: SessionState) => {
-        const timestamp = new Date().toISOString();
-        console.log(`[${timestamp}] Outgoing call state changed to ${state}`);
-        const currentCallState = mapSessionStateToCallState(state);
-        onStateChange(currentCallState);
-  
-        switch (state) {
-          case SessionState.Initial:
-          case SessionState.Establishing:
-            console.log('Outgoing call is being established...');
-            break;
-          case SessionState.Established:
-            console.log('Outgoing call has been established');
-            currentSession = inviter;
-            handleSession(inviter);
-            break;
-          case SessionState.Terminating:
-            console.log('Outgoing call is terminating...');
-            break;
-          case SessionState.Terminated:
-            console.log('Outgoing call has been terminated');
-            currentSession = null;
-            break;
-          default:
-            console.log(`Unhandled session state: ${state}`);
-        }
-      });
-  
       return { status: 'success', message: 'Outgoing call initiated' };
     } catch (error) {
-      console.error('Error making outgoing call:', error);
-      onStateChange('error');
+      console.error('Error initiating call:', error);
+      updateCallState('error');
+      cleanupCall();
+      setCurrentSession(null);
       return { status: 'error', message: 'Failed to initiate outgoing call' };
     }
   }
 
-function handleSession(session: Session): void {
-  console.log('Handling new session');
-  currentSession = session;
-  const audio = createRemoteAudio();
 
-  if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
-    const peerConnection = session.sessionDescriptionHandler.peerConnection;
-
-    peerConnection?.addEventListener('connectionstatechange', () => {
-      console.log('PeerConnection state changed:', peerConnection?.connectionState);
-      if (peerConnection?.connectionState === 'connected') {
-        const remoteStream = new MediaStream(
-          peerConnection.getReceivers().map((receiver) => receiver.track)
-        );
-        audio.srcObject = remoteStream;
-      }
-    })
-
-    peerConnection?.addEventListener('track', (event: RTCTrackEvent) => {
-      console.log('Received track directly on peerConnection:', event.track.kind);
-      const [remoteStream] = event.streams;
-      if (remoteStream) {
-        audio.srcObject = remoteStream;
+  export function handleSession(session: Session): void {
+    console.log('Handling new session');
+    currentSession = session;
+    
+    if (!remoteAudio) {
+      remoteAudio = new Audio();
+      remoteAudio.autoplay = true;
+    }
+  
+    if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
+      const sessionDescriptionHandler = session.sessionDescriptionHandler;
+  
+      // Listen for track additions and removals
+      sessionDescriptionHandler.remoteMediaStream.onaddtrack = (event) => {
+        console.log('Track added:', event.track.kind);
+        updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
+      };
+  
+      sessionDescriptionHandler.remoteMediaStream.onremovetrack = (event) => {
+        console.log('Track removed:', event.track.kind);
+        updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
+      };
+  
+      // Initial setup of audio stream
+      updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
+  
+      // Listen for peer connection state changes
+      sessionDescriptionHandler.peerConnectionDelegate = {
+        onconnectionstatechange: () => {
+          console.log('PeerConnection state changed:', sessionDescriptionHandler.peerConnection?.connectionState);
+          if (sessionDescriptionHandler.peerConnection?.connectionState === 'connected') {
+            updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
+          }
+        }
+      };
+    }
+  
+    session.stateChange.addListener((state: SessionState) => {
+      console.log(`Session state changed to ${state}`);
+      switch (state) {
+        case SessionState.Establishing:
+          console.log('Call is being established');
+          break;
+        case SessionState.Established:
+          console.log('Call established, ensuring audio is playing');
+          remoteAudio?.play().catch(error => console.error('Error playing remote audio:', error));
+          break;
+        case SessionState.Terminating:
+          console.log('Call is terminating');
+          break;
+        case SessionState.Terminated:
+          console.log('Call has been terminated');
+          cleanupCall();
+          break;
       }
     });
   }
 
-  session.stateChange.addListener((state: SessionState) => {
-    console.log(`Session state changed to ${state}`);
-    switch (state) {
-      case SessionState.Establishing:
-        console.log('Call is being established');
-        break;
-      case SessionState.Established:
-        console.log('Call established, ensuring audio is playing');
-        audio.play().catch(error => console.error('Error playing remote audio:', error));
-        break;
-      case SessionState.Terminating:
-        console.log('Call is terminating');
-        break;
-      case SessionState.Terminated:
-        console.log('Call has been terminated');
-        if (audio.srcObject) {
-          const tracks = (audio.srcObject as MediaStream).getTracks();
-          tracks.forEach(track => track.stop());
-        }
-        audio.srcObject = null;
-        currentSession = null;
-        break;
+  function updateAudioStream(stream: MediaStream) {
+    if (remoteAudio) {
+      remoteAudio.srcObject = stream;
+      remoteAudio.load(); // Needed for Safari
+      remoteAudio.play().catch(error => console.error('Error playing remote audio:', error));
     }
+  }
+
+
+export async function terminateCall(): Promise<void> {
+  return new Promise<void>(async (resolve, reject) => {
+      try {
+          if (currentSession) {
+              console.log(`Terminating call in state ${currentSession.state}`);
+
+              switch (currentSession.state) {
+                  case SessionState.Initial:
+                  case SessionState.Establishing:
+                      if (currentSession instanceof Inviter) {
+                          currentSession.cancel();
+                      } else {
+                          currentSession.dispose(); 
+                      }
+                      break;
+                  case SessionState.Established:
+                      await currentSession.bye();
+                      break;
+                  case SessionState.Terminating:
+                  case SessionState.Terminated:
+                      // Already terminating/terminated, sometimes redundant but ensures cleanup
+                      currentSession.dispose();
+                      cleanupCall(); // Ensure disposal even if already terminating
+                      break;  
+              }
+
+              cleanupCall();  // Crucial: Clean up regardless of termination method
+              resolve();
+
+          } else {
+              console.warn('No active call to terminate.');
+              resolve();
+          }
+      } catch (error) {
+          console.error("Error terminating call:", error);
+          cleanupCall(); // Always clean up, even on error
+          reject(error);
+      }
   });
 }
+
+
+export function cleanupCall() {
+  console.log("Cleaning up call");
+
+
+  if (currentSession) {
+      const peerConnection = currentSession.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler
+          ? currentSession.sessionDescriptionHandler.peerConnection
+          : null;
+
+      if (peerConnection) {
+         peerConnection.getSenders().forEach(sender => {
+              sender.track?.stop();
+              peerConnection.removeTrack(sender);
+          });
+
+
+          peerConnection.onicecandidate = null;
+          peerConnection.ontrack = null;
+
+
+          // Important to close the peer connection
+          try {
+            peerConnection.close();
+          } catch (error) {
+            console.warn("Error closing peer connection:", error);
+          }
+
+        currentSession.sessionDescriptionHandler?.close(); 
+
+      }
+
+
+      if (currentSession.stateChange) {
+          currentSession.stateChange.removeListener((newState: SessionState) => updateCallState(mapSessionStateToCallState(newState)));
+      }
+
+
+      // Stop audio and detach stream
+      if (remoteAudio && remoteAudio.srcObject) {
+          remoteAudio.srcObject = null;
+          remoteAudio.pause();
+
+      }
+
+
+      currentSession = null;
+  }
+  if (previousSession && previousSession.stateChange) { // Corrected listener removal
+    previousSession.stateChange.removeListener((newState: SessionState) => updateCallState(mapSessionStateToCallState(newState))); // Use correct listener function
+    previousSession = null;
+  }
+
+  window.removeEventListener('unload', cleanupCall); // No need to remove if not added
+
+  updateCallState('initial');
+}
+
 
 export function getCurrentSession(): Session | null {
   return currentSession;
@@ -883,101 +1084,6 @@ export function setCurrentSession(session: Session | null): void {
   currentSession = session;
 }
 
-export function terminateCall(): Promise<SIPResponse> {
-  return new Promise((resolve) => {
-    const session = getCurrentSession();
-    if (!session) {
-      console.log('No active call to terminate');
-      resolve({ status: 'warning', message: 'No active call to terminate' });
-      return;
-    }
-
-    const terminateAndCleanup = (): SIPResponse => {
-      setCurrentSession(null);
-      cleanupCall();
-      return { status: 'success', message: 'Call terminated successfully' };
-    };
-
-    const forceTerminate = () => {
-      console.warn('Forced call termination due to timeout');
-      session.dispose();
-      resolve(terminateAndCleanup());
-    };
-
-    const terminationTimeout = setTimeout(forceTerminate, 5000); // 5 seconds timeout
-
-    const finalizeTermination = () => {
-      clearTimeout(terminationTimeout);
-      resolve(terminateAndCleanup());
-    };
-
-    switch (session.state) {
-      case SessionState.Initial:
-      case SessionState.Establishing:
-        if (session instanceof Inviter) {
-          session.cancel()
-            .then(() => {
-              console.log('Outgoing call cancelled successfully');
-              finalizeTermination();
-            })
-            .catch((error: Error) => {
-              console.error('Error cancelling outgoing call:', error);
-              forceTerminate();
-            });
-        } else {
-          // For incoming calls that are not yet established
-          session.dispose();
-          console.log('Incoming call disposed');
-          finalizeTermination();
-        }
-        break;
-      case SessionState.Established:
-        session.bye()
-          .then(() => {
-            console.log('Call terminated successfully');
-            finalizeTermination();
-          })
-          .catch((error: Error) => {
-            console.error('Error terminating call:', error);
-            forceTerminate();
-          });
-        break;
-      default:
-        console.warn('Session in unexpected state:', session.state);
-        forceTerminate();
-    }
-  });
-}
-
-
-export function cleanupCall() {
-  if (currentSession) {
-    // Remove all listeners from the stateChange emitter
-    const emitter = currentSession.stateChange;
-    const removeAllListeners = (emitter: Emitter<SessionState>) => {
-      // Remove listeners for all possible SessionState values
-      Object.values(SessionState).forEach(state => {
-        emitter.removeListener((newState: SessionState) => newState === state);
-      });
-    };
-    removeAllListeners(emitter);
-    currentSession = null;
-  }
-
-  if (remoteAudio) {
-    if (remoteAudio.srcObject) {
-      const tracks = (remoteAudio.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-    }
-    remoteAudio.srcObject = null;
-    remoteAudio.remove();
-    remoteAudio = null;
-  }
-
-  if (callStateChangeHandler) {
-    callStateChangeHandler('terminated');
-  }
-}
 
 export function mute(): SIPResponse {
   if (currentSession && currentSession.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {

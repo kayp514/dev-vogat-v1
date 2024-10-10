@@ -9,11 +9,12 @@ import { makeOutgoingCall,
   listenForIncomingCalls, 
   acceptIncomingCall, 
   type Invitation,
-  cleanupCall,
   getUserAgent,
   setCurrentSession,
   getCurrentSession,
-  setCallStateChangeHandler } from '@/lib/call'
+  setCallStateChangeHandler, 
+  cleanupCall,
+  } from '@/lib/call'
 import { toast } from '@/hooks/use-toast'
 import { useSIP } from './SIPContext'
 import { Inviter, Session, SessionState } from 'sip.js'
@@ -41,31 +42,11 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
   const { isInitialized, isRegistered } = useSIP()
   const [activeNumber, setActiveNumber] = useState('')
   const [callType, setCallType] = useState<CallType>('outgoing')
-  const [callState, setCallState] = useState<CallState>('idle')
+  const [callState, setCallState] = useState<CallState>('initial')
   const [isCallActive, setIsCallActive] = useState(false)
   const [incomingInvitation, setIncomingInvitation] = useState<Invitation | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null)
   const currentSessionRef = useRef<Session | null>(null)
-  const isResettingRef = useRef(false)
-
-
-  const resetCallState = useCallback(() => {
-    if (isResettingRef.current) return;
-    isResettingRef.current = true;
-
-    setCallState('idle')
-    setIsCallActive(false)
-    setActiveNumber('')
-    setIncomingInvitation(null)
-    if (cleanupRef.current) {
-      cleanupRef.current()
-      cleanupRef.current = null
-    }
-    currentSessionRef.current = null
-    cleanupCall()
-
-    isResettingRef.current = false;
-  }, [])
 
 
   const handleCallStateChangeContext = useCallback((newState: CallState) => {
@@ -75,17 +56,17 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
       setIsCallActive(false);
       setActiveNumber('');
       setIncomingInvitation(null);
-      if (cleanupRef.current) {
-        cleanupRef.current()
-        cleanupRef.current = null
-      }
+      cleanupCall();
+      //setCurrentSession(null);
     } else if (newState === 'established') {
       setIsCallActive(true);
     }
   }, [])
 
-    useEffect(() => {
+
+  useEffect(() => {
     setCallStateChangeHandler(handleCallStateChangeContext)
+    return () => setCallStateChangeHandler(null)
   }, [handleCallStateChangeContext])
 
 
@@ -101,32 +82,40 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
     }
 
     console.log('handleOutgoingCall triggered with number:', phoneNumber)
+    if (isCallActive) {
+      await handleEndCall();
+    }
+
+
     setIsCallActive(true)
     setActiveNumber(phoneNumber)
     setCallType('outgoing')
-    handleCallStateChangeContext('establishing')
+    handleCallStateChangeContext('initiating')
 
     try {
       const response: SIPResponse = await makeOutgoingCall(phoneNumber, handleCallStateChangeContext)
         console.log('makeOutgoingCall:', response)
         if (response.status !== 'success') {
-          handleCallStateChangeContext('error')
           toast({
             title: "Call Failed",
             description: response.message,
             variant: "destructive",
           })
+          setIsCallActive(false);
+          setActiveNumber('');
+          handleCallStateChangeContext('error')
         }
     } catch (error) {
       console.error('Error in makeOutgoingCall:', error)
-      handleCallStateChangeContext('error')
       toast({
         title: "Call Failed",
         description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       })
+
+      handleCallStateChangeContext('terminated')
     }
-  }, [isInitialized, isRegistered, handleCallStateChangeContext])
+  }, [isInitialized, isRegistered, isCallActive, handleCallStateChangeContext])
 
   const handleIncomingCall = useCallback((invitation: Invitation) => {
     console.log('handleIncomingCall triggered with invitation:', invitation)
@@ -134,6 +123,7 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
     setActiveNumber(invitation.remoteIdentity.uri.user || 'unknown')
     setCallType('incoming')
     setIncomingInvitation(invitation)
+
     handleCallStateChangeContext('establishing')
 
     const stateChangeListener = (state: SessionState) => {
@@ -189,33 +179,22 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
   }, [incomingInvitation, handleCallStateChangeContext]);
 
 
-  const handleEndCall = useCallback(() => {
+  const handleEndCall = useCallback(async () => {
     console.log('handleEndCall triggered');
-    const currentSession = getCurrentSession();
-    if (currentSession) {
-      terminateCall()
-        .then((response) => {
-          console.log('Call termination response:', response);
-          handleCallStateChangeContext('terminated');
-        })
-        .catch((error) => {
-          console.error('Error terminating call:', error);
-          handleCallStateChangeContext('error');
-        })
-        .finally(() => {
-          if (cleanupRef.current) {
-            cleanupRef.current();
-            cleanupRef.current = null;
-          }
-          setIsCallActive(false);
-          setActiveNumber('');
-          setIncomingInvitation(null);
-        });
-    } else {
-      console.log('No active call to terminate');
-      handleCallStateChangeContext('idle');
+    try {
+      const response = await terminateCall();
+      console.log('Call termination response:', response);
+      handleCallStateChangeContext('terminating');
+      cleanupCall();
+      setTimeout(() => {
+       handleCallStateChangeContext('terminated');
+        cleanupCall();
+      }, 100);
+    } catch (error) {
+      console.error('Error terminating call:', error);
+      handleCallStateChangeContext('error');
     }
-  }, [handleCallStateChangeContext, setIsCallActive, setActiveNumber, setIncomingInvitation]);
+  }, [handleCallStateChangeContext]);
 
   useEffect(() => {
     
@@ -240,7 +219,7 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
         console.error('UserAgent not initialized')
       }
     }
-  }, [isInitialized, isRegistered, handleIncomingCall])
+  }, [isInitialized, isRegistered, handleIncomingCall, callState])
 
 
   return (
