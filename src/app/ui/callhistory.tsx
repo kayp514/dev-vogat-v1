@@ -1,80 +1,165 @@
 import { useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { PhoneCall, PhoneOutgoing, PhoneMissed, Voicemail } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { type ChatStatus } from "../types/chat"
 
-type CallHistoryItem = {
+type CallType = 'incoming' | 'outgoing' | 'missed' | 'voicemail'
+
+interface CallHistoryItem {
   id: number
   user: {
     name: string
     imageUrl: string
+    status?: ChatStatus
   }
-  type: 'incoming' | 'outgoing' | 'missed' | 'voicemail'
+  type: CallType
   duration: string
   date: Date
+}
+
+const callTypeConfig = {
+  incoming: { 
+    icon: PhoneCall, 
+    color: 'text-green-500',
+    label: 'Incoming',
+    bgColor: 'bg-green-50'
+  },
+  outgoing: { 
+    icon: PhoneOutgoing, 
+    color: 'text-blue-500',
+    label: 'Outgoing',
+    bgColor: 'bg-blue-50'
+  },
+  missed: { 
+    icon: PhoneMissed, 
+    color: 'text-red-500',
+    label: 'Missed',
+    bgColor: 'bg-red-50'
+  },
+  voicemail: { 
+    icon: Voicemail, 
+    color: 'text-yellow-500',
+    label: 'Voicemail',
+    bgColor: 'bg-yellow-50'
+  },
 }
 
 
 
 export default function CallHistory() {
-  const [filter, setFilter] = useState<'all' | 'missed' | 'voicemail'>('all')
+  const [filter, setFilter] = useState<'all' | CallType>('all')
 
   const filteredHistory = callHistory.filter(item => {
     if (filter === 'all') return true
-    if (filter === 'missed') return item.type === 'missed'
-    if (filter === 'voicemail') return item.type === 'voicemail'
-    return true
+    return item.type === filter
   })
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
-      <div className="px-4 py-4 sm:px-4 flex justify-between items-center border-b">
-      <h2 className="text-xl leading-6 font-semibold text-gray-900">Call History</h2>
-      <div className="flex space-x-2">
-          <button
-            type="button"
-            className={`px-3 py-1 text-sm font-medium rounded-md ${
-              filter === 'all'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-            }`}
-            onClick={() => setFilter('all')}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            className={`px-3 py-1 text-sm font-medium rounded-md ${
-              filter === 'missed'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-            }`}
-            onClick={() => setFilter('missed')}
-          >
-            Missed
-          </button>
-          <button
-            type="button"
-            className={`px-3 py-1 text-sm font-medium rounded-md ${
-              filter === 'voicemail'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-            }`}
-            onClick={() => setFilter('voicemail')}
-          >
-            Voicemail
-          </button>
+    <Card className="h-full border-0 rounded-none shadow-none">
+      <CardHeader className="px-6 py-4 border-b space-y-0">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Call History</h2>
+          <div className="flex gap-2">
+            {['all', 'missed', 'voicemail'].map((type) => (
+              <Button
+                key={type}
+                variant={filter === type ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter(type as typeof filter)}
+                className="capitalize"
+              >
+                {type}
+              </Button>
+            ))}
+          </div>
         </div>
-    </div>
-    <ScrollArea className="flex-1 h-[calc(100vh-8rem)]">
-        <ul role="list" className="divide-y divide-gray-100 px-4 ">
-          {filteredHistory.map((item) => (
-            <CallHistoryItem key={item.id} item={item} />
-          ))}
-        </ul>
-      </ScrollArea>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ScrollArea className="h-[calc(100vh-8rem)]">
+          <div className="divide-y divide-border">
+            {filteredHistory.map((item) => (
+              <CallHistoryItem key={item.id} item={item} />
+            ))}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  )
+}
+
+
+function CallHistoryItem({ item }: { item: CallHistoryItem }) {
+  const config = callTypeConfig[item.type]
+  const Icon = config.icon
+
+  return (
+    <div className="flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors">
+      <div className="relative">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={item.user.imageUrl} alt={item.user.name} />
+          <AvatarFallback>{item.user.name[0]}</AvatarFallback>
+        </Avatar>
+        {item.user.status && (
+          <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
+            item.user.status === 'online' 
+              ? 'bg-green-500' 
+              : item.user.status === 'busy'
+              ? 'bg-yellow-500'
+              : 'bg-gray-400'
+          }`} />
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="font-medium text-sm">{item.user.name}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                config.bgColor,
+                config.color
+              )}>
+                <Icon className="h-3 w-3" />
+                {config.label}
+              </span>
+              {item.duration && (
+                <span className="text-xs text-muted-foreground">
+                  {item.duration}
+                </span>
+              )}
+            </div>
+          </div>
+          <time className="text-xs text-muted-foreground whitespace-nowrap">
+            {getRelativeTime(item.date)}
+          </time>
+        </div>
+      </div>
     </div>
   )
 }
+
+  function getRelativeTime(date: Date) {
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    const diffInDays = Math.floor(diffInHours / 24)
+  
+    if (diffInDays > 0) {
+      return `${diffInDays}d ago`
+    } else if (diffInHours > 0) {
+      return `${diffInHours}h ago`
+    } else if (diffInMinutes > 0) {
+      return `${diffInMinutes}m ago`
+    } else {
+      return 'Just now'
+    }
+  }
 
 
 const callHistory: CallHistoryItem[] = [
@@ -189,78 +274,3 @@ const callHistory: CallHistoryItem[] = [
     date: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
   },
 ]
-
-function CallHistoryItem({ item }: { item: CallHistoryItem }) {
-  const getCallIcon = (type: string) => {
-    switch (type) {
-      case 'incoming':
-        return <PhoneCall className="h-4 w-4 text-green-500" />
-      case 'outgoing':
-        return <PhoneOutgoing className="h-4 w-4 text-blue-500" />
-      case 'missed':
-        return <PhoneMissed className="h-4 w-4 text-red-500" />
-      case 'voicemail':
-        return <Voicemail className="h-4 w-4 text-yellow-500" />
-      default:
-        return null
-    }
-  }
-
-  const getCallTypeName = (type: string) => {
-    switch (type) {
-      case 'incoming':
-        return 'Incoming'
-      case 'outgoing':
-        return 'Outgoing'
-      case 'missed':
-        return 'Missed'
-      case 'voicemail':
-        return 'Voicemail'
-      default:
-        return ''
-    }
-  }
-
-  const getRelativeTime = (date: Date) => {
-    const now = new Date()
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-    const diffInMinutes = Math.floor(diffInSeconds / 60)
-    const diffInHours = Math.floor(diffInMinutes / 60)
-    const diffInDays = Math.floor(diffInHours / 24)
-
-    if (diffInDays > 0) {
-      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`
-    } else if (diffInHours > 0) {
-      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`
-    } else if (diffInMinutes > 0) {
-      return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`
-    } else {
-      return 'Just now'
-    }
-  }
-
-  return (
-    <li className="py-3 sm:py-4">
-      <div className="flex items-center space-x-1">
-        <div className="flex-shrink-0">
-          <img src={item.user.imageUrl} alt={item.user.name} className="h-8 w-8 flex-none rounded-full" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
-            {item.user.name}
-          </p>
-          <div className="flex items-center space-x-1 mt-1">
-            {getCallIcon(item.type)}
-            <span className="text-xs text-gray-500">{getCallTypeName(item.type)}</span>
-          </div>
-        </div>
-        <div className="text-sm text-gray-500 text-right">
-          {item.duration || 'N/A'}
-        </div>
-        <div className="text-sm text-gray-500 text-center">
-          {getRelativeTime(item.date)}
-        </div>
-      </div>
-    </li>
-  )
-}

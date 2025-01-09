@@ -1,13 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
-import { Button} from '@headlessui/react';
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Divide, SendHorizontal, PlusCircle } from 'lucide-react';
 import { TooltipProvider, TooltipTrigger, Tooltip, TooltipContent } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
+import { type Chat, type Message } from "../types/chat"
 
+interface ChatMessagesProps {
+  selectedChat: Chat | null;
+}
 
-export default function ChatConv() {
-  const [selectedConversation, setSelectedConversation] = useState(conversations[0])
-  const [messages, setMessages] = useState(mockMessages)
+export function ChatMessages({ selectedChat }: ChatMessagesProps) {
+  const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -32,9 +38,113 @@ export default function ChatConv() {
     }
   }, [newMessage])
 
+  
     return (
-      <div className="flex h-[calc(100vh-4rem)] bg-white">
-        <div className="relative left-16 w-80 bg-white border-r border-gray-200 flex flex-col">
+      <Card className="flex h-[calc(100vh-3.5rem)] flex-col rounded-none border-0 w-full">
+        <CardHeader className="border-b px-6 py-4 shrink-0">
+        {selectedChat ? (
+          <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Avatar className="h-10 w-10 shrink-0 border">
+                    <AvatarImage src={selectedChat.avatar} />
+                    <AvatarFallback>{selectedChat.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
+                    selectedChat.status === 'online' 
+                      ? 'bg-green-500' 
+                      : selectedChat.status === 'busy'
+                      ? 'bg-yellow-500'
+                      : 'bg-gray-400'
+                  }`} />
+                </div>
+            <div>
+              <h2 className="text-lg font-semibold leading-none tracking-tight">
+                {selectedChat.name}
+              </h2>
+              <p className="text-sm text-muted-foreground">Active now</p>
+            </div>
+          </div>
+          ) : (
+            <p className="text-muted-foreground">Select a chat to start messaging</p>
+          )}
+        </CardHeader>
+  
+        <CardContent className="flex-1 overflow-hidden p-0">
+        {selectedChat ? (
+          <ScrollArea className="h-full">
+            <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex gap-3 w-full ${
+                    message.sender === "You" ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  {message.sender !== "You" && (
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarImage src={selectedChat.avatar} />
+                      <AvatarFallback>{selectedChat.name[0]}</AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div
+                    className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                      message.sender === "You"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                    <p className={`mt-1 text-[11px] ${
+                      message.sender === "You"
+                        ? "text-primary-foreground/70"
+                        : "text-muted-foreground"
+                    }`}>
+                      {message.timestamp}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <p className="text-muted-foreground">Select a chat to view messages</p>
+                    </div>
+                  )}
+        </CardContent>
+
+        {selectedChat && (
+        <CardFooter className="border-t p-4 shrink-0">
+          <form onSubmit={handleSendMessage} className="flex w-full max-w-4xl mx-auto gap-3">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              className="min-h-[44px] max-h-32 flex-1 resize-none rounded-xl"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage(e);
+                }
+              }}
+            />
+            <Button 
+              type="submit" 
+              size="icon" 
+              className="h-11 w-11 shrink-0 rounded-xl"
+            >
+              <SendHorizontal className="h-5 w-5" />
+              <span className="sr-only">Send message</span>
+            </Button>
+          </form>
+        </CardFooter>
+        )
+        }
+      </Card>
+    )
+      {/* <div className="flex h-[calc(100vh-4rem)]">
+        <div className="w-80 border-r border-gray-200 flex flex-col">
         <div className="px-6 py-4 border-b flex justify-between items-center">
           <h2 className="text-xl font-semibold">Messages</h2>
           <TooltipProvider>
@@ -56,7 +166,7 @@ export default function ChatConv() {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-        <li key={comment.id}
+                    <li key={comment.id}
         className={`px-2 py-2  flex cursor-pointer hover:bg-gray-100 ${selectedConversation.id === comment.id ? 'bg-gray-100' : ''}`}
         onClick={() => setSelectedConversation(comment)}
         >
@@ -80,13 +190,13 @@ export default function ChatConv() {
       ))}
     </ul>
     </ScrollArea>
-  </div>
-
-  <div className="pl-16 flex-1 flex flex-col overflow-hidden">
-  <div className="w-2/3 h-full max-w-7xl flex flex-col bg-white">
+  </div> 
+ 
+  <div className="flex-1 flex flex-col overflow-hidden">
+  <div className="h-full w-full flex flex-col bg-white">
     <div className="flex-1 overflow-hidden">
       <div className="h-full flex flex-col ">
-            <div className="px-4 py-4 flex border-b bg-white">
+      <div className="px-4 py-4 flex border-b bg-white">
             <img alt="" src={selectedConversation.imageUrl} className="h-8 w-8 rounded-full" />
               <h2 className="text-lg pl-3 font-semibold">{selectedConversation.name}</h2>
             </div>
@@ -123,7 +233,7 @@ export default function ChatConv() {
           </div>
           <div className="flex justify-between pt-2">
           <div className="flex-shrink-0">
-            <TooltipProvider>
+          <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button type="submit">
@@ -142,7 +252,10 @@ export default function ChatConv() {
         </div>
         </div>
         </div>
-)
+    */}
+    
+      
+
 }
 
 const conversations = [

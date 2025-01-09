@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { CallSIPProvider } from "./CallSIPContext";
 import { SIPProvider } from "./SIPContext";
+import { TernSecureProvider } from "@tern-secure/nextjs";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -31,12 +32,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {/* {children} */}
-        
+      <TernSecureProvider>
       <SIPProvider>
         <CallSIPProvider>
           {children}
         </CallSIPProvider>
       </SIPProvider>
+      </TernSecureProvider>
       </body>
     </html>
   );

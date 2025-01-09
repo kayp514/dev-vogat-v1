@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react';
-import { BarsArrowDownIcon, PhoneIcon } from '@heroicons/react/20/solid'
+import { useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
+import { Phone, X, ChevronDown } from 'lucide-react';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 
 const numbers = [
@@ -26,6 +30,7 @@ export default function InputNumber({ onCall }: InputNumberProps) {
   const [showNumbers, setShowNumbers] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isCallInitiating, setIsCallInitiating] = useState(false)
+  const [showDialpad, setShowDialpad] = useState(false)
 
   
   const toggleNumbers = () => {
@@ -40,6 +45,10 @@ export default function InputNumber({ onCall }: InputNumberProps) {
     setPhoneNumber(phoneNumber + number);
   };
 
+  const clearNumber = () => {
+    setPhoneNumber('');
+  };
+
   const initiateCall = async () => {
     if (phoneNumber) {
       setIsCallInitiating(true)
@@ -51,110 +60,87 @@ export default function InputNumber({ onCall }: InputNumberProps) {
     }
   };
 
-  const isCallButtonDisabled = phoneNumber.trim() === '';
-
-  return (
-    <div className="px-4 py-4">
-      <div className="flex rounded-md shadow-sm">
-        <div className="relative w-full">
-          <input
-            id="phone"
-            name="phone"
-            type="text"
-            placeholder="Type Phone Number"
-            value={phoneNumber}
-            onChange={handleInputChange}
-            className="peer block w-full border-0 bg-gray-50 py-1.5 text-gray-900 focus:ring-0 sm:text-sm sm:leading-6"
-          />
-                  <div
-          aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 border-t border-gray-300 peer-focus:border-t-2 peer-focus:border-indigo-600"
-        />
-        </div>
-        <button
-          type="button"
-          onClick={toggleNumbers}
-          className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-        >
-          {showNumbers ? (
-          <BarsArrowDownIcon aria-hidden="true" className="-ml-0.5 h-5 w-5 text-gray-700" />
-          ):(
-          <BarsArrowDownIcon aria-hidden="true" className="-ml-0.5 h-5 w-5 text-gray-400" />
-        )}
-        </button>
-      </div>
-      {showNumbers && (
-      <div className="flex flex-col mt-4 gap-2 items-center">
-        <div className="flex gap-2">
-        {numbers.slice(0,3).map((item) =>
-            <button
-            key={item.id}
-            type="button"
-            onClick={() => handleNumberClick(item.name)}
-            className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-gray-800 bg-white shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50"
-            >
-                {item.name}
-            </button>
-        )}
-        </div>
-        <div className="flex gap-2">
-        {numbers.slice(3,6).map((item) =>
   
-            <button
-            key={item.id}
-            type="button"
-            onClick={() => handleNumberClick(item.name)}
-            className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-gray-800 bg-white shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50"
-            >
-                {item.name}
-            </button>
-        )}
-        </div>
-        <div className="flex gap-2">
-        {numbers.slice(6,9).map((item) =>
-        <div>
-            <button
-            key={item.id}
-            type="button"
-            onClick={() => handleNumberClick(item.name)}
-            className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-gray-800 bg-white shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50"
-            >
-                {item.name}
-            </button>
-        </div>
-        
-        )}
-        </div>
-        <div className="flex gap-2">
-        {numbers.slice(9).map((item) =>
-        <div>
-            <button
-            key={item.id}
-            type="button"
-            onClick={() => handleNumberClick(item.name)}
-            className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-gray-800 bg-white shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50"
-            >
-                {item.name}
-            </button>
-        </div>
-        
-        )}
-        </div>
-        </div>
-        )}
-      <div className="mt-4">
-        <button
-        type="button"
-        disabled={isCallButtonDisabled}
-        onClick={initiateCall}
-        className={`w-full rounded-md px-3 py-2 text-sm font-semibold shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 flex items-center justify-center
-        ${isCallButtonDisabled ? 'bg-gray-200 text-gray-500' : 'bg-indigo-600 text-white '}`}
-        >
-        <PhoneIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-         Call
-        </button>
-      </div>
-      <Toaster />
-    </div>
-  )
-}
+    return (
+      <Card className="w-full max-w-sm mx-auto shadow-lg">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {/* Phone Input Section */}
+            <div className="relative">
+              <div className="flex gap-2">
+                <Input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={handleInputChange}
+                  placeholder="Enter phone number"
+                  className="text-lg font-medium pr-20"
+                />
+                <div className="absolute right-0 top-0 h-full flex items-center gap-1 pr-3">
+                  {phoneNumber && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={clearNumber}
+                      className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDialpad(!showDialpad)}
+                    className={cn(
+                      "h-8 w-8 p-0",
+                      showDialpad && "bg-muted"
+                    )}
+                  >
+                    <ChevronDown className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      showDialpad && "rotate-180"
+                    )} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+  
+            {/* Dialpad Section */}
+            {showDialpad && (
+              <div className="space-y-4 pt-2">
+                <div className="grid grid-cols-3 gap-3">
+                  {numbers.map((item) => (
+                    <Button
+                      key={item.id}
+                      variant="outline"
+                      className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-gray-800 bg-white shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50"
+                      onClick={() => handleNumberClick(item.name)}
+                    >
+                      {item.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+  
+            {/* Call Button */}
+            <Button
+            className={cn(
+              "w-full h-12",
+              "transition-colors duration-200",
+              !phoneNumber || isCallInitiating
+                ? "bg-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-500"
+                : "bg-indigo-600 text-white hover:bg-indigo-700"
+            )}
+            size="lg"
+            disabled={!phoneNumber || isCallInitiating}
+            onClick={initiateCall}
+          >
+            <Phone className="mr-2 h-4 w-4" />
+            {isCallInitiating ? 'Calling...' : 'Call'}
+          </Button>
+          </div>
+        </CardContent>
+        <Toaster />
+      </Card>
+    )
+  }

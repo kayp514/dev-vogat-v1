@@ -1,7 +1,7 @@
 // src/app/SIPInitializer.tsx
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSIP } from './SIPContext'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { X } from "lucide-react"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 
 export function SIPInitializer() {
   const { sipStatus, isInitialized, isRegistered, initializeSIP, register } = useSIP()
+  const [showAlert, setShowAlert] = useState(true)
 
   useEffect(() => {
     if (sipStatus === 'uninitialized') {
@@ -22,7 +23,7 @@ export function SIPInitializer() {
     }
   }, [isInitialized, isRegistered, sipStatus, register])
 
-  if (sipStatus === 'registered') {
+  if (sipStatus === 'registered' || !showAlert) {
     return null
   }
 
@@ -33,7 +34,7 @@ export function SIPInitializer() {
         <Button 
           variant="ghost" 
           className="h-4 w-4 p-0" 
-          onClick={() => {/* Add logic to dismiss alert */}}
+          onClick={() => setShowAlert(false)}
         >
           <X className="h-4 w-4" />
         </Button>

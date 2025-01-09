@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
 
 export async function POST(request: NextRequest) {
-  const token = cookies().get('auth_token')?.value;
+  const token = (await cookies()).get('auth_token')?.value;
 
   if (token) {
     try {
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Clear the auth token cookie
-  cookies().delete('auth_token');
+  (await cookies()).delete('auth_token');
 
   return NextResponse.json({ message: 'Logged out successfully' });
 }

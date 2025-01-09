@@ -2,14 +2,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://firebase-auth-data.vercel.app';
+const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://ternsecure.com';
 
 export async function middleware(request: NextRequest) {
-  const token = request.cookies.get('auth_token')?.value;
+  const token = request.cookies.get('_session_cookie')?.value;
 
   if (!token) {
     console.log('No token found in middleware, redirecting to login');
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/sign-in', request.url));
   }
 
   try {
@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
 
     if (!data.valid) {
       console.log('Invalid token, redirecting to login');
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(new URL('/sign-in', request.url));
     }
 
     const requestHeaders = new Headers(request.headers);
@@ -38,7 +38,7 @@ export async function middleware(request: NextRequest) {
     });
   } catch (error) {
     console.error('Authentication error:', error);
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/sign-in', request.url));
   }
 }
 

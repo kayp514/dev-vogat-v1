@@ -15,6 +15,7 @@ import {
   RegistererState,
   SessionDescriptionHandlerOptions,
   SessionDescriptionHandler,
+  SessionDelegate,
 } from 'sip.js';
 import { IncomingInviteRequest, IncomingRequestMessage, IncomingResponse } from 'sip.js/lib/core/messages';
 import { Emitter } from 'sip.js/lib/api/emitter';
@@ -821,8 +822,8 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
     sessionDescriptionHandlerOptions,
   };
 
-  const remoteAudio = new Audio()
-  remoteAudio.autoplay = true
+  //const remoteAudio = new Audio()
+  //remoteAudio.autoplay = true
 
   const inviter = new Inviter(userAgent, target, inviterOptions);
   setCurrentSession(inviter);
@@ -860,6 +861,7 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
             // Set up early media if required
           }
         }
+        handleSession(inviter);
       },
       onAccept: (response) => {
         console.log('Call Accepted:', response.message);
@@ -884,7 +886,7 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
       case SessionState.Establishing:
         break;
       case SessionState.Established:
-        handleSession(inviter);
+       // handleSession(inviter);
         break;
       case SessionState.Terminated:
         cleanupCall();
@@ -908,7 +910,6 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
     }
   }
 
-
   export function handleSession(session: Session): void {
     console.log('Handling new session');
     currentSession = session;
@@ -920,6 +921,8 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
   
     if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
       const sessionDescriptionHandler = session.sessionDescriptionHandler;
+
+
   
       // Listen for track additions and removals
       sessionDescriptionHandler.remoteMediaStream.onaddtrack = (event) => {
