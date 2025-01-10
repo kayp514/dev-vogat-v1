@@ -4,6 +4,7 @@ import "./globals.css";
 import { CallSIPProvider } from "./CallSIPContext";
 import { SIPProvider } from "./SIPContext";
 import { TernSecureProvider } from "@tern-secure/nextjs";
+import { Analytics } from "@vercel/analytics/react"
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -36,6 +37,7 @@ export default function RootLayout({
       <SIPProvider>
         <CallSIPProvider>
           {children}
+          <Analytics />
         </CallSIPProvider>
       </SIPProvider>
       </TernSecureProvider>
