@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Chat } from "../types/chat"
+import { cn } from "@/lib/utils"
 
 
 
@@ -17,7 +18,10 @@ interface ChatListProps {
 export function ChatList({ onChatSelect, selectedChatId }: ChatListProps) {
 
   return (
-    <Card className="w-80 h-full border-r rounded-none">
+    <Card className={cn(
+      "h-full border-r rounded-none transition-all duration-300 ease-in-out",
+      "w-[320px]"
+    )}>
       <CardHeader className="p-4 space-y-0 pb-3">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold tracking-tight">Messages</h2>

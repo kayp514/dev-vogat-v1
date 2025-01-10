@@ -1,12 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
-import { Divide, SendHorizontal, PlusCircle } from 'lucide-react';
+import { Divide, SendHorizontal, PlusCircle , Phone, Video, MoreVertical} from 'lucide-react';
 import { TooltipProvider, TooltipTrigger, Tooltip, TooltipContent } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
 import { type Chat, type Message } from "../types/chat"
+import { cn } from "@/lib/utils"
 
 interface ChatMessagesProps {
   selectedChat: Chat | null;
@@ -40,10 +47,14 @@ export function ChatMessages({ selectedChat }: ChatMessagesProps) {
 
   
     return (
-      <Card className="flex h-[calc(100vh-3.5rem)] flex-col rounded-none border-0 w-full">
-        <CardHeader className="border-b px-6 py-4 shrink-0">
+      <Card className={cn(
+        "flex h-[calc(100vh-3.5rem)] flex-col rounded-none border-0",
+        "w-full transition-all duration-300 ease-in-out"
+      )}>
+        <CardHeader className="border-b px-6 py-4 p-4 shrink-0">
         {selectedChat ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
                 <div className="relative">
                   <Avatar className="h-10 w-10 shrink-0 border">
                     <AvatarImage src={selectedChat.avatar} />
@@ -61,7 +72,76 @@ export function ChatMessages({ selectedChat }: ChatMessagesProps) {
               <h2 className="text-lg font-semibold leading-none tracking-tight">
                 {selectedChat.name}
               </h2>
-              <p className="text-sm text-muted-foreground">Active now</p>
+              <p className="text-sm text-muted-foreground">
+                  {selectedChat.status === 'online' ? 'Active now' : 'Last seen recently'}
+              </p>
+              </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+              <TooltipProvider>
+              <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9 rounded-full",
+                        "hover:bg-primary/10 hover:text-primary",
+                        "transition-colors duration-200"
+                      )}
+                      onClick={() => {/* Handle voice call */}}
+                    >
+                      <Phone className="h-4 w-4" />
+                      <span className="sr-only">Voice Call</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Voice Call</TooltipContent>
+                </Tooltip>
+
+              <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9 rounded-full",
+                        "hover:bg-primary/10 hover:text-primary",
+                        "transition-colors duration-200"
+                      )}
+                      onClick={() => {/* Handle video call */}}
+                    >
+                      <Video className="h-4 w-4" />
+                      <span className="sr-only">Video Call</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Video Call</TooltipContent>
+                </Tooltip>
+
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9 rounded-full",
+                        "hover:bg-primary/10 hover:text-primary",
+                        "transition-colors duration-200"
+                      )}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                      <span className="sr-only">More options</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem>View contact info</DropdownMenuItem>
+                    <DropdownMenuItem>Search in conversation</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive">
+                      Block contact
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TooltipProvider>
             </div>
           </div>
           ) : (

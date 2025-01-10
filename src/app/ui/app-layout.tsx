@@ -1,15 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSideBar } from './sidebar'
 import { Header } from "@/app/ui/header"
 import { ChatPage } from "@/app/chat/page"
-import { CallsPage } from "@/app/calls/page"
+import { CallsPage }  from "../calls/page"
 import { useCallSIP } from '@/app/CallSIPContext'
 import { useSIP } from '@/app/SIPContext'
 import CallUI from '@/app/ui/callui'
 import { CallNotification } from './callnotify'
+import { cn } from "@/lib/utils"
 
 
 
@@ -23,6 +23,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ userData }: AppLayoutProps) {
   const [activeTab, setActiveTab] = useState("chat")
+  const [isMaximized, setIsMaximized] = useState(false)
 
   const { isInitialized, isRegistered } = useSIP()
   const { 
@@ -45,18 +46,37 @@ export function AppLayout({ userData }: AppLayoutProps) {
         <div className="absolute top-0 left-0 right-0 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <Header userData={userData} />
         </div>
-        <div className="h-[calc(100vh-3.5rem)] mt-14">
+        <div className={cn(
+          "h-[calc(100vh-3.5rem)] mt-14 transition-all duration-300",
+          isCallActive && !isMaximized // Adjust main content when call UI is shown
+        )}>
           {activeTab === "chat" && <ChatPage />}
           {activeTab === "calls" && <CallsPage />}
         </div>
       </div>
-      {isCallActive && callType === 'outgoing' && (
+      {isCallActive && (
+                  <div className={cn(
+                    "fixed transition-all duration-300",
+                    isMaximized 
+                      ? "inset-0 ml-[60px] mt-14" // Align with sidebar and header
+                      : "right-0 top-14 w-[300px]"
+                  )}>
+        {callType === 'outgoing' && (
           <CallUI
+          callerInfo={{
+            name: "John Doe",
+            avatar: "/path/to/avatar.jpg",
+            phoneNumber: "+1 (555) 123-4567",
+
+          }}
             activeNumber={activeNumber}
             callState={callState}
             callType={callType}
             handleEndCall={handleEndCall}
             setIsCallActive={setIsCallActive}
+            isMaximized={isMaximized}
+            setIsMaximized={setIsMaximized} 
+            
           />
         )}
         {isCallActive && callType === 'incoming' && callState === 'establishing' && (
@@ -68,13 +88,23 @@ export function AppLayout({ userData }: AppLayoutProps) {
         )}
         {isCallActive && callType === 'incoming' && callState === 'established' && (
           <CallUI
+          callerInfo={{
+            name: "John Doe",
+            avatar: "/path/to/avatar.jpg",
+            phoneNumber: "+1 (555) 123-4567",
+
+          }}
             activeNumber={activeNumber}
             callState={callState}
             callType={callType}
             handleEndCall={handleEndCall}
             setIsCallActive={setIsCallActive}
+            isMaximized={isMaximized}
+            setIsMaximized={setIsMaximized} 
           />
         )}
+    </div>
+      )}
     </div>
   )
 }
