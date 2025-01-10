@@ -1,7 +1,4 @@
-'use client'
-
-import { useState } from 'react'
-import { MessageCircle, Phone, Bell, User2, LogOut } from 'lucide-react'
+import { MessageCircle, Phone } from 'lucide-react'
 
 import {
   Sidebar,
@@ -12,28 +9,6 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
-import SettingsScreen from './settingsScreen'
-import { useCallSIP } from '@/app/CallSIPContext'
-import { useSIP } from '@/app/SIPContext'
-import CallUI from '@/app/ui/callui'
-import { CallNotification } from './callnotify'
-import { SignOut } from "@tern-secure/nextjs"
-
-interface UserData {
-  displayName?: string
-  email: string
-  photoURL?: string
-  uid: string
-}
 
 const navigation = [
   { name: 'Chat', id: 'chat', icon: MessageCircle, current: true },
@@ -47,18 +22,6 @@ interface MainSideBarProps {
 
 
 export function AppSideBar({ activeTab, setActiveTab }: MainSideBarProps) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const { isInitialized, isRegistered } = useSIP()
-  const { 
-    isCallActive, 
-    activeNumber, 
-    callState, 
-    callType, 
-    handleEndCall, 
-    setIsCallActive, 
-    handleAcceptCall, 
-    handleRejectCall 
-  } = useCallSIP()
 
   return (
     <SidebarProvider>
@@ -93,42 +56,6 @@ export function AppSideBar({ activeTab, setActiveTab }: MainSideBarProps) {
         </Sidebar>
         </SidebarProvider>
 
-/*
-
-
-        
-        {isCallActive && callType === 'outgoing' && (
-          <CallUI
-            activeNumber={activeNumber}
-            callState={callState}
-            callType={callType}
-            handleEndCall={handleEndCall}
-            setIsCallActive={setIsCallActive}
-          />
-        )}
-        {isCallActive && callType === 'incoming' && callState === 'establishing' && (
-          <CallNotification
-            callerNumber={activeNumber}
-            onAccept={handleAcceptCall}
-            onReject={handleRejectCall}
-          />
-        )}
-        {isCallActive && callType === 'incoming' && callState === 'established' && (
-          <CallUI
-            activeNumber={activeNumber}
-            callState={callState}
-            callType={callType}
-            handleEndCall={handleEndCall}
-            setIsCallActive={setIsCallActive}
-          />
-        )}
-
-      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent className="max-w-4xl w-[90vw] h-[80vh] p-0">
-          <SettingsScreen userData={userData} />
-        </DialogContent>
-      </Dialog>
-      */
   )
 }
 

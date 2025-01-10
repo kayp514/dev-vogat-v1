@@ -77,7 +77,7 @@ export function ChatList({ onChatSelect, selectedChatId }: ChatListProps) {
 }
 
 
-const chats = [
+const chats: Chat[] = [
   {
     id: "1",
     name: "Alice Smith",

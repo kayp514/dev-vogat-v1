@@ -3,22 +3,18 @@
 import { useState } from 'react'
 import { AppSideBar } from './sidebar'
 import { Header } from "@/app/ui/header"
-import { ChatPage } from "@/app/chat/page"
-import { CallsPage }  from "../calls/page"
+import ChatPage from "@/app/chat/page"
+import CallsPage from "../calls/page"
 import { useCallSIP } from '@/app/CallSIPContext'
 import { useSIP } from '@/app/SIPContext'
 import CallUI from '@/app/ui/callui'
 import { CallNotification } from './callnotify'
 import { cn } from "@/lib/utils"
-
+import { type UserData } from "../types/chat"
 
 
 interface AppLayoutProps {
-  userData: {
-    displayName?: string;
-    email?: string;
-    uid?: string;
-  }
+  userData: UserData; 
 }
 
 export function AppLayout({ userData }: AppLayoutProps) {

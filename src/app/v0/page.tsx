@@ -27,9 +27,11 @@ export default function VzeroPage() {
   }
 
   const userData = {
-    displayName: user?.displayName,
-    email: user?.email,
-    uid: user?.uid
+    displayName: user?.displayName || '',
+    email: user?.email || '',
+    uid: user?.uid || '',
+    photoURL: user?.photoURL || '',
+    status: 'online' as const,
   }
 
     return (

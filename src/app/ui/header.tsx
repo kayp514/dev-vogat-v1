@@ -1,8 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { MessageCircle, Phone, Bell, User2, LogOut } from 'lucide-react'
+import { Bell, User2, LogOut } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import SettingsScreen from './settingsScreen'
 import { SignOut } from "@tern-secure/nextjs"
@@ -10,20 +9,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import { type UserData } from "../types/chat"
+
+
 interface HeaderProps {
-    userData: {
-      displayName?: string;
-      email?: string;
-      uid?: string;
-      photoURL?: string;
-      status?: string;
-    }
-  }
+  userData: Partial<UserData>;
+}
 
 export function Header({ userData }: HeaderProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)

@@ -18,13 +18,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { debugAudioState } from '@/lib/call'
+import { type UserData } from "../types/chat"
 
-type UserData = {
-  displayName?: string
-  email: string
-  photoURL?: string
-  uid: string
+interface SettingsScreenProps {
+  userData: Partial<UserData>;
 }
+
 
 type SipSecurityInfo = {
   protocol: string
@@ -40,7 +39,7 @@ const settingsMenu = [
   { id: 'call', name: 'Call', icon: Phone }
 ]
 
-export default function SettingsScreen({ userData }: { userData: UserData }) {
+export default function SettingsScreen({ userData }: SettingsScreenProps) {
   const [activeTab, setActiveTab] = useState('profile')
   const [sipPassword, setSipPassword] = useState('')
   const [savedSipPassword, setSavedSipPassword] = useState('')
@@ -59,10 +58,11 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
     if (savedPassword) setSavedSipPassword(savedPassword)
     if (savedSecurityInfo) setSavedSipSecurityInfo(savedSecurityInfo)
 
-    localStorage.setItem('sipUsername', userData.email)
-
-    const serverFromEmail = userData.email.split('@')[1]
-    setSipSecurityInfo(prev => ({ ...prev, server: serverFromEmail }))
+    if (userData.email) {
+        localStorage.setItem('sipUsername', userData.email)
+        const serverFromEmail = userData.email.split('@')[1]
+        setSipSecurityInfo(prev => ({ ...prev, server: serverFromEmail }))
+      }
   }, [userData.email])
 
   const handleSavePassword = () => {
@@ -77,6 +77,11 @@ export default function SettingsScreen({ userData }: { userData: UserData }) {
   }
 
   const handleSaveSipSecurityInfo = () => {
+    if (!userData.email) {
+      console.warn('Email is not available')
+      return
+    }
+
     const updatedSipSecurityInfo = {
       ...sipSecurityInfo,
       server: userData.email.split('@')[1],

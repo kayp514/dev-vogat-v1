@@ -5,7 +5,7 @@ import { useState } from "react"
 import { type Chat } from "../types/chat"
 
 
-export function ChatPage() {
+export default function Page() {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null)
   return (
     <div className="flex h-full">
