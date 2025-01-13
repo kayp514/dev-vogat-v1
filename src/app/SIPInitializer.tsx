@@ -28,7 +28,7 @@ export function SIPInitializer() {
   }
 
   return (
-    <Alert variant="destructive" className=" top-0 left-0 right-0 m-4">
+    <Alert variant="destructive">
       <AlertTitle className="flex items-center justify-between">
         SIP Status
         <Button 

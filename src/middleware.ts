@@ -2,46 +2,23 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL || 'https://ternsecure.com';
-
-export async function middleware(request: NextRequest) {
-  const token = request.cookies.get('_session_cookie')?.value;
-
-  if (!token) {
-    console.log('No token found in middleware, redirecting to login');
-    return NextResponse.redirect(new URL('/sign-in', request.url));
-  }
-
-  try {
-    const res = await fetch(`${AUTH_APP_URL}/api/auth/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
-    });
-
-    const data = await res.json();
-
-    if (!data.valid) {
-      console.log('Invalid token, redirecting to login');
-      return NextResponse.redirect(new URL('/sign-in', request.url));
-    }
-
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-id', data.uid);
-
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
-  } catch (error) {
-    console.error('Authentication error:', error);
-    return NextResponse.redirect(new URL('/sign-in', request.url));
-  }
-}
-
 export const config = {
   matcher: ['/v0/:path*', '/dashboard/:path*'],
 };
+
+export async function middleware(request: NextRequest) {
+
+  const url = request.nextUrl
+  const { pathname } = url
+
+  
+  const isLoginPage = pathname === '/sign-in'
+  const isSignup = pathname === '/signup'
+  const isPublicRoute = isLoginPage || isSignup
+
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+
+  return NextResponse.next()
+}

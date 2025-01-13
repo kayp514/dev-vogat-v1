@@ -11,6 +11,7 @@ import { CallNotification } from './callnotify'
 import { cn } from "@/lib/utils"
 import { type UserData } from "../types/chat"
 import { Toaster } from '@/components/ui/toaster';
+import { SIPInitializer } from "../SIPInitializer";
 
 
 interface AppLayoutProps {
@@ -40,6 +41,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
       </div>
       <div className="relative flex-1 min-w-0">
         <div className="absolute top-0 left-0 right-0 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <SIPInitializer />
           <Header userData={userData} />
         </div>
         <div className={cn(
