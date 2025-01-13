@@ -5,12 +5,12 @@ import { AppSideBar } from './sidebar'
 import { Header } from "@/app/ui/header"
 import ChatPage from "@/app/chat/page"
 import CallsPage from "../calls/page"
-import { useCallSIP } from '@/app/CallSIPContext'
-import { useSIP } from '@/app/SIPContext'
+import { useCallSIP } from '@/app/CallSipProviderCtx'
 import CallUI from '@/app/ui/callui'
 import { CallNotification } from './callnotify'
 import { cn } from "@/lib/utils"
 import { type UserData } from "../types/chat"
+import { Toaster } from '@/components/ui/toaster';
 
 
 interface AppLayoutProps {
@@ -21,7 +21,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
   const [activeTab, setActiveTab] = useState("chat")
   const [isMaximized, setIsMaximized] = useState(false)
 
-  const { isInitialized, isRegistered } = useSIP()
+
   const { 
     isCallActive, 
     activeNumber, 
@@ -49,6 +49,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
           {activeTab === "chat" && <ChatPage />}
           {activeTab === "calls" && <CallsPage />}
         </div>
+        <Toaster />
       </div>
       {isCallActive && (
                   <div className={cn(
@@ -102,5 +103,6 @@ export function AppLayout({ userData }: AppLayoutProps) {
     </div>
       )}
     </div>
+
   )
 }

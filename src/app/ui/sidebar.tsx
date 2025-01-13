@@ -50,9 +50,6 @@ export function AppSideBar({ activeTab, setActiveTab }: MainSideBarProps) {
               ))}
             </SidebarMenu>
           </SidebarContent>
-          <div className="mt-auto border-t p-4">
-            <p className="text-xs text-muted-foreground text-center">v1.0.0</p>
-          </div>
         </Sidebar>
         </SidebarProvider>
 

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { CallSIPProvider } from "./CallSIPContext";
-import { SIPProvider } from "./SIPContext";
+import { CallSIPProvider } from "./CallSipProvider";
+import { SIPProvider } from "./SipProvider";
 import { TernSecureProvider } from "@tern-secure/nextjs";
 import { Analytics } from "@vercel/analytics/react"
 

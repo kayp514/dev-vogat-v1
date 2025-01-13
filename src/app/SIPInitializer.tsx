@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSIP } from './SIPContext'
+import { useSIP } from './SipProviderCtx'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"

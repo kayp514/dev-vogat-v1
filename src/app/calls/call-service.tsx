@@ -2,7 +2,7 @@
 
 import CallHistory from '../ui/callhistory';
 import InputNumber from '../ui/inputnumber';
-import { useCallSIP } from '@/app/CallSIPContext';
+import { useCallSIP } from '@/app/CallSipProviderCtx';
 
 export function CallService() {
   

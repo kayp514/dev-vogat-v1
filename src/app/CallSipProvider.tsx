@@ -1,42 +1,28 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react'
+import React, { useState, useCallback, ReactNode, useEffect, useRef } from 'react'
 import { makeOutgoingCall, 
   terminateCall, 
   SIPResponse, 
-  CallState, 
-  handleCallStateChange, 
+  CallState,  
   listenForIncomingCalls, 
   acceptIncomingCall, 
   type Invitation,
   getUserAgent,
-  setCurrentSession,
   getCurrentSession,
   setCallStateChangeHandler, 
   cleanupCall,
   } from '@/lib/call'
 import { toast } from '@/hooks/use-toast'
-import { useSIP } from './SIPContext'
+import { useSIP } from './SipProviderCtx'
 import { Inviter, Session, SessionState } from 'sip.js'
+import { CallSipProviderCtx } from './CallSipProviderCtx'
 
 export type CallType = 'outgoing' | 'incoming'
 export type { CallState } from '@/lib/call'
 
 
-interface CallSIPContextType {
-  isCallActive: boolean
-  activeNumber: string
-  callType: CallType
-  callState: CallState
-  handleOutgoingCall: (phoneNumber: string) => Promise<void>
-  handleIncomingCall: (invitation: Invitation) => void
-  handleAcceptCall: () => void
-  handleRejectCall: () => void
-  handleEndCall: () => void
-  setIsCallActive: (isCallActive: boolean) => void
-}
 
-const CallSIPContext = createContext<CallSIPContextType | undefined>(undefined)
 
 export function CallSIPProvider({ children }: { children: ReactNode }) {
   const { isInitialized, isRegistered } = useSIP()
@@ -223,7 +209,7 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
 
 
   return (
-    <CallSIPContext.Provider value={{ 
+    <CallSipProviderCtx.Provider value={{ 
       isCallActive,
       activeNumber,
       callType,
@@ -236,14 +222,6 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
       setIsCallActive
     }}>
       {children}
-    </CallSIPContext.Provider>
+    </CallSipProviderCtx.Provider>
   )
-}
-
-export function useCallSIP() {
-  const context = useContext(CallSIPContext)
-  if (context === undefined) {
-    throw new Error('useCallSIP must be used within a CallSIPProvider')
-  }
-  return context
 }

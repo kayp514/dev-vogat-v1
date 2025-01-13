@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import SettingsScreen from './settingsScreen'
 import { SignOut } from "@tern-secure/nextjs"
+import { PstnStatus } from './pstn-status'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,15 +24,19 @@ export function Header({ userData }: HeaderProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
     const handleSignOut = () => {
-        return (
-          <SignOut />
-        )
+        return <SignOut />
       };
 
   return (
     <div className="flex h-full items-center justify-between px-4">
       <div className="flex-1" />
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-10">
+      <div className="w-[220px]">
+          <PstnStatus
+          className="hover:bg-accent/50 transition-colors"
+           />
+      </div>
+      <div className="flex items-center gap-4">
         <button className="rounded-full p-2 hover:bg-accent">
           <Bell className="h-5 w-5" />
         </button>
@@ -63,6 +68,7 @@ export function Header({ userData }: HeaderProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
       </div>
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
         <DialogContent className="max-w-4xl w-[90vw] h-[80vh] p-0">

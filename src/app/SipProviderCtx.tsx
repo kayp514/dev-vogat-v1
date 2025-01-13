@@ -1,6 +1,53 @@
 // src/app/SIPContext.tsx
 'use client'
 
+import { createContext, useContext } from 'react'
+
+
+export type SIPStatus = 'uninitialized' | 'initializing' | 'initialized' | 'registering' | 'registered' | 'unregistering' | 'disconnected' | 'error'
+export type TransportStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+export type NetworkStatus = 'online' | 'offline'
+
+interface SIPContextState {
+  sipStatus: SIPStatus
+  transportStatus: TransportStatus
+  networkStatus: NetworkStatus
+  isInitialized: boolean
+  isRegistered: boolean
+  reconnectionAttempt: number
+  initializeSIP: () => Promise<void>
+  register: () => Promise<void>
+  unregister: () => Promise<void>
+}
+
+export const SipProviderCtx = createContext<SIPContextState>({
+    sipStatus: 'uninitialized',
+    transportStatus: 'disconnected',
+    networkStatus: 'online',
+    isInitialized: false,
+    isRegistered: false,
+    reconnectionAttempt: 0,
+    initializeSIP: async () => {},
+    register: async () => {},
+    unregister: async () => {},
+  })
+
+SipProviderCtx.displayName = 'SipProviderCtx'
+
+
+export function useSIP() {
+  const context = useContext(SipProviderCtx)
+  if (!context) {
+    throw new Error('useSIP must be used within a SIPProvider')
+  }
+  return context
+}
+
+{/* 
+
+    // src/app/SIPContext.tsx
+'use client'
+
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 import { initializeSIP, 
     isUserAgentRegistered, 
@@ -165,3 +212,5 @@ export function useSIP() {
   }
   return context
 }
+    
+*/}

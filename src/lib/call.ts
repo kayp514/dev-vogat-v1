@@ -21,8 +21,14 @@ import { IncomingInviteRequest, IncomingRequestMessage, IncomingResponse } from 
 import { Emitter } from 'sip.js/lib/api/emitter';
 import { Transport, TransportOptions } from 'sip.js/lib/platform/web/transport';
 import { v4 as uuidv4 } from 'uuid';
-import { register } from 'module';
 
+const RECONNECTION_ATTEMPTS = 3
+const RECONNECTION_DELAY = 4000
+const REGISTER_TIMEOUT = 32000;
+const MAX_REGISTRATION_RETRIES = 3;
+
+let reconnectionAttempt = 0
+let reconnectionTimer: NodeJS.Timeout | null = null
 let userAgent: UserAgent | null = null;
 let lastSuccessfulRegistration: { callId: string, contact: string } | null = null;
 let registerer: Registerer | null = null;
@@ -40,13 +46,17 @@ let incomingCallHandler: ((invitation: Invitation) => void) | null = null;
 
 let registrationAttemptInProgress = false;
 let registrationRetryCount = 0;
-const MAX_REGISTRATION_RETRIES = 3;
+
 
 let registrationQueue: (() => Promise<void>)[] = [];
+let transportListeners: ((status: TransportStatus) => void)[] = []
+let connectionListeners: ((state: ConnectionState) => void)[] = []
 let isProcessingQueue = false;
-const REGISTER_TIMEOUT = 32000;
+
 
 export type RegistrationState = 'Initial' | 'Registered' | 'Unregistered' | 'Terminated';
+export type TransportStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+export type SIPStatus = 'uninitialized' | 'initializing' | 'initialized' | 'registering' | 'registered' | 'unregistering' | 'disconnected' | 'error'
 
 export type { Invitation } ;
 
@@ -67,6 +77,13 @@ export type SIPConfig = {
   outboundProxy?: string;
   phoneNumber?: number;
   sipExtension?: number; 
+}
+
+export type ConnectionState = {
+  transport: TransportStatus
+  sip: SIPStatus
+  lastError?: Error
+  reconnectionAttempt?: number
 }
 
 interface CallMatchingConfig {
@@ -103,6 +120,22 @@ interface UserInfo {
   phoneNumber: string;
 }
 
+export function addTransportListener(callback: (status: TransportStatus) => void) {
+  transportListeners.push(callback)
+}
+
+export function removeTransportListener(callback: (status: TransportStatus) => void) {
+  transportListeners = transportListeners.filter(listener => listener !== callback)
+}
+
+export function addConnectionListener(callback: (state: ConnectionState) => void) {
+  connectionListeners.push(callback)
+}
+
+export function removeConnectionListener(callback: (state: ConnectionState) => void) {
+  connectionListeners = connectionListeners.filter(listener => listener !== callback)
+}
+
 
 async function fetchUserInfo(identifier: string): Promise<UserInfo> {
   // In a real implementation, this would be an API call to your backend
@@ -137,6 +170,11 @@ function parseUri(uriString: string): URI | undefined {
 
 function logSipEvent(event: string, details: any): void {
   console.log(`SIP Event: ${event}`, JSON.stringify(details, null, 2));
+}
+
+function notifyConnectionState(transport: TransportStatus, sip: SIPStatus, error?: Error) {
+  const state: ConnectionState = { transport, sip, lastError: error, reconnectionAttempt }
+  connectionListeners.forEach(listener => listener(state))
 }
 
 function validateAndCorrectUri(uri: URI): URI {
@@ -394,7 +432,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
   
     const userAgentOptions: UserAgentOptions = {
       uri,
-      transportConstructor: CustomTransport, // Use CustomTransport
+      transportConstructor: CustomTransport,
       transportOptions,
       delegate: {
         onInvite: (invitation: Invitation) => {
@@ -402,6 +440,20 @@ export async function initializeSIP(): Promise<SIPResponse> {
           console.log('From:', invitation.remoteIdentity.uri.toString());
           console.log('To:', invitation.localIdentity.uri.toString());
         },
+        onConnect: () => {
+          console.log('callTS: UserAgent Connected')
+          reconnectionAttempt = 0
+          notifyConnectionState('connected', 'initialized')
+        }, 
+        onDisconnect: async (error?: Error) => {
+          console.log('CallTS: UserAgent Disconnected:', error)
+
+          if (navigator.onLine) {
+            await handleReconnection()
+          } else {
+            notifyConnectionState('disconnected', 'disconnected', error)
+          }
+        }
       },
       authorizationUsername: sipConfig.username,
       authorizationPassword: sipConfig.password,
@@ -437,7 +489,8 @@ export async function initializeSIP(): Promise<SIPResponse> {
     };
 
 
-    userAgent = new UserAgent(userAgentOptions);
+userAgent = new UserAgent(userAgentOptions);
+setupNetworkMonitoring()
 
 
 // Set the contact URI manually after creating the UserAgent
@@ -455,9 +508,17 @@ if (contactUri) {
 
     
 
-    // Add event listeners for connection status
-    userAgent.transport.onConnect = () => console.log('Transport connected');
-    userAgent.transport.onDisconnect = (error) => console.error('Transport disconnected:', error);
+  // Add event listeners for connection status
+  userAgent.transport.onConnect = () => {
+    console.log('Transport connected')
+    notifyConnectionState('connected',
+      isUserAgentRegistered() ? 'registered' : 'initialized' )
+  }
+  userAgent.transport.onDisconnect = (error?: Error) => {
+    console.error('Transport disconnected:', error)
+    notifyConnectionState('disconnected', 'disconnected', error)
+  }
+
 
     await userAgent.start();
     console.log('UserAgent started');
@@ -478,6 +539,7 @@ if (contactUri) {
     return { status: 'success', message: 'SIP initialized successfully' };
   } catch (error) {
     console.error("SIP initialization failed:", error);
+    notifyConnectionState('error', 'error', error instanceof Error ? error : new Error('Unknown error'))
     return { status: 'error', message: `SIP initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }
@@ -494,7 +556,7 @@ export function listenForIncomingCalls(handler: (invitation: Invitation) => void
       console.log('From:', invitation.remoteIdentity.uri.toString());
       console.log('To:', invitation.localIdentity.uri.toString());
 
-        if (!isUserAgentRegistered()) {
+    if (!isUserAgentRegistered()) {
     console.warn('Received incoming call while not registered. Rejecting.');
     invitation.reject({ statusCode: 480, reasonPhrase: 'Temporarily Unavailable' });
     return;
@@ -652,8 +714,12 @@ export async function registerUserAgent(): Promise<SIPResponse> {
     return { status: 'error', message: 'User agent not initialized' };
   }
 
-  if (registerer?.state === RegistererState.Registered) {
-    return { status: 'success', message: 'User already registered' };
+  //if (registerer?.state === RegistererState.Registered) {
+   // return { status: 'success', message: 'User already registered' };
+  //}
+
+  if (isUserAgentRegistered()) {
+    return { status: 'warning', message: 'Already registered' }
   }
 
   if (isRegistering) {
@@ -709,8 +775,12 @@ export async function unregisterUserAgent(): Promise<SIPResponse> {
     return { status: 'error', message: 'User agent not initialized or not registered' };
   }
 
-  if (registerer.state === RegistererState.Terminated) {
-    return { status: 'success', message: 'User agent already unregistered' };
+ // if (registerer.state === RegistererState.Terminated) {
+  //  return { status: 'success', message: 'User agent already unregistered' };
+ // }
+
+  if (isUserAgentRegistered()) {
+    return { status: 'warning', message: 'Already registered' }
   }
 
   try {
@@ -727,14 +797,19 @@ export function getRegistrationState(): RegistrationState {
   }
   switch (registerer.state) {
     case RegistererState.Initial:
+      notifyConnectionState('connected', 'initialized');
       return 'Initial';
     case RegistererState.Registered:
+      notifyConnectionState('connected', 'registered');
       return 'Registered';
     case RegistererState.Unregistered:
+      notifyConnectionState('connected', 'initialized');
       return 'Unregistered';
     case RegistererState.Terminated:
+      notifyConnectionState('disconnected', 'disconnected'); 
       return 'Terminated';
     default:
+      notifyConnectionState('error', 'error', new Error('Unknown registration state'))
       return 'Unregistered';
   }
 }
@@ -1439,4 +1514,59 @@ export function debugAudioState(): void {
   } else {
     console.log('No active session or invalid session description handler');
   }
+}
+
+async function handleReconnection() {
+  if (reconnectionAttempt >= RECONNECTION_ATTEMPTS) {
+    console.error('Max reconnection attempts reached')
+    notifyConnectionState('error', 'error', new Error('Max reconnection attempts reached'))
+    return
+  }
+
+  reconnectionAttempt++
+  console.log(`Attempting reconnection ${reconnectionAttempt}/${RECONNECTION_ATTEMPTS}`)
+  notifyConnectionState('connecting', 'initializing')
+
+  try {
+    await userAgent?.reconnect()
+    console.log('Reconnection successful')
+    
+    // After successful reconnection, attempt to register if previously registered
+    if (registerer?.state === RegistererState.Registered) {
+      try {
+        await registerUserAgent()
+      } catch (error) {
+        console.error('Failed to re-register after reconnection:', error)
+      }
+    }
+  } catch (error) {
+    console.error('Reconnection failed:', error)
+    
+    // Schedule next reconnection attempt
+    reconnectionTimer = setTimeout(() => {
+      handleReconnection()
+    }, RECONNECTION_DELAY)
+  }
+}
+
+function setupNetworkMonitoring() {
+  window.addEventListener('online', async () => {
+    console.log('Browser went online')
+    reconnectionAttempt = 0 // Reset counter when network becomes available
+    
+    if (userAgent && !userAgent.isConnected()) {
+      await handleReconnection()
+    }
+  })
+
+  window.addEventListener('offline', () => {
+    console.log('Browser went offline')
+    notifyConnectionState('disconnected', 'disconnected')
+    
+    // Clear any pending reconnection attempts
+    if (reconnectionTimer) {
+      clearTimeout(reconnectionTimer)
+      reconnectionTimer = null
+    }
+  })
 }

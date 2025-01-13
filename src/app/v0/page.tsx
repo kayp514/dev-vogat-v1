@@ -2,10 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { AppLayout } from "../ui/app-layout";
-import { CallSIPProvider } from "@/app/CallSIPContext";
-import { SIPProvider } from "@/app/SIPContext";
+import { CallSIPProvider } from "@/app/CallSipProvider";
+import { SIPProvider } from "@/app/SipProvider";
 import { SIPInitializer } from "../SIPInitializer";
 import { useAuth } from "@tern-secure/nextjs";
+import { Toaster } from "@/components/ui/toaster";
 
 
 export default function VzeroPage() {
@@ -35,11 +36,10 @@ export default function VzeroPage() {
   }
 
     return (
-      <SIPProvider>
-        <CallSIPProvider>
+      <>
         <SIPInitializer />
         <AppLayout userData={userData} />
-       </CallSIPProvider>
-       </SIPProvider>
+        
+      </>
     )
 }

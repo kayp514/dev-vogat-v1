@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from "@/components/ui/input"
-import { CallState, CallType } from '@/app/CallSIPContext';
+import { CallState, CallType } from '@/app/CallSipProvider';
 import { mute, unmute, sendDTMF, terminateCall, getNetworkType, getCallDuration } from '../../lib/call'
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
