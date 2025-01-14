@@ -26,13 +26,6 @@ export function AppSideBar({ activeTab, setActiveTab }: MainSideBarProps) {
   return (
     <SidebarProvider>
          <Sidebar className="fixed inset-y-0 left-0 z-20 w-[60px] border-r" collapsible='none'>
-          <SidebarHeader className="border-b px-4 py-4">
-            <img
-              alt="Company Logo"
-              src="./lifesprint_logo.png"
-              className="h-8 w-auto"
-            />
-          </SidebarHeader>
           <SidebarContent className="py-2">
             <SidebarMenu className="space-y-2">
               {navigation.map((item) => (
