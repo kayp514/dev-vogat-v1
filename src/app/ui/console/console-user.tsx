@@ -46,45 +46,7 @@ interface UserData {
   permissions: string[]
 }
 
-const users: UserData[] = [
-  {
-    id: "1",
-    name: "John Smith",
-    email: "john.smith@example.com",
-    role: "Admin",
-    status: "active",
-    lastActive: "2 minutes ago",
-    avatar: "https://github.com/shadcn.png",
-    permissions: ["read", "write", "delete", "manage_users"]
-  },
-  {
-    id: "2",
-    name: "Sarah Johnson",
-    email: "sarah.j@example.com",
-    role: "Manager",
-    status: "active",
-    lastActive: "1 hour ago",
-    permissions: ["read", "write"]
-  },
-  {
-    id: "3",
-    name: "Michael Brown",
-    email: "m.brown@example.com",
-    role: "User",
-    status: "inactive",
-    lastActive: "3 days ago",
-    permissions: ["read"]
-  },
-  {
-    id: "4",
-    name: "Emily Davis",
-    email: "emily.d@example.com",
-    role: "User",
-    status: "pending",
-    lastActive: "Just now",
-    permissions: ["read"]
-  },
-]
+
 
 const rolePermissions = {
   "Admin": ["read", "write", "delete", "manage_users"],
@@ -289,4 +251,45 @@ export function ConsoleUser() {
     </div>
   )
 }
+
+
+const users: UserData[] = [
+    {
+      id: "1",
+      name: "John Smith",
+      email: "john.smith@example.com",
+      role: "Admin",
+      status: "active",
+      lastActive: "2 minutes ago",
+      avatar: "https://github.com/shadcn.png",
+      permissions: ["read", "write", "delete", "manage_users"]
+    },
+    {
+      id: "2",
+      name: "Sarah Johnson",
+      email: "sarah.j@example.com",
+      role: "Manager",
+      status: "active",
+      lastActive: "1 hour ago",
+      permissions: ["read", "write"]
+    },
+    {
+      id: "3",
+      name: "Michael Brown",
+      email: "m.brown@example.com",
+      role: "User",
+      status: "inactive",
+      lastActive: "3 days ago",
+      permissions: ["read"]
+    },
+    {
+      id: "4",
+      name: "Emily Davis",
+      email: "emily.d@example.com",
+      role: "User",
+      status: "pending",
+      lastActive: "Just now",
+      permissions: ["read"]
+    },
+  ]
 

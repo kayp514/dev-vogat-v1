@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vogat Cloud Phone System
+
+A modern cloud-based phone system built with Next.js that combines internal communication tools with PSTN connectivity.
+
+## Features
+
+### Unified Communications
+- Internal messaging system for team collaboration
+- Voice calling between internal users
+- PSTN connectivity for external calls
+- SIP trunk integration for telephony services
+
+### Admin Console
+- User management and permissions
+- DID (Direct Inward Dialing) number management
+- SIP trunk configuration
+- System monitoring and analytics
+
+### Real-time Communication
+- Instant messaging between users
+- Voice calls with HD audio quality
+- Presence indicators (online, busy, offline)
+- Call history and message logs
+
+## Technical Stack
+
+- **Frontend**: Next.js 14 with App Router
+- **UI Components**: shadcn/ui + Tailwind CSS
+- **Real-time**: WebSocket for messaging and calls
+- **Voice**: WebRTC for voice communication
+- **PSTN Integration**: SIP protocol for external calling
 
 ## Getting Started
 
-First, run the development server:
-
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone [repository-url]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Configure environment variables:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start the development server:
+```bash
+npm run dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000) to access the application.
 
-To learn more about Next.js, take a look at the following resources:
+## Configuration
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### SIP Trunk Setup
+1. Configure your SIP provider credentials
+2. Set up DID numbers
+3. Configure routing rules
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### User Management
+- Create user accounts
+- Assign roles and permissions
+- Configure extension numbers
 
-## Deploy on Vercel
+## Documentation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+For detailed documentation, please refer to:
+- [User Guide](docs/user-guide.md)
+- [Admin Guide](docs/admin-guide.md)
+- [API Documentation](docs/api.md)
+- [Development Guide](docs/development.md)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+[License Type] - See LICENSE file for details
+
+## Support
+
+For support, please contact [support contact information]

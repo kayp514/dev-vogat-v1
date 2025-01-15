@@ -10,7 +10,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Save, Server, Shield, Globe, Network, KeyRound, AlertCircle, CheckCircle2, RefreshCw, Power } from 'lucide-react'
-import { cn } from "@/lib/utils"
 
 export function SipTrunk() {
   return (
