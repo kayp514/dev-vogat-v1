@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { type UserData } from "../types/chat"
 import { Toaster } from '@/components/ui/toaster';
 import { SIPInitializer } from "../SIPInitializer";
+import { ConsoleLayout } from './console/console-layout'
 
 
 interface AppLayoutProps {
@@ -50,6 +51,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
         )}>
           {activeTab === "chat" && <ChatPage />}
           {activeTab === "calls" && <CallsPage />}
+          {activeTab === "console" && <ConsoleLayout />}
         </div>
         <Toaster />
       </div>

@@ -1,4 +1,4 @@
-import { MessageCircle, Phone } from 'lucide-react'
+import { MessageCircle, Phone, Bolt } from 'lucide-react'
 
 import {
   Sidebar,
@@ -13,6 +13,7 @@ import {
 const navigation = [
   { name: 'Chat', id: 'chat', icon: MessageCircle, current: true },
   { name: 'Calls', id: 'calls', icon: Phone, current: false },
+  { name: 'Console', id: 'console', icon: Bolt, current: false },
 ]
 
 interface MainSideBarProps {
