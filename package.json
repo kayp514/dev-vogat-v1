@@ -1,13 +1,16 @@
 {
   "name": "dev-vogat-v1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "packageManager": "npm@10.9.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
