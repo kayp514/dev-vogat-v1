@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 
 
 export function SIPInitializer() {
-  const { sipStatus, isInitialized, isRegistered, initializeSIP, register } = useSIP()
+  const { sipStatus, transportStatus, networkStatus, isInitialized, isRegistered, initializeSIP, register } = useSIP()
   const [showAlert, setShowAlert] = useState(true)
 
   useEffect(() => {
@@ -60,6 +60,7 @@ export function SIPInitializer() {
           {sipStatus === 'initializing' && "Initializing SIP..."}
           {sipStatus === 'initialized' && "SIP initialized. Preparing to register..."}
           {sipStatus === 'registering' && "SIP initialized. Registering..."}
+          {sipStatus === 'disconnected' && "SIP Disconnected"}
           {sipStatus === 'error' && "Error in SIP initialization or registration. Please try again."}
         </AlertDescription>
       </Alert>

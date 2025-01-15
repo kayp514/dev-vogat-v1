@@ -12,7 +12,7 @@ export function CallService() {
   return (
     <div className="flex h-[calc(100vh-4rem)]">
       <div className="w-[320px] border-r flex-shrink-0 bg-background">
-        <div className="p-4 h-full flex items-start justify-center">
+        <div className="p-4 space-y-4">
           <InputNumber onCall={handleOutgoingCall} />
         </div>
       </div>

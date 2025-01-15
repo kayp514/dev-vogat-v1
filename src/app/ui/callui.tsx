@@ -343,17 +343,22 @@ export default function CallUI({
 
       <div className="h-8 px-4 bg-muted/30 border-b">
         <div className="flex items-center justify-between h-full">
-          <span className={cn(
-            "text-xs font-medium",
-            callState === 'established' ? "text-green-600" : "text-blue-600"
-          )}>
-            {callState === 'establishing' ? 'Calling...' : 
-             callState === 'established' ? 'On Call' : callState}
-          </span>
+        <div className="flex items-center gap-2">
+              <span className={cn(
+                "text-xs font-medium flex items-center gap-1",
+                callState === 'established' ? "text-green-600" : "text-blue-600"
+              )}>
+                <SignalHigh className="h-3 w-3" />
+                {networkQuality}
+              </span>
+            </div>
           {callState === 'established' && (
-            <span className="text-xs text-muted-foreground">
-              {formatDuration(callDuration)}
-            </span>
+              <div className="flex items-center gap-2">
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {formatDuration(callDuration)}
+              </span>
+            </div>
           )}
         </div>
       </div>
