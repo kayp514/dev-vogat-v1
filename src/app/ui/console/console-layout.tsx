@@ -7,9 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Activity, Hash, Settings, ChevronFirst, ChevronLast } from 'lucide-react'
+import { Activity, Settings, ChevronFirst, ChevronLast } from 'lucide-react'
 import { ConsoleUser } from "./console-user"
 import { ConsoleDID } from "./console-did"
+import { ConsoleBilling } from "./console-billing"
+
+
 
 // Component map for different tabs
 const TabComponents: Record<string, React.ReactNode> = {
@@ -52,10 +55,11 @@ const TabComponents: Record<string, React.ReactNode> = {
       </CardContent>
     </Card>
   ),
+  'billing': <ConsoleBilling />,
 }
 
 export function ConsoleLayout() {
-  const [activeTab, setActiveTab] = useState("sip-trunk")
+  const [activeTab, setActiveTab] = useState("user")
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   return (

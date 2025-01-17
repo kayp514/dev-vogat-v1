@@ -1,6 +1,6 @@
 'use client'
 
-import { RadioTower, User, Activity, Hash, ChevronRight, Settings, LucideIcon } from 'lucide-react'
+import { RadioTower, User, Activity, Hash, ChevronRight, Settings, LucideIcon, CreditCard } from 'lucide-react'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,6 +46,18 @@ const navigation: { name: string; items: NavigationItem[] }[] = [
         icon: Hash, 
         description: 'Manage Phone numbers',
         badge: '5 DID'
+      },
+    ]
+  },
+  {
+    name: 'Billing',
+    items: [
+      {
+        name: 'Billing & Usage',
+        id: 'billing',
+        icon: CreditCard,
+        description: 'Manage billing and usage',
+        badge: 'Enterprise'
       },
     ]
   },

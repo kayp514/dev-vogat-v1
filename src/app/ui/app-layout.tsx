@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { AppSideBar } from './sidebar'
 import { Header } from "@/app/ui/header"
-import ChatPage from "@/app/chat/page"
-import CallsPage from "../calls/page"
+import { ChatLayout } from '../chat/chat-layout'
+import { CallLayout } from '../calls/call-layout'
 import { useCallSIP } from '@/app/CallSipProviderCtx'
 import CallUI from '@/app/ui/callui'
 import { CallNotification } from './callnotify'
@@ -41,16 +41,16 @@ export function AppLayout({ userData }: AppLayoutProps) {
         <AppSideBar setActiveTab={setActiveTab} activeTab={activeTab} />
       </div>
       <div className="relative flex-1 min-w-0">
-        <div className="absolute top-0 left-0 right-0 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <SIPInitializer />
+        <div className="absolute top-0 left-0 right-0 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-[100]">
+          <SIPInitializer />
           <Header userData={userData} />
         </div>
         <div className={cn(
-          "h-[calc(100vh-3.5rem)] mt-14 transition-all duration-300",
-          isCallActive && !isMaximized // Adjust main content when call UI is shown
+          "h-[calc(100vh-3.5rem)] mt-14 transition-all duration-300 relative z-0",
+          isCallActive && !isMaximized
         )}>
-          {activeTab === "chat" && <ChatPage />}
-          {activeTab === "calls" && <CallsPage />}
+          {activeTab === "chat" && <ChatLayout />}
+          {activeTab === "calls" && <CallLayout />}
           {activeTab === "console" && <ConsoleLayout />}
         </div>
         <Toaster />

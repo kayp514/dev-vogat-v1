@@ -101,6 +101,7 @@ interface PstnStatusProps {
           <Card className={cn(
             "bg-background/60 backdrop-blur-sm border-muted transition-all duration-200", 
             "hover:bg-accent/50 hover:shadow-sm",
+            "relative",
             className
           )}>
                         <Tooltip>
@@ -139,7 +140,7 @@ interface PstnStatusProps {
             </Tooltip>
             </Card>
             </HoverCardTrigger>
-            <HoverCardContent className="w-80" align="start">
+            <HoverCardContent className="w-80" align="start" sideOffset={8}>
           <div className="flex justify-between space-x-4">
             <div className="space-y-1">
               <h4 className="text-sm font-semibold">PSTN Status Details</h4>
