@@ -21,6 +21,8 @@ import { IncomingInviteRequest, IncomingRequestMessage, IncomingResponse } from 
 import { Emitter } from 'sip.js/lib/api/emitter';
 import { Transport, TransportOptions } from 'sip.js/lib/platform/web/transport';
 import { v4 as uuidv4 } from 'uuid';
+import { RegistrationState, SIPConfig, SIPResponse, UserInfo, SIPStatus, TransportStatus, ConnectionState, CONFIG, CallState} from './type';
+import { notifyConnectionState, handleReconnection, setupNetworkMonitoring } from './network';
 
 const RECONNECTION_ATTEMPTS = 3
 const RECONNECTION_DELAY = 4000
@@ -49,92 +51,8 @@ let registrationRetryCount = 0;
 
 
 let registrationQueue: (() => Promise<void>)[] = [];
-let transportListeners: ((status: TransportStatus) => void)[] = []
-let connectionListeners: ((state: ConnectionState) => void)[] = []
 let isProcessingQueue = false;
 
-
-export type RegistrationState = 'Initial' | 'Registered' | 'Unregistered' | 'Terminated';
-export type TransportStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
-export type SIPStatus = 'uninitialized' | 'initializing' | 'initialized' | 'registering' | 'registered' | 'unregistering' | 'disconnected' | 'error'
-
-export type { Invitation } ;
-
-
-export type SIPResponse = {
-  status: 'success' | 'warning' | 'error';
-  message: string;
-  data?: any;
-}
-
-export type SIPConfig = {
-  username: string;
-  password: string;
-  server: string;
-  port: number;
-  protocol: 'udp' | 'tcp' | 'tls';
-  socket: string;
-  outboundProxy?: string;
-  phoneNumber?: number;
-  sipExtension?: number; 
-}
-
-export type ConnectionState = {
-  transport: TransportStatus
-  sip: SIPStatus
-  lastError?: Error
-  reconnectionAttempt?: number
-}
-
-interface CallMatchingConfig {
-  blackList?: string[];
-  whiteList?: string[];
-  customMatch?: (invitation: Invitation) => Promise<boolean>;
-  earlyMedia?: boolean;
-}
-
-interface ListenForIncomingCallsOptions{
-  userAgent: UserAgent;
-  handler: (invitation: Invitation) => void;
-  config?: {
-    blackList?: string[];
-    whiteList?: string[];
-    customMatch?: (invitation: Invitation) => Promise<boolean>;
-    earlyMedia?: boolean;
-  };
-}
-
-interface AliasMapping {
-  [key: string]: string;
-}
-
-const CONFIG = {
-  ourDomain: 'sips.lifesprintcare.ca',
-  fallbackIp: '172.110.70.155',
-  domain: 'sips.lifesprintcare.ca',
-  localIP: '172.110.70.155',
-};
-
-interface UserInfo {
-  username: string;
-  phoneNumber: string;
-}
-
-export function addTransportListener(callback: (status: TransportStatus) => void) {
-  transportListeners.push(callback)
-}
-
-export function removeTransportListener(callback: (status: TransportStatus) => void) {
-  transportListeners = transportListeners.filter(listener => listener !== callback)
-}
-
-export function addConnectionListener(callback: (state: ConnectionState) => void) {
-  connectionListeners.push(callback)
-}
-
-export function removeConnectionListener(callback: (state: ConnectionState) => void) {
-  connectionListeners = connectionListeners.filter(listener => listener !== callback)
-}
 
 
 async function fetchUserInfo(identifier: string): Promise<UserInfo> {
@@ -172,10 +90,6 @@ function logSipEvent(event: string, details: any): void {
   console.log(`SIP Event: ${event}`, JSON.stringify(details, null, 2));
 }
 
-function notifyConnectionState(transport: TransportStatus, sip: SIPStatus, error?: Error) {
-  const state: ConnectionState = { transport, sip, lastError: error, reconnectionAttempt }
-  connectionListeners.forEach(listener => listener(state))
-}
 
 function validateAndCorrectUri(uri: URI): URI {
   if (uri.host.endsWith('.invalid')) {
@@ -192,14 +106,7 @@ export function getUserAgent(): UserAgent | null {
   return userAgent;
 }
 
-export type CallState = 
-  'initial' | 
-  'initiating' | 
-  'establishing' | 
-  'established' | 
-  'terminating' | 
-  'terminated' | 
-  'error';
+
 
 
 interface CustomSessionDescriptionHandlerOptions extends SessionDescriptionHandlerOptions {
@@ -1457,15 +1364,7 @@ export async function getCallStats(): Promise<SIPResponse> {
   }
 }
 
-export function getNetworkType(): SIPResponse {
-  if (typeof navigator !== 'undefined' && 'connection' in navigator) {
-    const connection = (navigator as any).connection;
-    if (connection && connection.type) {
-      return { status: 'success', message: 'Network type retrieved', data: connection.type };
-    }
-  }
-  return { status: 'error', message: 'Network information not available' };
-}
+
 
 export function setDisplayName(displayName: string): SIPResponse {
   if (!userAgent) {
@@ -1514,59 +1413,4 @@ export function debugAudioState(): void {
   } else {
     console.log('No active session or invalid session description handler');
   }
-}
-
-async function handleReconnection() {
-  if (reconnectionAttempt >= RECONNECTION_ATTEMPTS) {
-    console.error('Max reconnection attempts reached')
-    notifyConnectionState('error', 'error', new Error('Max reconnection attempts reached'))
-    return
-  }
-
-  reconnectionAttempt++
-  console.log(`Attempting reconnection ${reconnectionAttempt}/${RECONNECTION_ATTEMPTS}`)
-  notifyConnectionState('connecting', 'initializing')
-
-  try {
-    await userAgent?.reconnect()
-    console.log('Reconnection successful')
-    
-    // After successful reconnection, attempt to register if previously registered
-    if (registerer?.state === RegistererState.Registered) {
-      try {
-        await registerUserAgent()
-      } catch (error) {
-        console.error('Failed to re-register after reconnection:', error)
-      }
-    }
-  } catch (error) {
-    console.error('Reconnection failed:', error)
-    
-    // Schedule next reconnection attempt
-    reconnectionTimer = setTimeout(() => {
-      handleReconnection()
-    }, RECONNECTION_DELAY)
-  }
-}
-
-function setupNetworkMonitoring() {
-  window.addEventListener('online', async () => {
-    console.log('Browser went online')
-    reconnectionAttempt = 0 // Reset counter when network becomes available
-    
-    if (userAgent && !userAgent.isConnected()) {
-      await handleReconnection()
-    }
-  })
-
-  window.addEventListener('offline', () => {
-    console.log('Browser went offline')
-    notifyConnectionState('disconnected', 'disconnected')
-    
-    // Clear any pending reconnection attempts
-    if (reconnectionTimer) {
-      clearTimeout(reconnectionTimer)
-      reconnectionTimer = null
-    }
-  })
 }

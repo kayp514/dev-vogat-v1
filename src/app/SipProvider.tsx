@@ -6,11 +6,10 @@ import { initializeSIP,
     registerUserAgent, 
     unregisterUserAgent, 
     handleRegistrationStateChange,
-    type RegistrationState,
-    type ConnectionState,
-    addConnectionListener,
-    removeConnectionListener,
  } from '@/lib/call'
+
+import { type ConnectionState, type RegistrationState } from '@/lib/type'
+import { removeConnectionListener, addConnectionListener } from '@/lib/network'
 import { toast } from '@/hooks/use-toast'
 import { SipProviderCtx,
   type SIPStatus,

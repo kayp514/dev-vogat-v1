@@ -13,10 +13,12 @@ export default function VzeroPage() {
 
 
   const userData = {
-    displayName: user?.displayName || '',
+    id: 'me',
+    name: user?.displayName || '',
     email: user?.email || '',
     uid: user?.uid || '',
-    photoURL: user?.photoURL || '',
+    avatar: user?.photoURL || '',
+    phoneNumber: user?.phoneNumber || '+1 (647) 243-8101',
     status: 'online' as const,
   }
 

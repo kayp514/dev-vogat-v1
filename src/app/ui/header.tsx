@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import { type UserData } from "../types/chat"
+import { type UserData } from "../type"
 
 
 interface HeaderProps {
@@ -44,7 +44,7 @@ export function Header({ userData }: HeaderProps) {
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg hover:bg-accent px-2 py-1">
             <div className="relative">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={userData.photoURL} />
+              <AvatarImage src={userData.avatar} />
               <AvatarFallback>{userData.email ? userData.email[0].toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
             <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${

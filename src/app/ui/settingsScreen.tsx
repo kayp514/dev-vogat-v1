@@ -18,7 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { debugAudioState } from '@/lib/call'
-import { type UserData } from "../types/chat"
+import { type UserData } from "../type"
 
 interface SettingsScreenProps {
   userData: Partial<UserData>;
@@ -153,7 +153,7 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                         <div className="space-y-1">
                           <Label>Display Name</Label>
                           <p className="text-sm text-muted-foreground">
-                            {userData.displayName || 'Not set'}
+                            {userData.name || 'Not set'}
                           </p>
                         </div>
                       </CardContent>

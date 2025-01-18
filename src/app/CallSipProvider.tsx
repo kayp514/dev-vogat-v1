@@ -3,11 +3,8 @@
 import React, { useState, useCallback, ReactNode, useEffect, useRef } from 'react'
 import { makeOutgoingCall, 
   terminateCall, 
-  SIPResponse, 
-  CallState,  
   listenForIncomingCalls, 
   acceptIncomingCall, 
-  type Invitation,
   getUserAgent,
   getCurrentSession,
   setCallStateChangeHandler, 
@@ -17,10 +14,7 @@ import { toast } from '@/hooks/use-toast'
 import { useSIP } from './SipProviderCtx'
 import { Inviter, Session, SessionState } from 'sip.js'
 import { CallSipProviderCtx } from './CallSipProviderCtx'
-
-export type CallType = 'outgoing' | 'incoming'
-export type { CallState } from '@/lib/call'
-
+import { type Invitation, type SIPResponse, type CallState, type CallType } from '@/lib/type'
 
 
 
