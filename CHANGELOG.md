@@ -1,0 +1,26 @@
+# dev-vogat-v1
+
+## 1.1.0
+
+### Minor Changes
+
+- 8e5f55f: feat(call): Redesign call UI and enhance participant management
+
+  - Redesign call interface with full-screen callee and floating caller window
+  - Implement new participant layout with improved visual hierarchy
+  - Add smooth transitions and hover effects for better user experience
+  - Enhance call controls accessibility and visibility
+  - Optimize scroll behavior for better performance
+  - Add responsive design for various screen sizes
+
+  BREAKING CHANGE: Previous grid-based participant layout has been replaced with a new full-screen + overlay design
+
+### Patch Changes
+
+- 99f9d0d: feat(config): Configure changesets for automated versioning
+
+  - Set up automated version management with changesets
+  - Configure changelog generation
+  - Enable automated PR creation for version updates
+  - Set baseBranch to 'main' for release workflow
+  - Configure internal dependency updates to use patch versioning
