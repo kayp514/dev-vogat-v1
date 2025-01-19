@@ -33,7 +33,7 @@ export function SIPProvider({ children }: { children: ReactNode }) {
       const handleOnline = () => {
         console.log('Network: Online')
         setNetworkStatus('online')
-        setReconnectionAttempt(0) // Reset reconnection attempts
+        setReconnectionAttempt(0) /// Reset reconnection attempts
       }
   
       const handleOffline = () => {
