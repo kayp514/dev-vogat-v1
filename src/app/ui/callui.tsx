@@ -480,11 +480,11 @@ export default function CallUI({
               <CardHeader className="p-4 space-y-0">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12 border">
-                    <AvatarImage src={calleeInfo.avatar} />
-                    <AvatarFallback>{calleeInfo.name[0].toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={calleeInfo?.avatar} />
+                    <AvatarFallback>{calleeInfo?.name ? calleeInfo.name[0].toUpperCase() : 'U'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{calleeInfo.name}</h3>
+                    <h3 className="font-semibold">{calleeInfo?.name || 'Unknown User'}</h3>
                     <p className="text-sm text-muted-foreground">{activeNumber}</p>
                   </div>
                 </div>
