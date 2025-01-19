@@ -1,5 +1,13 @@
 # dev-vogat-v1
 
+## 1.1.4
+
+### Patch Changes
+
+- 99f9d0d: chore: Correct comment formatting for reconnection attempts
+
+  Correct comment formatting for reconnection attempt
+
 ## 1.1.3
 
 ### Patch Changes
