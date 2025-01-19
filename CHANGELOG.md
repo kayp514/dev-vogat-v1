@@ -1,5 +1,15 @@
 # dev-vogat-v1
 
+## 1.1.2
+
+### Patch Changes
+
+- 99f9d0d: chore: Enhance GitHub Actions workflow to create releases
+
+  - Added a step to create GitHub releases upon successful publication of changesets.
+  - Configured the workflow to use the GITHUB_TOKEN for authentication.
+  - Updated the release job to include release notes from CHANGELOG.md.
+
 ## 1.1.1
 
 ### Patch Changes
