@@ -60,7 +60,7 @@ export function ParticipantScreen({
             )}>
               <AvatarImage src={participant.avatar} />
               <AvatarFallback className="bg-primary/10 text-primary">
-                {participant.name[0].toUpperCase()}
+              {participant?.name?.[0]?.toUpperCase() ?? 'U'}
               </AvatarFallback>
             </Avatar>
           </div>
