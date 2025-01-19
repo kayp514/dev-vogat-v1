@@ -1,5 +1,5 @@
 ---
-"@your-package-name": patch
+"dev-vogat-v1": patch
 ---
 
 fix(call): Handle undefined calleeInfo in CallUI component
