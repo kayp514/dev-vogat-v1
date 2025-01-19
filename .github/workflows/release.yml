@@ -38,5 +38,15 @@ jobs:
           publish: npm run release
           title: "chore: version packages"
           commit: "chore: version packages"
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          gh release create v${{ steps.changesets.outputs.version }} \
+            --title "Release v${{ steps.changesets.outputs.version }}" \
+            --notes "$(cat CHANGELOG.md)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

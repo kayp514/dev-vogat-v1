@@ -2,12 +2,8 @@
 "dev-vogat-v1": patch
 ---
 
-fix(participant): Safeguard against undefined participant name in AvatarFallback
+chore: Enhance GitHub Actions workflow to create releases
 
-- Add null checks for participant properties
-- Add fallback value 'U' for undefined names
-- Add proper alt text for avatar images
-- Improve type safety for Participant interface
-- Add safe access to name characters with optional chaining
-- Ensure proper initialization of participant data
-- Fix TypeError related to toUpperCase() on undefined name
+- Added a step to create GitHub releases upon successful publication of changesets.
+- Configured the workflow to use the GITHUB_TOKEN for authentication.
+- Updated the release job to include release notes from CHANGELOG.md.
