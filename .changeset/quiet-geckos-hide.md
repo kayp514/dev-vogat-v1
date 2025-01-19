@@ -1,11 +1,11 @@
 ---
-"dev-vogat-v1": patch
+"@your-package-name": patch
 ---
 
-feat(config): Configure changesets for automated versioning
+fix(call): Handle undefined calleeInfo in CallUI component
 
-- Set up automated version management with changesets
-- Configure changelog generation
-- Enable automated PR creation for version updates
-- Set baseBranch to 'main' for release workflow
-- Configure internal dependency updates to use patch versioning
+- Add null checks for calleeInfo properties
+- Implement fallback values for name and avatar
+- Fix TypeError related to toUpperCase() on undefined name
+- Improve type safety for UserInfo interface
+- Add graceful degradation for missing user data
