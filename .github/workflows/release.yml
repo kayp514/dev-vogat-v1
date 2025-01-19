@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [closed]
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -15,6 +19,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   release:
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
     name: Release
     runs-on: ubuntu-latest
     steps:
@@ -42,11 +47,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # This step will run after the changeset is merged to main
       - name: Create GitHub Release
-        if: steps.changesets.outputs.published == 'true'
+        if: |
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          steps.changesets.outputs.published == 'true'
         run: |
-          gh release create v${{ steps.changesets.outputs.version }} \
-            --title "Release v${{ steps.changesets.outputs.version }}" \
-            --notes "$(cat CHANGELOG.md)"
+          # Get the latest tag
+          TAG=$(git describe --tags --abbrev=0)
+          
+          # Create GitHub release with changelog
+          gh release create $TAG \
+            --title "Release $TAG" \
+            --notes "$(cat CHANGELOG.md)" \
+            --draft=false \
+            --prerelease=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "changeset": "changeset",
-    "version-packages": "changeset version",
+    "version": "changeset version",
     "release": "changeset publish"
   },
   "dependencies": {

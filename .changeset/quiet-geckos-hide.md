@@ -2,8 +2,8 @@
 "dev-vogat-v1": patch
 ---
 
-chore: Enhance GitHub Actions workflow to create releases
+chore: Update version command in package.json and enhance GitHub Actions release workflow
 
-- Added a step to create GitHub releases upon successful publication of changesets.
-- Configured the workflow to use the GITHUB_TOKEN for authentication.
-- Updated the release job to include release notes from CHANGELOG.md.
+- Changed the "version-packages" script to "version" in package.json for clarity.
+- Modified the GitHub Actions workflow to trigger releases on both push and closed pull request events.
+- Improved the release creation step to use the latest tag and include changelog notes.
