@@ -2,10 +2,28 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Mic, MicOff, PhoneCall, PhoneOff, PhoneOutgoing, 
-  Volume2, VolumeX,
-  KeyRound, Signal, Clock, Maximize2, Minimize2,
-  UserPlus } from 'lucide-react'
+import { Separator } from "@/components/ui/separator"
+import {
+  Mic,
+  MicOff,
+  PhoneCall,
+  PhoneOff,
+  PhoneOutgoing,
+  Volume2,
+  VolumeX,
+  KeyRound,
+  Signal,
+  Clock,
+  Maximize2,
+  Minimize2,
+  UserPlus,
+  Grid2X2,
+  LayoutGrid,
+  Maximize,
+  Video,
+  VideoOff,
+  MinusCircle,
+} from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from "@/components/ui/input"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
@@ -115,6 +133,8 @@ export function CallUI({
   const [isSpeakerOn, setIsSpeakerOn] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
   const [networkQuality, setNetworkQuality] = useState('Excellent')
+  const [isGridView, setIsGridView] = useState(false)
+  const [isSelfViewMinimized, setIsSelfViewMinimized] = useState(false)
   const callStartTimeRef = useRef<number | null>(null)
   const [fullscreenParticipant, setFullscreenParticipant] = useState<string | null>(null)
 
@@ -200,283 +220,281 @@ export function CallUI({
 
   return (
     <TooltipProvider>
-      <div className={cn(
-        "fixed z-50",
-        isMaximized
-          ? "inset-0 pl-[72px] pt-14"
-          : "bottom-4 right-4",
-        "pointer-events-none"
-      )}>
+      <div
+        className={cn(
+          "fixed z-50",
+          isMaximized ? "inset-0 pl-[72px] pt-14" : "bottom-4 right-4",
+          "pointer-events-none",
+        )}
+      >
         {isMaximized && (
-          <div
-            className="fixed inset-0 pl-[72px] pt-14 bg-background/60 backdrop-blur-sm -z-10"
-            aria-hidden="true"
-          />
+          <div className="fixed inset-0 pl-[72px] pt-14 bg-background/60 backdrop-blur-sm -z-10" aria-hidden="true" />
         )}
         <Card
           className={cn(
             "pointer-events-auto",
             "shadow-lg transition-all duration-300",
-            isMaximized
-              ? "h-[calc(100vh-3.5rem)] w-[calc(100vw-72px)] ml-auto"
-              : "w-[300px] rounded-lg",
-            "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+            isMaximized ? "h-[calc(100vh-3.5rem)] w-[calc(100vw-72px)] ml-auto" : "w-[300px] rounded-lg",
+            "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
+            "border-primary/10",
           )}
         >
           <div
             className={cn(
               "h-12 px-4",
-              callType === 'outgoing' ? "bg-blue-500/10" : "bg-green-500/10",
+              callType === "outgoing" ? "bg-blue-500/10" : "bg-green-500/10",
               "border-b flex items-center justify-between",
-              "transition-colors duration-300"
+              "transition-colors duration-300",
             )}
           >
             <div className="flex items-center gap-2">
-              {callType === 'outgoing' ? (
+              {callType === "outgoing" ? (
                 <PhoneOutgoing className="h-4 w-4 text-blue-500" />
               ) : (
                 <PhoneCall className="h-4 w-4 text-green-500" />
               )}
-              <span className={cn(
-                "text-sm font-medium",
-                callType === 'outgoing' ? "text-blue-500" : "text-green-500"
-              )}>
-                {participants.length > 2 ? 'Group Call' : (callType === 'outgoing' ? 'Outgoing Call' : 'Incoming Call')}
+              <span className={cn("text-sm font-medium", callType === "outgoing" ? "text-blue-500" : "text-green-500")}>
+                {participants.length > 2 ? "Group Call" : callType === "outgoing" ? "Outgoing Call" : "Incoming Call"}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full hover:bg-background/80"
-                onClick={() => setIsMaximized(!isMaximized)}
-              >
-                {isMaximized ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          <div className="h-10 px-4 bg-muted/30 border-b flex items-center justify-between backdrop-blur-sm">
-            <div className="flex items-center gap-2">
-              <span className={cn(
-                "text-xs font-medium flex items-center gap-1",
-                callState === 'established' ? "text-green-600" : "text-blue-600"
-              )}>
-                <Signal className="h-3 w-3" />
-                {networkQuality}
-              </span>
-            </div>
-            {callState === 'established' && (
-              <div className="flex items-center gap-2">
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  {formatDuration(callDuration)}
-                </span>
-              </div>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-background/80"
+              onClick={() => setIsMaximized(!isMaximized)}
+            >
+              {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
           </div>
 
           {isMaximized ? (
-            <div className="flex h-[calc(100%-5.5rem)]">
-              <div className="w-20 border-r bg-muted/30 flex flex-col items-center py-8 space-y-8 backdrop-blur-sm">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-14 w-14 rounded-full",
-                        isMuted
-                          ? "bg-red-100 text-red-500 hover:bg-red-100/80 hover:text-red-500/90"
-                          : "hover:bg-accent"
-                      )}
-                      onClick={() => handleToggleMute('me')}
-                    >
-                      {isMuted ? (
-                        <MicOff className="h-6 w-6" />
-                      ) : (
-                        <Mic className="h-6 w-6" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    {isMuted ? 'Unmute' : 'Mute'} microphone
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-14 w-14 rounded-full",
-                        isSpeakerOn
-                          ? "bg-blue-100 text-blue-500 hover:bg-blue-100/80 hover:text-blue-500/90"
-                          : "hover:bg-accent"
-                      )}
-                      onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-                    >
-                      {isSpeakerOn ? (
-                        <Volume2 className="h-6 w-6" />
-                      ) : (
-                        <VolumeX className="h-6 w-6" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    {isSpeakerOn ? 'Disable' : 'Enable'} speaker
-                  </TooltipContent>
-                </Tooltip>
-
-                <Popover>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-14 w-14 rounded-full hover:bg-accent"
-                          >
-                            <KeyRound className="h-6 w-6" />
-                          </Button>
-                        </PopoverTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        Open dialpad
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <PopoverContent className="w-auto p-0" align="center">
-                    <DTMFDialPad />
-                  </PopoverContent>
-                </Popover>
-
-                {participants.length < 8 && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-14 w-14 rounded-full hover:bg-accent"
-                        onClick={handleAddParticipant}
-                      >
-                        <UserPlus className="h-6 w-6" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      Add participant
-                    </TooltipContent>
-                  </Tooltip>
-                )}
+            <div className="h-14 px-4 bg-background/95 border-b backdrop-blur-sm flex items-center">
+              <div className="flex items-center gap-4 w-[200px]">
+                <div className="flex items-center gap-2">
+                  <Signal className="h-4 w-4 text-green-500" />
+                  <span className="text-sm font-medium">{networkQuality}</span>
+                </div>
               </div>
 
-              <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-background/95 to-background/90 backdrop-blur-sm">
-                <ScrollArea className="h-[calc(100vh-12rem)]">
-                  <div className="relative h-full w-full">
-                    <div className="w-full h-[calc(100vh-12rem)]">
-         {participants
-         .filter(p => p.id !== callerInfo.id)
-         .map((participant) => (
-          <div key={participant.id} className="w-full h-full">
-            <ParticipantScreen
-              participant={participant}
-              onToggleVideo={handleToggleVideo}
-              onToggleMute={handleToggleMute}
-              onRemoveParticipant={handleRemoveParticipant}
-              onToggleFullscreen={() => handleToggleFullscreen(calleeInfo.id)}
-              isFullscreen={fullscreenParticipant === calleeInfo.id}
-            />
-          </div>
-        ))} 
-        </div>
-        <div className="absolute bottom-4 right-4 w-[280px] h-[180px] rounded-lg overflow-hidden shadow-lg border border-border/50 hover:scale-105 transition-transform duration-200">
-        <ParticipantScreen
-                  participant={{
-                    ...callerInfo,
-                    isHost: true,
-                    isVideoOn: false,
-                    isMuted: isMuted,
-                    role: 'caller'
-                  }}
-                  onToggleVideo={handleToggleVideo}
-                  onToggleMute={handleToggleMute}
-                  onRemoveParticipant={handleRemoveParticipant}
-                  onToggleFullscreen={() => handleToggleFullscreen(callerInfo.id)}
-                  isFullscreen={fullscreenParticipant === callerInfo.id}
-                        />
-                        </div>
-                        </div>
-                </ScrollArea>
-              </div>
-
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
-                  <div className="flex items-center gap-4 p-4 rounded-full bg-background/95 backdrop-blur-sm border shadow-lg">
-                    <TooltipProvider>
+              {/* Centered Controls */}
+              <div className="flex-1 flex justify-center">
+                <div className="flex items-center gap-2">
+                  <TooltipProvider delayDuration={100}>
+                    <div className="flex items-center gap-2 rounded-full bg-muted/80 p-1.5 backdrop-blur-sm">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
                             className={cn(
-                              "h-12 w-12 rounded-full",
-                              isMuted && "bg-red-500/20 text-red-200"
+                              "h-8 w-8 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary",
+                              isMuted && "bg-red-500/20 text-red-500 hover:bg-red-500/30",
                             )}
-                            onClick={() => handleToggleMute('me')}
+                            onClick={() => handleToggleMute("me")}
                           >
-                            {isMuted ? (
-                              <MicOff className="h-5 w-5" />
-                            ) : (
-                              <Mic className="h-5 w-5" />
-                            )}
+                            {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          {isMuted ? 'Unmute' : 'Mute'}
-                        </TooltipContent>
+                        <TooltipContent>Mute</TooltipContent>
                       </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-8 w-8 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary",
+                              isSpeakerOn && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30",
+                            )}
+                            onClick={() => setIsSpeakerOn(!isSpeakerOn)}
+                          >
+                            {isSpeakerOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Speaker</TooltipContent>
+                      </Tooltip>
+
+                      <Separator orientation="vertical" className="h-6" />
 
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="destructive"
                             size="icon"
-                            className="h-12 w-12 rounded-full"
-                            onClick={() => {
-                              handleEndCall()
-                              setIsCallActive(false)
-                            }}
+                            className="h-8 w-8 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary"
+                            onClick={handleEndCall}
                           >
-                            <PhoneOff className="h-5 w-5" />
+                            <PhoneOff className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          End call
-                        </TooltipContent>
+                        <TooltipContent>End Call</TooltipContent>
                       </Tooltip>
+
+                      <Separator orientation="vertical" className="h-6" />
+
+                      {(participants.length > 2 || !isSelfViewMinimized) && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-12 w-12 rounded-full"
-                              onClick={handleAddParticipant}
+                              className="h-8 w-8 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary"
+                              onClick={() => setIsGridView(!isGridView)}
                             >
-                              <UserPlus className="h-5 w-5" />
+                              {isGridView ? <LayoutGrid className="h-4 w-4" /> : <Grid2X2 className="h-4 w-4" />}
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            Add participant
-                          </TooltipContent>
+                          <TooltipContent>Toggle Layout</TooltipContent>
                         </Tooltip>
-                    </TooltipProvider>
-                  </div>
+                      )}
+
+                      {participants.length < 8 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary"
+                              onClick={handleAddParticipant}
+                            >
+                              <UserPlus className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Add Participant</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </TooltipProvider>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-[200px] justify-end">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{formatDuration(callDuration)}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="h-10 px-4 bg-muted/30 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Signal className="h-3 w-3 text-green-500" />
+                <span className="text-xs">{networkQuality}</span>
+              </div>
+              {callState === "established" && (
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">{formatDuration(callDuration)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isMaximized ? (
+            <div className="relative h-[calc(100%-6.5rem)]">
+              <div className="absolute inset-0">
+                <div
+                  className={cn(
+                    "h-full w-full p-4",
+                    isGridView && participants.length > 1 ? "grid grid-cols-2 gap-4" : "relative",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "relative rounded-xl overflow-hidden",
+                      isGridView ? "h-full" : "h-full w-full",
+                      "transition-all duration-300",
+                    )}
+                  >
+                    {participants
+                      .filter((p) => p.id !== callerInfo.id)
+                      .map((participant) => (
+                        <ParticipantScreen
+                          key={participant.id}
+                          participant={participant}
+                          onToggleVideo={handleToggleVideo}
+                          onToggleMute={handleToggleMute}
+                          onRemoveParticipant={handleRemoveParticipant}
+                          onToggleFullscreen={() => handleToggleFullscreen(participant.id)}
+                          isFullscreen={fullscreenParticipant === participant.id}
+                        />
+                      ))}
+                  </div>
+
+                  {!isSelfViewMinimized && (
+                    <div
+                      className={cn(
+                        "transition-all duration-300",
+                        isGridView
+                          ? "h-full rounded-xl overflow-hidden"
+                          : "fixed z-20 bottom-24 right-6 w-[240px] h-[160px] group-hover:translate-y-[-80px]",
+                        "group hover:scale-105",
+                      )}
+                    >
+                      <div className="absolute -top-8 right-0 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full bg-background/80 hover:bg-background"
+                          onClick={() => handleToggleVideo("me")}
+                        >
+                          {callerInfo.isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full bg-background/80 hover:bg-background"
+                          onClick={() => handleToggleFullscreen(callerInfo.id)}
+                        >
+                          <Maximize className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full bg-background/80 hover:bg-background"
+                          onClick={() => {
+                            setIsSelfViewMinimized(true)
+                            if (isGridView) setIsGridView(false)
+                          }}
+                        >
+                          <MinusCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <Card className="w-full h-full overflow-hidden border-primary/20">
+                        <ParticipantScreen
+                          participant={{
+                            ...callerInfo,
+                            isHost: true,
+                            isVideoOn: false,
+                            isMuted: isMuted,
+                            role: "caller",
+                          }}
+                          onToggleVideo={handleToggleVideo}
+                          onToggleMute={handleToggleMute}
+                          onRemoveParticipant={handleRemoveParticipant}
+                          onToggleFullscreen={() => handleToggleFullscreen(callerInfo.id)}
+                          isFullscreen={fullscreenParticipant === callerInfo.id}
+                        />
+                      </Card>
+                    </div>
+                  )}
+
+                  {isSelfViewMinimized && (
+                    <Button
+                      variant="ghost"
+                      className="fixed bottom-24 right-6 z-20 h-10 w-10 rounded-full bg-primary/10 hover:bg-primary/20"
+                      onClick={() => {
+                        setIsSelfViewMinimized(false)
+                        if (participants.length <= 2) setIsGridView(true)
+                      }}
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={callerInfo.avatar} />
+                        <AvatarFallback>{callerInfo.name[0]}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <>
@@ -484,10 +502,10 @@ export function CallUI({
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12 border">
                     <AvatarImage src={calleeInfo?.avatar} />
-                    <AvatarFallback>{calleeInfo?.name ? calleeInfo.name[0].toUpperCase() : 'U'}</AvatarFallback>
+                    <AvatarFallback>{calleeInfo?.name ? calleeInfo.name[0].toUpperCase() : "Z"}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{calleeInfo?.name || 'Unknown User'}</h3>
+                    <h3 className="font-semibold">{calleeInfo?.name || "Unknown User"}</h3>
                     <p className="text-sm text-muted-foreground">{activeNumber}</p>
                   </div>
                 </div>
@@ -496,75 +514,31 @@ export function CallUI({
               <CardContent className="p-4 pt-0">
                 <div className="text-center space-y-3">
                   <p className="text-sm font-medium text-muted-foreground">
-                    {callState === 'establishing' ? 'Calling...' :
-                      callState === 'established' ? 'On Call' : callState}
+                    {callState === "establishing" ? "Calling..." : callState === "established" ? "On Call" : callState}
                   </p>
                   <div className="flex justify-center gap-3">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className={cn(
-                            "h-10 w-10 rounded-full",
-                            isMuted && "bg-red-100 text-red-500"
-                          )}
-                          onClick={() => handleToggleMute('me')}
-                        >
-                          {isMuted ? (
-                            <MicOff className="h-4 w-4" />
-                          ) : (
-                            <Mic className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {isMuted ? 'Unmute' : 'Mute'} microphone
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className={cn(
-                            "h-10 w-10 rounded-full",
-                            isSpeakerOn && "bg-blue-100 text-blue-500"
-                          )}
-                          onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-                        >
-                          {isSpeakerOn ? (
-                            <Volume2 className="h-4 w-4" />
-                          ) : (
-                            <VolumeX className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {isSpeakerOn ? 'Disable' : 'Enable'} speaker
-                      </TooltipContent>
-                    </Tooltip>
-
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn("h-10 w-10 rounded-full", isMuted && "bg-red-100 text-red-500")}
+                      onClick={() => handleToggleMute("me")}
+                    >
+                      {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn("h-10 w-10 rounded-full", isSpeakerOn && "bg-blue-100 text-blue-500")}
+                      onClick={() => setIsSpeakerOn(!isSpeakerOn)}
+                    >
+                      {isSpeakerOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                    </Button>
                     <Popover>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-10 w-10 rounded-full"
-                              >
-                                <KeyRound className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Open dialpad
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full">
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
                         <DTMFDialPad />
                       </PopoverContent>
@@ -593,4 +567,3 @@ export function CallUI({
     </TooltipProvider>
   )
 }
-
