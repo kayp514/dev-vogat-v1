@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import type { CallerInfo, UserData } from "../type"
 
 
 const dialpadKeys = [
@@ -31,10 +32,11 @@ const recentNumbers = [
 ]
 
 interface InputNumberProps {
-  onCall: (phoneNumber: string) => void;
+  userData: UserData
+  onCall?: (phoneNumber: string, callerInfo: CallerInfo, calleeInfo: CallerInfo) => void
 }
 
-export default function InputNumber({ onCall }: InputNumberProps) {
+export function InputNumber({ userData, onCall }: InputNumberProps) {
   const [showNumbers, setShowNumbers] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isCallInitiating, setIsCallInitiating] = useState(false)
@@ -92,16 +94,39 @@ export default function InputNumber({ onCall }: InputNumberProps) {
   };
 
   const initiateCall = async () => {
-    if (phoneNumber) {
-      setIsCallInitiating(true)
+    if (!phoneNumber) return
+
+    setIsCallInitiating(true)
+
+      const callerInfo: CallerInfo = {
+        ...userData,
+        isHost: true,
+        isVideoOn: false,
+        isMuted: false,
+      }
+  
+      const calleeInfo: CallerInfo = {
+        id: phoneNumber,
+        uid: phoneNumber,
+        name:
+          phoneNumber in recentNumbers
+            ? recentNumbers.find((c) => c.number === phoneNumber)?.name || "Unknown"
+            : "Unknown",
+        email: "",
+        avatar: "",
+        phoneNumber: phoneNumber,
+        status: "unknown",
+        isHost: false,
+        isVideoOn: false,
+        isMuted: false,
+      }
 
       const rawNumber = phoneNumber.replace(/[^\d+]/g, '')
       try {
-        await onCall(rawNumber)
+        await onCall?.(rawNumber, callerInfo, calleeInfo)
       } finally {
         setIsCallInitiating(false)
       }
-    }
   };
 
   

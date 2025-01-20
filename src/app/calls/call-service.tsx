@@ -1,10 +1,17 @@
 'use client'
 
-import CallHistory from '../ui/callhistory';
-import InputNumber from '../ui/inputnumber';
+import { CallHistory } from '../ui/callhistory';
+import { InputNumber } from '../ui/inputnumber';
 import { useCallSIP } from '@/app/CallSipProviderCtx';
 
-export function CallService() {
+import type { UserData, CallerInfo } from "../type"
+
+interface CallServiceProps {
+  userData: UserData
+  onCall: (phoneNumber: string, callerInfo: CallerInfo, calleeInfo: CallerInfo) => void
+}
+
+export function CallService({ userData, onCall }: CallServiceProps) {
   
   const { handleOutgoingCall } = useCallSIP();
 
@@ -13,7 +20,7 @@ export function CallService() {
     <div className="flex h-[calc(100vh-4rem)]">
       <div className="w-[320px] border-r flex-shrink-0 bg-background">
         <div className="p-4 space-y-4">
-          <InputNumber onCall={handleOutgoingCall} />
+          <InputNumber userData={userData} onCall={onCall} />
         </div>
       </div>
 

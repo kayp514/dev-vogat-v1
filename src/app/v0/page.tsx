@@ -14,7 +14,7 @@ export default function VzeroPage() {
 
   const userData = {
     id: 'me',
-    name: user?.displayName || '',
+    name: user?.displayName || 'LifesprintCare',
     email: user?.email || '',
     uid: user?.uid || '',
     avatar: user?.photoURL || '',

@@ -6,11 +6,10 @@ import { Header } from "@/app/ui/header"
 import { ChatLayout } from '../chat/chat-layout'
 import { CallLayout } from '../calls/call-layout'
 import { useCallSIP } from '@/app/CallSipProviderCtx'
-import CallUI from '@/app/ui/callui'
+import { CallUI } from '@/app/ui/callui'
 import { CallNotification } from './callnotify'
 import { cn } from "@/lib/utils"
-import { type UserData, type Participant, type CallSession, initializeCallSession} from "../type"
-//import { type CallSession, type Participant, type UserInfo, type CallerInfo } from '../types/call'
+import { type UserData, type Participant, type CallSession, type CallerInfo, initializeCallSession} from "../type"
 import { Toaster } from '@/components/ui/toaster';
 import { SIPInitializer } from "../SIPInitializer";
 import { ConsoleLayout } from './console/console-layout'
@@ -20,22 +19,11 @@ interface AppLayoutProps {
   userData: UserData; 
 }
 
-const createParticipant = (userInfo: UserData, role: 'caller' | 'callee' | 'participant'): Participant => ({
-  id: userInfo.id,
-  uid: userInfo.uid,
-  name: userInfo.name,
-  email: userInfo.email,
-  phoneNumber: userInfo.phoneNumber,
-  avatar: userInfo.avatar,
-  status: userInfo.status,
-  isVideoOn: false,
-  isMuted: false,
-  role,
-})
 
 export function AppLayout({ userData }: AppLayoutProps) {
   const [activeTab, setActiveTab] = useState("chat")
-  const [isMaximized, setIsMaximized] = useState(false)
+  const [currentCallerInfo, setCurrentCallerInfo] = useState<CallerInfo | null>(null)
+  const [currentCalleeInfo, setCurrentCalleeInfo] = useState<CallerInfo | null>(null)
 
   const { 
     isCallActive, 
@@ -45,84 +33,99 @@ export function AppLayout({ userData }: AppLayoutProps) {
     handleEndCall, 
     setIsCallActive, 
     handleAcceptCall, 
-    handleRejectCall 
+    handleRejectCall, 
+    handleOutgoingCall,
   } = useCallSIP()
 
-  const currentUser: UserData = {
-    id: 'me',
-    uid: userData.uid,
-    name: userData.name || 'Me',
-    email: userData.email,
-    avatar: userData.avatar,
-    phoneNumber: userData.phoneNumber,
-    status: userData.status || 'online'
+  const currentUser: CallerInfo = {
+    ...userData,
+    id: "me",
+    isHost: true,
+    isVideoOn: false,
+    isMuted: false,
   }
 
-  const defaultCallee: UserData = {
-    id: activeNumber,
-    uid: activeNumber,
+  const defaultCallee: CallerInfo = {
+    id: activeNumber || "callee", // Provide a default ID for callee
+    uid: activeNumber || "callee",
     name: activeNumber,
-    email: '',
-    avatar: '',
-    phoneNumber: activeNumber,
-    status: userData.status
+    email: "",
+    avatar: "",
+    phoneNumber: activeNumber || "",
+    status: "unknown",
+    isVideoOn: false,
+    isMuted: false,
   }
 
+  const [callSession, setCallSession] = useState<CallSession | null>(null)
 
-  const [callSession, setCallSession] = useState<CallSession>(
-    initializeCallSession(
-      `call-${Date.now()}`,
-      currentUser,
-      defaultCallee,
-      'outgoing'
-    )
-  )
+  const handleCall = async (phoneNumber: string, callerInfo: CallerInfo, calleeInfo: CallerInfo) => {
+    setCurrentCallerInfo(callerInfo)
+    setCurrentCalleeInfo(calleeInfo)
+
+    // Initialize call session with the provided info
+    const newSession = initializeCallSession(`call-${Date.now()}`, callerInfo, calleeInfo, "outgoing")
+    setCallSession(newSession)
+
+    await handleOutgoingCall(phoneNumber)
+  }
 
 
   const toggleMaximize = () => {
-    setCallSession(prev => ({
-      ...prev,
-      isMaximized: !prev.isMaximized
-    }))
+    setCallSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            isMaximized: !prev.isMaximized,
+          }
+        : null,
+    )
   }
 
   const updateParticipant = (participantId: string, updates: Partial<Participant>) => {
-    setCallSession(prev => ({
-      ...prev,
-      participants: prev.participants.map(p => 
-        p.uid === participantId ? { ...p, ...updates } : p
-      )
-    }))
+    setCallSession((prev) => {
+      if (!prev) return null
+      return {
+        ...prev,
+        participants: prev.participants.map((p) => (p.id === participantId ? { ...p, ...updates } : p)),
+      }
+    })
   }
 
-  const addParticipant = (userInfo: UserData) => {
+  const addParticipant = (userInfo: CallerInfo) => {
     const newParticipant: Participant = {
       ...userInfo,
       isVideoOn: false,
       isMuted: false,
       isHost: false,
-      role: 'participant'
+      role: "participant",
     }
 
-    setCallSession(prev => ({
-      ...prev,
-      participants: [...prev.participants, newParticipant]
-    }))
-  }
-
-  const removeParticipant = (participantId: string) => {
-    setCallSession(prev => {
-      const participant = prev.participants.find(p => p.uid === participantId)
-      if (participant?.role === 'caller' || participant?.role === 'callee') {
-        return prev
-      }
+    setCallSession((prev) => {
+      if (!prev) return null
       return {
         ...prev,
-        participants: prev.participants.filter(p => p.uid !== participantId)
+        participants: [...prev.participants, newParticipant],
       }
     })
   }
 
+
+  const removeParticipant = (participantId: string) => {
+    setCallSession((prev) => {
+      if (!prev) return null
+      const participant = prev.participants.find((p) => p.id === participantId)
+      if (participant?.role === "caller" || participant?.role === "callee") {
+        return prev
+      }
+      return {
+        ...prev,
+        participants: prev.participants.filter((p) => p.id !== participantId),
+      }
+    })
+  }
+
+  
   return (
     <div className="flex min-h-screen">
       <div className="w-[60px] flex-shrink-0 h-screen">
@@ -135,15 +138,15 @@ export function AppLayout({ userData }: AppLayoutProps) {
         </div>
         <div className={cn(
           "h-[calc(100vh-3.5rem)] mt-14 transition-all duration-300 relative z-0",
-          callSession.isMaximized && "mr-[400px]"
+          callSession?.isMaximized && "mr-[400px]"
         )}>
           {activeTab === "chat" && <ChatLayout />}
-          {activeTab === "calls" && <CallLayout />}
+          {activeTab === "calls" && <CallLayout userData={userData} onCall={handleCall} />}
           {activeTab === "console" && <ConsoleLayout />}
         </div>
         <Toaster />
       </div>
-      {isCallActive &&  (
+      {isCallActive && callSession && currentCalleeInfo && currentCallerInfo && (
         <div className={cn(
           "fixed transition-all duration-300",
           callSession.isMaximized 
@@ -158,8 +161,8 @@ export function AppLayout({ userData }: AppLayoutProps) {
             />
           ) : (
             <CallUI
-              callerInfo={currentUser}
-              calleeInfo={callSession.callee}
+              callerInfo={currentCallerInfo}
+              calleeInfo={currentCalleeInfo}
               activeNumber={activeNumber}
               callState={callState}
               callType={callType}

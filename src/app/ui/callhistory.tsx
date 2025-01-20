@@ -74,7 +74,7 @@ const callTypeConfig = {
   },
 }
 
-export default function CallHistory() {
+export function CallHistory() {
   const [typeFilter, setTypeFilter] = useState<FilterType>('all')
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
 

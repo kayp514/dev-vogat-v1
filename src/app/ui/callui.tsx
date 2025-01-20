@@ -26,8 +26,8 @@ import { type Participant, type CallerInfo } from '../type'
 interface UserInfo extends CallerInfo {}
 
 interface CallUIProps {
-  callerInfo: UserInfo
-  calleeInfo: UserInfo 
+  callerInfo: CallerInfo
+  calleeInfo: CallerInfo
   activeNumber: string
   callState: CallState
   callType: CallType
@@ -96,7 +96,7 @@ function DTMFDialPad() {
 }
 
 
-export default function CallUI({
+export function CallUI({
   callerInfo,
   calleeInfo,
   activeNumber,
@@ -378,20 +378,22 @@ export default function CallUI({
 
               <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-background/95 to-background/90 backdrop-blur-sm">
                 <ScrollArea className="h-[calc(100vh-12rem)]">
-                <div className="relative h-full w-full">
-                <div className="w-full h-[calc(100vh-12rem)]">
-          {participants.filter(p => p.id !== callerInfo.id).map((participant) => (
+                  <div className="relative h-full w-full">
+                    <div className="w-full h-[calc(100vh-12rem)]">
+         {participants
+         .filter(p => p.id !== callerInfo.id)
+         .map((participant) => (
           <div key={participant.id} className="w-full h-full">
             <ParticipantScreen
               participant={participant}
               onToggleVideo={handleToggleVideo}
               onToggleMute={handleToggleMute}
               onRemoveParticipant={handleRemoveParticipant}
-              onToggleFullscreen={() => handleToggleFullscreen(participant.id)}
-              isFullscreen={fullscreenParticipant === participant.id}
+              onToggleFullscreen={() => handleToggleFullscreen(calleeInfo.id)}
+              isFullscreen={fullscreenParticipant === calleeInfo.id}
             />
           </div>
-        ))}
+        ))} 
         </div>
         <div className="absolute bottom-4 right-4 w-[280px] h-[180px] rounded-lg overflow-hidden shadow-lg border border-border/50 hover:scale-105 transition-transform duration-200">
         <ParticipantScreen
@@ -463,6 +465,7 @@ export default function CallUI({
                               variant="ghost"
                               size="icon"
                               className="h-12 w-12 rounded-full"
+                              onClick={handleAddParticipant}
                             >
                               <UserPlus className="h-5 w-5" />
                             </Button>
