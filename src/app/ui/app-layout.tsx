@@ -22,6 +22,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ userData }: AppLayoutProps) {
   const [activeTab, setActiveTab] = useState("chat")
+  const [isMaximized, setCallMaximized] = useState(false)
   const [currentCallerInfo, setCurrentCallerInfo] = useState<CallerInfo | null>(null)
   const [currentCalleeInfo, setCurrentCalleeInfo] = useState<CallerInfo | null>(null)
 
@@ -138,7 +139,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
         </div>
         <div className={cn(
           "h-[calc(100vh-3.5rem)] mt-14 transition-all duration-300 relative z-0",
-          callSession?.isMaximized && "mr-[400px]"
+          isMaximized && "mr-[400px]"
         )}>
           {activeTab === "chat" && <ChatLayout />}
           {activeTab === "calls" && <CallLayout userData={userData} onCall={handleCall} />}
@@ -149,7 +150,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
       {isCallActive && callSession && currentCalleeInfo && currentCallerInfo && (
         <div className={cn(
           "fixed transition-all duration-300",
-          callSession.isMaximized 
+          isMaximized 
             ? "inset-0 ml-[60px] mt-14"
             : "right-0 top-14 w-[300px]"
         )}>
