@@ -32,9 +32,9 @@ export function ParticipantScreen({
   return (
     <div
       className={cn(
-        "group relative h-full rounded-2xl overflow-hidden transition-all duration-500",
-        "bg-gradient-to-br from-background/80 to-muted/80",
-        "backdrop-blur-md border shadow-lg",
+        "group relative h-full rounded-xl overflow-hidden transition-all duration-300",
+        "bg-gradient-to-br from-muted/20 to-muted/30",
+        "backdrop-blur-sm border shadow-md",
         isFullscreen && "fixed inset-0 z-[60] rounded-none w-screen h-screen max-w-none",
         isGridView && "aspect-video",
       )}
@@ -44,14 +44,8 @@ export function ParticipantScreen({
         {participant.isVideoOn ? (
           <div className={cn("w-full h-full relative overflow-hidden")}>
             {/* Video placeholder - in real implementation, replace with actual video element */}
-            <div
-              className={cn(
-                "absolute inset-0",
-                "flex items-center justify-center",
-                "bg-gradient-to-br from-primary/5 to-primary/10",
-              )}
-            >
-              <VideoIcon className="h-12 w-12 text-muted-foreground/50" />
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted/10 to-muted/20">
+              <VideoIcon className="h-12 w-12 text-muted-foreground/30" />
             </div>
           </div>
         ) : (
@@ -70,26 +64,26 @@ export function ParticipantScreen({
       {/* Overlay Controls */}
       <div
         className={cn(
-          "absolute inset-0 flex flex-col justify-between z-[51]",
-          "bg-gradient-to-t from-black/80 via-transparent to-black/40",
-          "transition-opacity duration-300",
-          "opacity-0 group-hover:opacity-100",
+          "absolute inset-0 flex flex-col justify-between",
+          "z-[50]",
+          "bg-gradient-to-t from-background/40 via-transparent to-background/40",
+          "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
         )}
       >
         {/* Top Controls */}
-        <div className="p-4">
+        <div className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="bg-background/20 text-white hover:bg-background/30">
+              <Badge variant="secondary" className="bg-background/60 backdrop-blur-sm text-foreground">
                 {participant.role === "caller" ? "You" : participant.name}
               </Badge>
               {participant.isMuted && (
-                <Badge variant="secondary" className="bg-red-500/20 text-red-200 hover:bg-red-500/30">
+                <Badge variant="secondary" className="bg-muted/60 text-muted-foreground">
                   <MicOff className="h-3 w-3" />
                 </Badge>
               )}
               {!participant.isVideoOn && (
-                <Badge variant="secondary" className="bg-muted/20 text-white hover:bg-muted/30">
+                <Badge variant="secondary" className="bg-muted/60 text-muted-foreground">
                   <VideoOff className="h-3 w-3" />
                 </Badge>
               )}
@@ -98,19 +92,17 @@ export function ParticipantScreen({
         </div>
 
         {/* Bottom Controls */}
-        <div className="p-4 space-y-3">
+        <div className="p-3">
           <div className="flex items-center justify-end gap-2">
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="icon"
                     className={cn(
                       "h-8 w-8 rounded-full",
-                      "bg-black/20 hover:bg-black/40",
-                      "text-white border-0",
-                      "transition-colors duration-200",
+                      "bg-background/60 hover:bg-background/80",
                       "backdrop-blur-sm",
                     )}
                     onClick={() => onToggleVideo(participant.id)}
@@ -126,14 +118,12 @@ export function ParticipantScreen({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="icon"
                     className={cn(
-                      "h-8 w-8 rounded-full",
-                      "bg-black/20 hover:bg-black/40",
-                      "text-white border-0",
-                      "transition-colors duration-200",
-                      "backdrop-blur-sm",
+                        "h-8 w-8 rounded-full",
+                        "bg-background/60 hover:bg-background/80",
+                        "backdrop-blur-sm",
                     )}
                     onClick={() => onToggleMute(participant.id)}
                   >
@@ -148,14 +138,12 @@ export function ParticipantScreen({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="icon"
                     className={cn(
-                      "h-8 w-8 rounded-full",
-                      "bg-black/20 hover:bg-black/40",
-                      "text-white border-0",
-                      "transition-colors duration-200",
-                      "backdrop-blur-sm",
+                        "h-8 w-8 rounded-full",
+                        "bg-background/60 hover:bg-background/80",
+                        "backdrop-blur-sm",
                     )}
                     onClick={() => onToggleFullscreen()}
                   >
@@ -171,13 +159,12 @@ export function ParticipantScreen({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="icon"
                       className={cn(
                         "h-8 w-8 rounded-full",
-                        "bg-red-500/20 hover:bg-red-500/30",
-                        "text-white border-0",
-                        "transition-colors duration-200",
+                        "bg-destructive/10 hover:bg-destructive/20",
+                        "text-destructive",
                         "backdrop-blur-sm",
                       )}
                       onClick={() => onRemoveParticipant(participant.id)}

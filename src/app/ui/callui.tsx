@@ -383,33 +383,54 @@ export function CallUI({
 
           {isMaximized ? (
             <div className="relative h-[calc(100%-6.5rem)]">
-              <div className="absolute inset-0">
+              <div className="absolute inset-0 p-4">
+              <div className="h-full w-full p-6">
                 <div
                   className={cn(
-                    "h-full w-full p-4",
-                    isGridView && "grid gap-4 place-items-center",
-                    isGridView && (
+                    "h-full w-full",
+                    isGridView
+                    ? cn("grid gap-3",
                       participants.length === 2 
-                        ? "grid-cols-2" 
+                        ? "grid-cols-2 px-[15%] items-center" 
                         : participants.length <= 4 
                           ? "grid-cols-2" 
                           : "grid-cols-3"
-                    ),
-                    !isGridView && "relative"
+                    )
+                    : "relative"
                   )}
                 >
-                  {participants.map((participant) => (
+                  {participants.map((participant) => {
+                    const isMainParticipant = participant.id === calleeInfo.id;
+                    const isSelfView = participant.id === callerInfo.id;
+                    return (
                     <div
                       key={participant.id}
                       className={cn(
-                        "w-full h-full",
+                        "transition-all duration-300",
                         isGridView 
-                          ? "aspect-video" 
-                          : participant.id === callerInfo.id
-                            ? "absolute bottom-6 right-6 w-[320px] h-[180px] z-20"
-                            : "absolute inset-0"
-                      )}
-                    >
+                          ? cn(
+                            "w-full",
+                            participants.length === 2 && 
+                            "aspect-video"
+                          ) 
+                          : cn(
+                            isMainParticipant
+                            ? "absolute inset-0"
+                            : isSelfView &&
+                            cn(
+                            "fixed bottom-24 right-10 w-[320px] h-[180px]",
+                            "shadow-lg rounded-xl overflow-hidden",
+                            "border border-border/50",
+                            "backdrop-blur-sm",
+                            "transition-all duration-300",
+                            "hover:scale-105",
+                            "z-[45]"
+                      ),
+                    ),
+
+                  )}
+                >
+
                       <ParticipantScreen
                         participant={participant}
                         onToggleVideo={handleToggleVideo}
@@ -418,11 +439,14 @@ export function CallUI({
                         onToggleFullscreen={() => handleToggleFullscreen(participant.id)}
                         isFullscreen={fullscreenParticipant === participant.id}
                         isGridView={isGridView}
+                        isLarge={isMainParticipant && !isGridView}
                       />
                     </div>
-                  ))}
+                  )
+                })}
                 </div>
               </div>
+            </div>
             </div>
           ) : (
             <>
