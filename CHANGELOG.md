@@ -1,5 +1,36 @@
 # dev-vogat-v1
 
+## 1.3.2
+
+### Patch Changes
+
+- f5cd631: refactor: Enhance CallUI and ParticipantScreen components
+
+  - Improved layout and styling in CallUI for better responsiveness and user experience, including adjustments to padding and grid configurations.
+  - Updated ParticipantScreen with refined styles, including transitions and background gradients for a more polished appearance.
+  - Enhanced participant controls with clearer UI elements and improved hover effects.
+  - Streamlined class handling for dynamic rendering based on participant states.
+
+## 1.3.1
+
+### Patch Changes
+
+- bf53e38: chore: Update GitHub Actions workflow for release process
+
+  - Renamed the step for creating a release pull request to "Apply changesets" for clarity.
+  - Added debugging steps to output changeset and version information during the release process.
+  - Updated the method of passing the version to the GitHub release step to use environment variables instead of outputs.
+
+## 1.3.0
+
+### Minor Changes
+
+- cc28ee8: feat: Add call maximization state and remove unused ChatUser component
+
+  - Introduced a new state variable `isMaximized` in `AppLayout` to manage call maximization.
+  - Updated layout classes to utilize the new `isMaximized` state for dynamic styling.
+  - Removed the unused `ChatUser` component to clean up the codebase.
+
 ## 1.2.2
 
 ### Patch Changes
