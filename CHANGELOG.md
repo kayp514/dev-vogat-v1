@@ -1,5 +1,15 @@
 # dev-vogat-v1
 
+## 1.3.0
+
+### Minor Changes
+
+- cc28ee8: feat: Add call maximization state and remove unused ChatUser component
+
+  - Introduced a new state variable `isMaximized` in `AppLayout` to manage call maximization.
+  - Updated layout classes to utilize the new `isMaximized` state for dynamic styling.
+  - Removed the unused `ChatUser` component to clean up the codebase.
+
 ## 1.2.2
 
 ### Patch Changes
