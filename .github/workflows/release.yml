@@ -27,11 +27,13 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 'lts/*'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install Dependencies
         run: npm ci
@@ -46,22 +48,29 @@ jobs:
           createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # This step will run after the changeset is merged to main
-      - name: Create GitHub Release
-        if: |
-          github.event_name == 'push' &&
-          github.ref == 'refs/heads/main' &&
-          steps.changesets.outputs.published == 'true'
+      - name: Get version
+        id: get_version
+        if: steps.changesets.outputs.published == 'true'
         run: |
-          # Get the latest tag
-          TAG=$(git describe --tags --abbrev=0)
-          
-          # Create GitHub release with changelog
-          gh release create $TAG \
-            --title "Release $TAG" \
-            --notes "$(cat CHANGELOG.md)" \
-            --draft=false \
-            --prerelease=false
+          echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: steps.changesets.outputs.published == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          # Extract changelog for current version
+          CHANGELOG_SECTION=$(awk -v ver="$VERSION" '
+            /^## / { if (p) { exit }; if ($2 == ver) { p=1; next } }
+            p { print }
+          ' CHANGELOG.md)
+          
+          # Create GitHub release
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --notes "$CHANGELOG_SECTION" \
+            --draft=false \
+            --prerelease=false
