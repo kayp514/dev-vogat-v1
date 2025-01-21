@@ -1,5 +1,13 @@
 # dev-vogat-v1
 
+## 1.2.2
+
+### Patch Changes
+
+- 76e6b03: chore: Remove NODE_AUTH_TOKEN from GitHub Actions workfloww
+
+  - Removed NODE_AUTH_TOKEN from the release workflow to streamline environment variables and enhance security.
+
 ## 1.2.1
 
 ### Patch Changes
