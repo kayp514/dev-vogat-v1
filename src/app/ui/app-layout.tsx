@@ -22,7 +22,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ userData }: AppLayoutProps) {
   const [activeTab, setActiveTab] = useState("chat")
-  const [isMaximized, setCallMaximized] = useState(false)
+  //const [isMaximized, setCallMaximized] = useState(false)
   const [currentCallerInfo, setCurrentCallerInfo] = useState<CallerInfo | null>(null)
   const [currentCalleeInfo, setCurrentCalleeInfo] = useState<CallerInfo | null>(null)
 
@@ -38,25 +38,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
     handleOutgoingCall,
   } = useCallSIP()
 
-  const currentUser: CallerInfo = {
-    ...userData,
-    id: "me",
-    isHost: true,
-    isVideoOn: false,
-    isMuted: false,
-  }
 
-  const defaultCallee: CallerInfo = {
-    id: activeNumber || "callee", // Provide a default ID for callee
-    uid: activeNumber || "callee",
-    name: activeNumber,
-    email: "",
-    avatar: "",
-    phoneNumber: activeNumber || "",
-    status: "unknown",
-    isVideoOn: false,
-    isMuted: false,
-  }
 
   const [callSession, setCallSession] = useState<CallSession | null>(null)
 
@@ -126,10 +108,16 @@ export function AppLayout({ userData }: AppLayoutProps) {
     })
   }
 
-  
+  const isMaximized = callSession?.isMaximized || false
+
   return (
     <div className="flex min-h-screen">
-      <div className="w-[60px] flex-shrink-0 h-screen">
+      <div
+        className={cn(
+          "w-[60px] flex-shrink-0 h-screen transition-opacity duration-300",
+          isCallActive && isMaximized && "opacity-50 hover:opacity-100",
+        )}
+      >
         <AppSideBar setActiveTab={setActiveTab} activeTab={activeTab} />
       </div>
       <div className="relative flex-1 min-w-0">
@@ -137,10 +125,12 @@ export function AppLayout({ userData }: AppLayoutProps) {
           <SIPInitializer />
           <Header userData={userData} />
         </div>
-        <div className={cn(
-          "h-[calc(100vh-3.5rem)] mt-14 transition-all duration-300 relative z-0",
-          isMaximized && "mr-[400px]"
-        )}>
+        <div
+          className={cn(
+            "h-[calc(100vh-3.5rem)] mt-14 transition-all duration-300 relative z-0",
+            isCallActive && isMaximized && "opacity-50",
+          )}
+        >
           {activeTab === "chat" && <ChatLayout />}
           {activeTab === "calls" && <CallLayout userData={userData} onCall={handleCall} />}
           {activeTab === "console" && <ConsoleLayout />}
@@ -149,7 +139,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
       </div>
       {isCallActive && callSession && currentCalleeInfo && currentCallerInfo && (
         <div className={cn(
-          "fixed transition-all duration-300",
+          "fixed transition-all duration-300 z-50",
           isMaximized 
             ? "inset-0 ml-[60px] mt-14"
             : "right-0 top-14 w-[300px]"
