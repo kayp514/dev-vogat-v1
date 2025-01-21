@@ -1,7 +1,7 @@
-'use client'
+"use client"
 
-import { useState, useEffect, useRef } from 'react'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect, useRef } from "react"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
   Mic,
@@ -20,32 +20,27 @@ import {
   Grid2X2,
   LayoutGrid,
   Maximize,
+  X,
+  MinusCircle,
   Video,
   VideoOff,
-  MinusCircle,
 } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { ParticipantScreen } from './participant'
-import { type CallState, CallType } from '@/lib/type'
-import { type Participant, type CallerInfo } from '../type'
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ParticipantScreen } from "./participant"
+import type { CallState, CallType } from "@/lib/type"
+import type { Participant, CallerInfo } from "../type"
 
 interface UserInfo extends CallerInfo {}
 
 interface CallUIProps {
-  callerInfo: CallerInfo
-  calleeInfo: CallerInfo
+  callerInfo: UserInfo
+  calleeInfo: UserInfo
   activeNumber: string
   callState: CallState
   callType: CallType
@@ -60,25 +55,25 @@ interface CallUIProps {
 }
 
 function DTMFDialPad() {
-  const [dtmfInput, setDtmfInput] = useState('')
+  const [dtmfInput, setDtmfInput] = useState("")
 
   const dialpadButtons = [
-    { id: 1, name: '1' },
-    { id: 2, name: '2', sub: 'ABC' },
-    { id: 3, name: '3', sub: 'DEF' },
-    { id: 4, name: '4', sub: 'GHI' },
-    { id: 5, name: '5', sub: 'JKL' },
-    { id: 6, name: '6', sub: 'MNO' },
-    { id: 7, name: '7', sub: 'PQRS' },
-    { id: 8, name: '8', sub: 'TUV' },
-    { id: 9, name: '9', sub: 'WXYZ' },
-    { id: 10, name: '*' },
-    { id: 11, name: '0', sub: '+' },
-    { id: 12, name: '#' },
+    { id: 1, name: "1" },
+    { id: 2, name: "2", sub: "ABC" },
+    { id: 3, name: "3", sub: "DEF" },
+    { id: 4, name: "4", sub: "GHI" },
+    { id: 5, name: "5", sub: "JKL" },
+    { id: 6, name: "6", sub: "MNO" },
+    { id: 7, name: "7", sub: "PQRS" },
+    { id: 8, name: "8", sub: "TUV" },
+    { id: 9, name: "9", sub: "WXYZ" },
+    { id: 10, name: "*" },
+    { id: 11, name: "0", sub: "+" },
+    { id: 12, name: "#" },
   ]
 
   const handleDTMFInput = (digit: string) => {
-    setDtmfInput(prev => prev + digit)
+    setDtmfInput((prev) => prev + digit)
   }
 
   return (
@@ -100,11 +95,7 @@ function DTMFDialPad() {
           >
             <div className="flex flex-col items-center">
               <span>{button.name}</span>
-              {button.sub && (
-                <span className="text-[10px] text-muted-foreground">
-                  {button.sub}
-                </span>
-              )}
+              {button.sub && <span className="text-[10px] text-muted-foreground">{button.sub}</span>}
             </div>
           </Button>
         ))}
@@ -112,7 +103,6 @@ function DTMFDialPad() {
     </div>
   )
 }
-
 
 export function CallUI({
   callerInfo,
@@ -132,17 +122,16 @@ export function CallUI({
   const [isMuted, setIsMuted] = useState(false)
   const [isSpeakerOn, setIsSpeakerOn] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
-  const [networkQuality, setNetworkQuality] = useState('Excellent')
+  const [networkQuality, setNetworkQuality] = useState("Excellent")
   const [isGridView, setIsGridView] = useState(false)
   const [isSelfViewMinimized, setIsSelfViewMinimized] = useState(false)
   const callStartTimeRef = useRef<number | null>(null)
   const [fullscreenParticipant, setFullscreenParticipant] = useState<string | null>(null)
 
-
   useEffect(() => {
     let intervalId: NodeJS.Timeout
 
-    if (callState === 'established') {
+    if (callState === "established") {
       if (!callStartTimeRef.current) {
         callStartTimeRef.current = Date.now()
       }
@@ -166,18 +155,18 @@ export function CallUI({
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
   const handleToggleVideo = (participantId: string) => {
     onParticipantUpdate(participantId, {
-      isVideoOn: !participants?.find(p => p.id === participantId)?.isVideoOn
+      isVideoOn: !participants?.find((p) => p.id === participantId)?.isVideoOn,
     })
   }
 
   const handleToggleMute = (participantId: string) => {
     onParticipantUpdate(participantId, {
-      isMuted: !participants?.find(p => p.id === participantId)?.isMuted
+      isMuted: !participants?.find((p) => p.id === participantId)?.isMuted,
     })
   }
 
@@ -212,9 +201,9 @@ export function CallUI({
       }
     }
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener("fullscreenchange", handleFullscreenChange)
     return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener("fullscreenchange", handleFullscreenChange)
     }
   }, [])
 
@@ -222,21 +211,24 @@ export function CallUI({
     <TooltipProvider>
       <div
         className={cn(
-          "fixed z-50",
-          isMaximized ? "inset-0 pl-[72px] pt-14" : "bottom-4 right-4",
+          "fixed transition-all duration-300",
+          isMaximized 
+            ? "inset-0 pt-14 bg-background/95" 
+            : "bottom-4 right-4",
           "pointer-events-none",
         )}
       >
         {isMaximized && (
-          <div className="fixed inset-0 pl-[72px] pt-14 bg-background/60 backdrop-blur-sm -z-10" aria-hidden="true" />
+          <div className="fixed inset-0 bg-background/60 backdrop-blur-sm -z-10" aria-hidden="true" />
         )}
         <Card
           className={cn(
             "pointer-events-auto",
             "shadow-lg transition-all duration-300",
-            isMaximized ? "h-[calc(100vh-3.5rem)] w-[calc(100vw-72px)] ml-auto" : "w-[300px] rounded-lg",
+            isMaximized 
+              ? "h-[calc(100vh-3.5rem)] w-full border-0" 
+              : "w-[300px] rounded-lg",
             "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
-            "border-primary/10",
           )}
         >
           <div
@@ -391,110 +383,70 @@ export function CallUI({
 
           {isMaximized ? (
             <div className="relative h-[calc(100%-6.5rem)]">
-              <div className="absolute inset-0">
+              <div className="absolute inset-0 p-4">
+              <div className="h-full w-full p-6">
                 <div
                   className={cn(
-                    "h-full w-full p-4",
-                    isGridView && participants.length > 1 ? "grid grid-cols-2 gap-4" : "relative",
+                    "h-full w-full",
+                    isGridView
+                    ? cn("grid gap-3",
+                      participants.length === 2 
+                        ? "grid-cols-2 px-[15%] items-center" 
+                        : participants.length <= 4 
+                          ? "grid-cols-2" 
+                          : "grid-cols-3"
+                    )
+                    : "relative"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "relative rounded-xl overflow-hidden",
-                      isGridView ? "h-full" : "h-full w-full",
-                      "transition-all duration-300",
-                    )}
-                  >
-                    {participants
-                      .filter((p) => p.id !== callerInfo.id)
-                      .map((participant) => (
-                        <ParticipantScreen
-                          key={participant.id}
-                          participant={participant}
-                          onToggleVideo={handleToggleVideo}
-                          onToggleMute={handleToggleMute}
-                          onRemoveParticipant={handleRemoveParticipant}
-                          onToggleFullscreen={() => handleToggleFullscreen(participant.id)}
-                          isFullscreen={fullscreenParticipant === participant.id}
-                        />
-                      ))}
-                  </div>
-
-                  {!isSelfViewMinimized && (
+                  {participants.map((participant) => {
+                    const isMainParticipant = participant.id === calleeInfo.id;
+                    const isSelfView = participant.id === callerInfo.id;
+                    return (
                     <div
+                      key={participant.id}
                       className={cn(
                         "transition-all duration-300",
-                        isGridView
-                          ? "h-full rounded-xl overflow-hidden"
-                          : "fixed z-20 bottom-24 right-6 w-[240px] h-[160px] group-hover:translate-y-[-80px]",
-                        "group hover:scale-105",
-                      )}
-                    >
-                      <div className="absolute -top-8 right-0 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-full bg-background/80 hover:bg-background"
-                          onClick={() => handleToggleVideo("me")}
-                        >
-                          {callerInfo.isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-full bg-background/80 hover:bg-background"
-                          onClick={() => handleToggleFullscreen(callerInfo.id)}
-                        >
-                          <Maximize className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-full bg-background/80 hover:bg-background"
-                          onClick={() => {
-                            setIsSelfViewMinimized(true)
-                            if (isGridView) setIsGridView(false)
-                          }}
-                        >
-                          <MinusCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <Card className="w-full h-full overflow-hidden border-primary/20">
-                        <ParticipantScreen
-                          participant={{
-                            ...callerInfo,
-                            isHost: true,
-                            isVideoOn: false,
-                            isMuted: isMuted,
-                            role: "caller",
-                          }}
-                          onToggleVideo={handleToggleVideo}
-                          onToggleMute={handleToggleMute}
-                          onRemoveParticipant={handleRemoveParticipant}
-                          onToggleFullscreen={() => handleToggleFullscreen(callerInfo.id)}
-                          isFullscreen={fullscreenParticipant === callerInfo.id}
-                        />
-                      </Card>
-                    </div>
-                  )}
+                        isGridView 
+                          ? cn(
+                            "w-full",
+                            participants.length === 2 && 
+                            "aspect-video"
+                          ) 
+                          : cn(
+                            isMainParticipant
+                            ? "absolute inset-0"
+                            : isSelfView &&
+                            cn(
+                            "fixed bottom-24 right-10 w-[320px] h-[180px]",
+                            "shadow-lg rounded-xl overflow-hidden",
+                            "border border-border/50",
+                            "backdrop-blur-sm",
+                            "transition-all duration-300",
+                            "hover:scale-105",
+                            "z-[45]"
+                      ),
+                    ),
 
-                  {isSelfViewMinimized && (
-                    <Button
-                      variant="ghost"
-                      className="fixed bottom-24 right-6 z-20 h-10 w-10 rounded-full bg-primary/10 hover:bg-primary/20"
-                      onClick={() => {
-                        setIsSelfViewMinimized(false)
-                        if (participants.length <= 2) setIsGridView(true)
-                      }}
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={callerInfo.avatar} />
-                        <AvatarFallback>{callerInfo.name[0]}</AvatarFallback>
-                      </Avatar>
-                    </Button>
                   )}
+                >
+
+                      <ParticipantScreen
+                        participant={participant}
+                        onToggleVideo={handleToggleVideo}
+                        onToggleMute={handleToggleMute}
+                        onRemoveParticipant={handleRemoveParticipant}
+                        onToggleFullscreen={() => handleToggleFullscreen(participant.id)}
+                        isFullscreen={fullscreenParticipant === participant.id}
+                        isGridView={isGridView}
+                        isLarge={isMainParticipant && !isGridView}
+                      />
+                    </div>
+                  )
+                })}
                 </div>
               </div>
+            </div>
             </div>
           ) : (
             <>
@@ -567,3 +519,4 @@ export function CallUI({
     </TooltipProvider>
   )
 }
+
