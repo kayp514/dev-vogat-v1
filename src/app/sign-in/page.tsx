@@ -2,7 +2,7 @@
 
 import { SignIn } from '@tern-secure/nextjs'
 
-export default function SignInPage() {
+export default function Page() {
     return (
         <SignIn
          redirectUrl='/v0'
