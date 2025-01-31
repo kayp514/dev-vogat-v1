@@ -1,4 +1,4 @@
-import { createClient } from 'redis'
+{/*import { createClient } from 'redis'
 import { Tenant, User } from '@prisma/client'
 
 const REDIS_URL = process.env.REDIS_URL
@@ -57,3 +57,5 @@ export async function syncUserToRedis(user: User) {
     await client.quit()
   }
 }
+
+*/}

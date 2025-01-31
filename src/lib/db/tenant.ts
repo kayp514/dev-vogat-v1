@@ -1,4 +1,4 @@
-import { PrismaClient, Tenant, User } from '@prisma/client'
+{/*import { PrismaClient, Tenant, User } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -123,3 +123,5 @@ export async function updateTenantMaxUsers(tenantId: string, newMaxUsers: number
     })
   })
 }
+
+*/}
