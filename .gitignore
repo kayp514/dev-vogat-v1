@@ -27,6 +27,8 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env*
+.env*.migrate
 
 # vercel
 .vercel
@@ -37,3 +39,5 @@ next-env.d.ts
 
 # Turborepo
 .turbo
+
+/prisma

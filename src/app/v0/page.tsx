@@ -8,7 +8,7 @@ export default function VzeroPage() {
   const { user, isAuthenticated } = useAuth()
 
   if (!isAuthenticated) {
-    return <div>Loading...</div>;
+    return null;
   }
 
 
