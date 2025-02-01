@@ -1,5 +1,24 @@
 # dev-vogat-v1
 
+## 1.4.0
+
+### Minor Changes
+
+- d5b442f: chore: update dependencies and configuration
+
+  - Added dotenv, dotenv-cli, prisma, and redis as dependencies.
+  - Enhanced .gitignore to include .env\* files and prisma directory.
+  - Modified SignIn component to include a redirectUrl prop.
+  - Updated GitHub Actions workflow to run release with verbose logging.
+  - Changed commit setting in changeset config to false.
+
+### Patch Changes
+
+- b1be7d1: chore:
+
+  - Upgraded @tern-secure/nextjs to version 4.1.0
+  - Updated Turbo to version 2.4.0
+
 ## 1.3.2
 
 ### Patch Changes

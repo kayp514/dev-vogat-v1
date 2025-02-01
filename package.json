@@ -1,6 +1,6 @@
 {
   "name": "dev-vogat-v1",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "packageManager": "npm@10.9.0",
   "type": "module",
   "private": true,
