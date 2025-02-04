@@ -1,5 +1,11 @@
 # dev-vogat-v1
 
+## 1.5.1
+
+### Patch Changes
+
+- c41388f: chore: added postinstall
+
 ## 1.5.0
 
 ### Minor Changes
