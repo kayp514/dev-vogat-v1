@@ -1,5 +1,20 @@
 # dev-vogat-v1
 
+## 1.5.0
+
+### Minor Changes
+
+- 688df63: chore: Update Prisma and package dependencies to version 6.3.0
+
+  - Upgraded @prisma/client and prisma to version 6.3.0
+  - Removed /prisma from .gitignore
+  - Deleted sign-in and sign-up page components
+  - Bumped package version to 1.4.0
+
+### Patch Changes
+
+- bfddfe6: chore: added pr
+
 ## 1.4.0
 
 ### Minor Changes
