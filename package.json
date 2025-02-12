@@ -1,6 +1,6 @@
 {
   "name": "dev-vogat-v1",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "packageManager": "npm@10.9.0",
   "type": "module",
   "private": true,
@@ -9,10 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "release": "changeset publish"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
