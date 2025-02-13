@@ -1,24 +1,15 @@
 // middleware.ts
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { ternSecureMiddleware,createRouteMatcher } from '@tern-secure/nextjs/server';
+
+const publicPaths = createRouteMatcher(['/sign-in', '/sign-up'])
 
 export const config = {
   matcher: ['/v0/:path*', '/dashboard/:path*'],
 };
 
-export async function middleware(request: NextRequest) {
-
-  const url = request.nextUrl
-  const { pathname } = url
-
-  
-  const isLoginPage = pathname === '/sign-in'
-  const isSignup = pathname === '/signup'
-  const isPublicRoute = isLoginPage || isSignup
-
-  if (isPublicRoute) {
-    return NextResponse.next();
+export default ternSecureMiddleware(async (auth, request) => {
+  if(!publicPaths(request)) {
+    await auth.protect()
   }
+})
 
-  return NextResponse.next()
-}

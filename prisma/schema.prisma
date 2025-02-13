@@ -38,8 +38,29 @@ model users {
   CreatedAt            DateTime?
   LastSignInAt         DateTime?
   tenant               tenants   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sentMessages         internal_chat_messages[] @relation("SenderMessages")
+  receivedMessages     internal_chat_messages[] @relation("RecipientMessages")
 
   @@index([email])
   @@index([tenantId])
   @@map("users")
+}
+
+
+model internal_chat_messages {
+  id              String    @id @default(uuid()) @db.VarChar(50)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  content         String    @db.Text
+  senderId        String    @db.VarChar(50)
+  recipientId     String    @db.VarChar(50)
+  tenantId        String    @db.VarChar(50)
+  sender          users     @relation("SenderMessages", fields: [senderId], references: [uid], onDelete: Cascade)
+  recipient       users     @relation("RecipientMessages", fields: [recipientId], references: [uid], onDelete: Cascade)
+  tenant          tenants   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([tenantId])
+  @@map("internal_chat_messages")
 }
