@@ -1,5 +1,6 @@
 import { prisma }from "../prisma"
 import type { DatabaseUserInput } from "@/lib/db/types"
+import { syncUserToRedis } from "./redis-sync"
 
 export async function createUser(input: DatabaseUserInput | null) {
     console.log("user: createUser received input:", input); 
@@ -52,6 +53,20 @@ export async function createUser(input: DatabaseUserInput | null) {
     }
 
     console.log("Prisma create operation returned:", user); 
+
+    // Sync user data to Redis
+    await syncUserToRedis({
+        uid: user.uid,
+        tenantId: user.tenantId,
+        name: user.name || '',
+        email: user.email,
+        avatar: user.avatar || '',
+        lastActive: user.updatedAt.getTime(),
+        status: 'online',
+        isAdmin: user.isAdmin,
+        disabled: user.active
+    });
+
     return user
   } catch (error) {
     console.error("Detailed error in createUser:", {

@@ -1,6 +1,6 @@
 "use server"
 
-import { createUser } from "@/lib/db/user"
+import { createUser } from "@/lib/db/queries"
 import { prisma } from "@/lib/prisma"
 import type { FirebaseAuthUser, DatabaseUserInput, SignUpResult } from "@/lib/db/types"
 
