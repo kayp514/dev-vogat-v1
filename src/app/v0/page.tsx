@@ -7,9 +7,6 @@ import { useAuth } from "@tern-secure/nextjs";
 export default function VzeroPage() {
   const { user, isAuthenticated } = useAuth()
 
-  if (!isAuthenticated) {
-    return null;
-  }
 
 
   const userData = {

@@ -18,10 +18,9 @@ if (result.error) {
 
 
 const REDIS_URL = process.env.REDIS_URL;
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 
 
-if (!REDIS_URL || !REDIS_PASSWORD) {
+if (!REDIS_URL) {
     console.error('Redis environment variables are missing!');
     process.exit(1);  
 }
@@ -41,7 +40,7 @@ async function getRedisClient(): Promise<RedisClientType> {
   if (!redisClient) {
       redisClient = createClient({
           url: REDIS_URL,
-          password: REDIS_PASSWORD
+          //password: REDIS_PASSWORD
       });
 
       redisClient.on('error', (err) => {

@@ -1,6 +1,5 @@
 import { prisma }from "../prisma"
 import type { DatabaseUserInput } from "@/lib/db/types"
-import { syncUserToRedis } from "./redis-sync"
 
 export async function createUser(input: DatabaseUserInput | null) {
     console.log("user: createUser received input:", input); 
@@ -24,7 +23,6 @@ export async function createUser(input: DatabaseUserInput | null) {
         CreatedAt: input.CreatedAt,
         LastSignInAt: input.LastSignInAt,
         updatedAt: new Date(),
-        active: true,
       }
 
     console.log("user: Cleaned user data:", sanitizedData)
@@ -41,7 +39,6 @@ export async function createUser(input: DatabaseUserInput | null) {
         isAdmin: true,
         phoneNumber: true,
         emailVerified: true,
-        active: true,
         updatedAt: true,
         CreatedAt: true,
         LastSignInAt: true,
@@ -53,19 +50,6 @@ export async function createUser(input: DatabaseUserInput | null) {
     }
 
     console.log("Prisma create operation returned:", user); 
-
-    // Sync user data to Redis
-    await syncUserToRedis({
-        uid: user.uid,
-        tenantId: user.tenantId,
-        name: user.name || '',
-        email: user.email,
-        avatar: user.avatar || '',
-        lastActive: user.updatedAt.getTime(),
-        status: 'online',
-        isAdmin: user.isAdmin,
-        disabled: user.active
-    });
 
     return user
   } catch (error) {
@@ -97,7 +81,7 @@ export async function verifyDatabaseUser(uid: string): Promise<{
     tenantId: string;
     isAdmin: boolean;
     emailVerified: boolean;
-    active: boolean;
+    disabled: boolean;
   };
   error?: {
     code: string;
@@ -114,7 +98,7 @@ export async function verifyDatabaseUser(uid: string): Promise<{
         tenantId: true,
         isAdmin: true,
         emailVerified: true,
-        active: true,
+        disabled: true,
       }
     })
 
@@ -128,7 +112,7 @@ export async function verifyDatabaseUser(uid: string): Promise<{
       }
     }
 
-    if (!dbUser.active) {
+    if (dbUser.disabled) {
       return {
         success: false,
         error: {

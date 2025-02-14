@@ -3,6 +3,9 @@
 import { createUser } from "@/lib/db/queries"
 import { prisma } from "@/lib/prisma"
 import type { FirebaseAuthUser, DatabaseUserInput, SignUpResult } from "@/lib/db/types"
+import { syncUserToRedis } from "@/lib/db/redis-sync"
+import { cacheUserData, CacheKeys , getRedisClient} from "@/lib/db/redis-sync-cache"
+
 
 const DEFAULT_TENANT_ID = 'default'
 
@@ -48,6 +51,7 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
       avatar: firebaseUser.photoURL ?? null,
       tenantId: firebaseUser.tenantId || 'default',
       isAdmin: true,
+      disabled: firebaseUser.disabled ?? false,
       phoneNumber: firebaseUser.phoneNumber ?? null,
       emailVerified: firebaseUser.emailVerified ?? false,
       CreatedAt: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
@@ -86,16 +90,18 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
 }
 
 
-export async function verifyDatabaseUser(uid: string): Promise<{
+export async function verifyDatabaseUser(uid: string, tenantId: string): Promise<{
   success: boolean;
   user?: {
     uid: string;
     email: string;
     name: string | null;
+    avatar: string | null;
     tenantId: string;
     isAdmin: boolean;
     emailVerified: boolean;
-    active: boolean;
+    disabled: boolean;
+    updatedAt: Date;
   };
   error?: {
     code: string;
@@ -103,18 +109,55 @@ export async function verifyDatabaseUser(uid: string): Promise<{
   };
 }> {
   try {
-    const dbUser = await prisma.users.findUnique({
+    const client = await getRedisClient();
+    const cachedUser = await client.hGetAll(CacheKeys.USER_DATA(tenantId, uid));
+
+    let dbUser;
+
+    if (Object.keys(cachedUser).length > 0) {
+      dbUser = {
+        uid: cachedUser.uid,
+        email: cachedUser.email,
+        name: cachedUser.name,
+        avatar: cachedUser.avatar,
+        tenantId: cachedUser.tenantId,
+        isAdmin: cachedUser.isAdmin === 'true',
+        emailVerified: true,
+        disabled: cachedUser.disabled === 'true',
+        updatedAt: new Date(parseInt(cachedUser.lastActive))
+      };
+    } else {
+      
+    dbUser = await prisma.users.findUnique({
       where: { uid },
       select: {
         uid: true,
         email: true,
         name: true,
+        avatar: true,
         tenantId: true,
         isAdmin: true,
         emailVerified: true,
-        active: true,
+        disabled: true,
+        updatedAt: true
       }
     })
+
+    if (dbUser) {
+      // Cache the user data for next time
+      await cacheUserData({
+        uid: dbUser.uid,
+        tenantId: dbUser.tenantId,
+        name: dbUser.name || '',
+        email: dbUser.email,
+        avatar: dbUser.avatar || '',
+        lastActive: dbUser.updatedAt.getTime(),
+        status: 'online',
+        isAdmin: dbUser.isAdmin,
+        disabled: dbUser.disabled,
+      });
+    }
+  }
 
     if (!dbUser) {
       return {
@@ -126,7 +169,7 @@ export async function verifyDatabaseUser(uid: string): Promise<{
       }
     }
 
-    if (!dbUser.active) {
+    if (dbUser.disabled) {
       return {
         success: false,
         error: {
@@ -135,7 +178,7 @@ export async function verifyDatabaseUser(uid: string): Promise<{
         }
       }
     }
-
+    
     return {
       success: true,
       user: dbUser
