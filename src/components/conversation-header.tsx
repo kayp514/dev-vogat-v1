@@ -67,22 +67,6 @@ export function ConversationHeader({
                     Start Conversation
                   </Button>
                 </div>
-                <div className="p-2 bg-muted/50 border-t">
-                  <div className="text-xs text-muted-foreground">
-                    <span className="font-medium">Recent contacts</span>
-                  </div>
-                  <div className="mt-2 space-y-1">
-                    {[1, 2, 3].map((i) => (
-                      <Button key={i} variant="ghost" className="w-full justify-start h-auto py-2 px-2">
-                        <Avatar className="h-6 w-6 mr-2">
-                          <AvatarImage src={`/avatars/0${i}.png`} />
-                          <AvatarFallback>U{i}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">User {i}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
               </PopoverContent>
             </Popover>
             <Popover>

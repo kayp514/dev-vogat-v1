@@ -108,6 +108,8 @@ export interface ConversationData {
   lastMessage: ChatMessage;
   unreadCount: number;
   lastActivity: number;
+  isExternal?: boolean;
+  isFavorite?: boolean;
 }
 
 export interface ChatError {

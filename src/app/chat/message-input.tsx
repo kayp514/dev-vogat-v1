@@ -65,15 +65,15 @@ export function MessageInput({
   }
 
   return (
-    <div className="border-t p-4">
+    <div className="p-4 border-t bg-background sticky bottom-0 z-10">
       <div className="flex items-center gap-2">
         <Button 
           variant="ghost" 
           size="icon" 
-          className="flex-shrink-0"
+          className="h-8 w-8 rounded-full hover:bg-accent"
           disabled={disabled}
         >
-          <Paperclip className="h-5 w-5" />
+          <Paperclip className="h-4 w-4 text-muted-foreground" />
           <span className="sr-only">Attach file</span>
         </Button>
         
@@ -83,7 +83,7 @@ export function MessageInput({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          className="flex-1"
+          className="flex-1 pl-20 pr-12 py-6 rounded-full bg-muted/50 border-muted focus-visible:ring-1 focus-visible:ring-primary"
           disabled={disabled}
         />
         

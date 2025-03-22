@@ -11,6 +11,7 @@ import type { ConversationData, ChatMessage, UserStatus } from "@/ternsecure-rea
 import { useWebSkt } from "@/ternsecure-realtime/ctx/SocketWebSktCtx"
 import { useChat } from "@/ternsecure-realtime/ctx/ChatCtx"
 import { usePresence } from "@/ternsecure-realtime/hooks/usePresence"
+import { Conversation } from "@/components/conversation"
 
 interface ChatListProps {
   selectedUserId?: string
