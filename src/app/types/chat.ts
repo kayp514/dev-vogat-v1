@@ -1,6 +1,4 @@
-export type ChatStatus = 'sent' | 'delivered' | 'read';
-export type MessageType = 'text' | 'image' | 'file';
-export type UserStatus = 'online' | 'offline' | 'away' | 'busy';
+import type { UserStatus, ChatStatus, MessageType } from '@/app/type'
 
 
 export interface UserData {

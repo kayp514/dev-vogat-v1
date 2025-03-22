@@ -2,16 +2,17 @@
 
 import { useState } from 'react'
 import { AppSideBar } from './sidebar'
-import { Header } from "@/app/ui/header"
-import { ChatLayout } from '../chat/chat-layout'
-import { CallLayout } from '../calls/call-layout'
-import { useCallSIP } from '@/app/CallSipProviderCtx'
-import { CallUI } from '@/app/ui/callui'
+import { Header } from "@/components/header"
+import { ChatLayout } from '../app/chat/chat-layout'
+import { CallLayout } from '../app/calls/call-layout'
+import { useCallSIP } from '@/app/providers/CallSipProviderCtx'
+import { CallUI } from '@/components/callui'
 import { CallNotification } from './callnotify'
 import { cn } from "@/lib/utils"
-import { type UserData, type Participant, type CallSession, type CallerInfo, initializeCallSession} from "../type"
+import type { UserData, Participant, CallSession, CallerInfo } from "../app/type"
+import { initializeCallSession} from "../app/type"
 import { Toaster } from '@/components/ui/toaster';
-import { SIPInitializer } from "../SIPInitializer";
+import { SIPInitializer } from "../app/SIPInitializer";
 import { ConsoleLayout } from './console/console-layout'
 
 

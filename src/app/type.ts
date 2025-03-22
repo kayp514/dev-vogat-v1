@@ -1,7 +1,10 @@
 import { CallState, CallType } from '@/lib/type'
 
-export type UserStatus = 'online' | 'busy' | 'offline' | 'unknown';
 export type Role = 'caller' | 'callee' | 'participant';
+
+export type ChatStatus = 'sent' | 'delivered' | 'read';
+export type MessageType = 'text' | 'image' | 'file';
+export type UserStatus = 'online' | 'offline' | 'away' | 'busy' | 'dnd' | 'unknown';
 
 
 
@@ -12,7 +15,6 @@ export type Role = 'caller' | 'callee' | 'participant';
     uid: string;
     avatar: string;
     phoneNumber: string;
-    status: UserStatus;
   }
 
 
@@ -87,6 +89,13 @@ export function createParticipant(
     timestamp?: string;
     status?: UserStatus;
   }
+
+  export interface User {
+    uid: string
+    name: string
+    email: string
+    avatar?: string
+}
   
   export interface Message {
     id: number;

@@ -26,7 +26,7 @@ export function AppSideBar({ activeTab, setActiveTab }: MainSideBarProps) {
     <SidebarProvider>
       <Sidebar className="fixed inset-y-0 left-0 z-20 w-[72px] border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80" collapsible='none'>
         <SidebarContent className="flex flex-col items-center pt-14">
-          <SidebarMenu className="space-y-2 px-2">
+          <SidebarMenu className="space-y-4 px-2">
             {navigation.map((item) => (
               <SidebarMenuItem key={item.id}>
                 <SidebarMenuButton
@@ -34,12 +34,9 @@ export function AppSideBar({ activeTab, setActiveTab }: MainSideBarProps) {
                   isActive={activeTab === item.id}
                   tooltip={item.name}
                   className={cn(
-                    "flex h-12 w-12 flex-col items-center justify-center rounded-xl transition-all",
-                    "hover:bg-accent hover:shadow-sm",
-                    "active:scale-95",
-                    activeTab === item.id ?
-                      "bg-primary text-primary-foreground shadow-sm" :
-                      "hover:bg-accent/50"
+                    "flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-muted hover:text-foreground",
+                    activeTab === item.id &&
+                      "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground shadow-sm",
                   )}
                 >
                   <item.icon className={cn(

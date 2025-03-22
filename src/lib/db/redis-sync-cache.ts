@@ -1,6 +1,6 @@
 import { createClient, type RedisClientType } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
-import type { User, ChatData, MessageDataRedis } from '@/app/types/chat';
+import type { User, ChatData, MessageDataRedis } from '../../app/types/chat';
 
 // Cache TTL constants (in seconds)
 const CACHE_TTL = {

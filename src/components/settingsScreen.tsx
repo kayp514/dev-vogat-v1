@@ -18,7 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { debugAudioState } from '@/lib/call'
-import { type UserData } from "../type"
+import { type UserData } from "../app/type"
 
 interface SettingsScreenProps {
   userData: Partial<UserData>;

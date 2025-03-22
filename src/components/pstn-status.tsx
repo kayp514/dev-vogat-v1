@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Network, PhoneCall, Router, Phone } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { SipProviderCtx } from "../SipProviderCtx"
+import { SipProviderCtx } from "../app/providers/SipProviderCtx"
 
 type PstnStatusType = 'connected' | 'disconnected' | 'connecting'
 

@@ -1,7 +1,7 @@
 import { createClient, type RedisClientType } from 'redis';
 import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
-import type { User, ChatDataRedis, MessageDataRedis } from '@/app/types/chat';
+import type { User, ChatDataRedis, MessageDataRedis } from '../../app/types/chat';
 
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';

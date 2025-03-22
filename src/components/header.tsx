@@ -13,8 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import { type UserData } from "../type"
-
+import { type UserData } from "../app/type"
+import { usePresence } from "@/ternsecure-realtime/hooks/usePresence";
+import type { PresenceUpdate, UserStatus } from '@/ternsecure-realtime/utils/socket'
 
 interface HeaderProps {
   userData: Partial<UserData>;
@@ -22,6 +23,11 @@ interface HeaderProps {
 
 export function Header({ userData }: HeaderProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const { updatePresence, presenceUpdates } = usePresence();
+
+  const currentUserPresence = presenceUpdates.find(
+    (update: PresenceUpdate) => update.clientId === userData.uid
+  )?.presence;
 
     const handleSignOut = () => {
         return <SignOut />
@@ -47,13 +53,15 @@ export function Header({ userData }: HeaderProps) {
               <AvatarImage src={userData.avatar} />
               <AvatarFallback>{userData.email ? userData.email[0].toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
-            <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
-                    userData.status === 'online' 
-                      ? 'bg-green-500' 
-                      : userData.status === 'busy'
-                      ? 'bg-yellow-500'
-                      : 'bg-gray-400'
-                  }`} />
+            <span 
+              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
+                currentUserPresence?.status === 'online' ? 'bg-green-500' : 
+                currentUserPresence?.status === 'busy' ? 'bg-red-500' : 
+                currentUserPresence?.status === 'away' ? 'bg-yellow-500' :
+                currentUserPresence?.status === 'offline' ? 'bg-gray-400' :
+                'bg-slate-300'
+              }`} 
+            />
             </div>
             {/* <span className="text-sm font-medium">{userData.displayName || userData.email}</span> */}  
           </DropdownMenuTrigger>

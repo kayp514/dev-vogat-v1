@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ParticipantScreen } from "./participant"
 import type { CallState, CallType } from "@/lib/type"
-import type { Participant, CallerInfo } from "../type"
+import type { Participant, CallerInfo } from "../app/type"
 
 interface UserInfo extends CallerInfo {}
 
