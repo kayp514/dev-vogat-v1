@@ -112,23 +112,19 @@ export function AppLayout({ userData }: AppLayoutProps) {
   const isMaximized = callSession?.isMaximized || false
 
   return (
-    <div className="flex min-h-screen">
-      <div
-        className={cn(
-          "w-[60px] flex-shrink-0 h-screen transition-opacity duration-300",
-          isCallActive && isMaximized && "opacity-50 hover:opacity-100",
-        )}
-      >
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      <header className="fixed top-0 left-0 right-0 z-20 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-sm">
+      <SIPInitializer />
+      <Header userData={userData} />
+      </header>
+      <div className="flex mt-16 h-[calc(100vh-4rem)]">
+        <aside className="w-16 h-full bg-muted/20 shadow-sm">
         <AppSideBar setActiveTab={setActiveTab} activeTab={activeTab} />
-      </div>
-      <div className="relative flex-1 min-w-0">
-        <div className="absolute top-0 left-0 right-0 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-[100]">
-          <SIPInitializer />
-          <Header userData={userData} />
-        </div>
+        </aside>
+      <main className="flex-1  h-full overflow-hidden">
         <div
           className={cn(
-            "h-[calc(100vh-3.5rem)] mt-14 transition-all duration-300 relative z-0",
+            "h-full transition-opacity duration-300 relative z-0",
             isCallActive && isMaximized && "opacity-50",
           )}
         >
@@ -137,6 +133,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
           {activeTab === "console" && <ConsoleLayout />}
         </div>
         <Toaster />
+        </main>
       </div>
       {isCallActive && callSession && currentCalleeInfo && currentCallerInfo && (
         <div className={cn(

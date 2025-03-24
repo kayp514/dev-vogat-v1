@@ -85,6 +85,11 @@ const MessageBubble = ({
           : "rounded-lg"
   )
 
+  const formatMessageTime = (timestamp: string) => {
+    const distance = formatDistanceToNow(new Date(timestamp), { addSuffix: true })
+    return distance === 'less than a minute ago' ? 'now' : distance
+  }
+
   return (
     <div className={cn(
       "flex w-full items-end space-x-2",
@@ -116,7 +121,7 @@ const MessageBubble = ({
               isCurrentUser ? "justify-end" : "justify-start"
             )}>
               <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
+                {formatMessageTime(message.timestamp)}
               </span>
               {isCurrentUser && (
                 <MessageStatusIndicator status={deliveryStatus[message.messageId] || 'pending'} />
@@ -307,11 +312,6 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
       }
     }
   }, [messages, selectedUser])
-
-  const formatMessageTime = (timestamp: string) => {
-    const distance = formatDistanceToNow(new Date(timestamp), { addSuffix: true })
-    return distance === 'less than a minute ago' ? 'now' : distance
-  }
 
   const roomId = selectedUser ? [currentUserId, selectedUser.uid].sort().join('_') : ''
   const conversationMessages = messages[roomId] || []

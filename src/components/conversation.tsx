@@ -1,6 +1,7 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { formatDistanceToNow } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -25,7 +26,7 @@ const ConversationItem = ({
   conversation,
   onSelectChat,
   currentUserId,
-  presence = "unknown",
+  presence = "offline",
 }: {
   conversation: ConversationData
   onSelectChat: (user: User) => void
@@ -34,6 +35,10 @@ const ConversationItem = ({
 }) => {
     const { presenceUpdates } = usePresence()
 
+    const formatMessageTime = (timestamp: string) => {
+      const distance = formatDistanceToNow(new Date(timestamp), { addSuffix: true })
+      return distance === 'less than a minute ago' ? 'now' : distance
+    }
 
   const otherUserId = conversation.otherUserId
   const lastMessage = conversation.lastMessage
@@ -98,6 +103,9 @@ const ConversationItem = ({
                 </TooltipProvider>
               )}
             </div>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {formatMessageTime(lastMessage.timestamp)}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground line-clamp-1 leading-snug max-w-[85%]">

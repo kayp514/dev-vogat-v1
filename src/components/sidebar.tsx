@@ -1,14 +1,7 @@
 import { MessageCircle, Phone, Bolt } from 'lucide-react'
 import { cn } from "@/lib/utils"
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const navigation = [
   { name: 'Chat', id: 'chat', icon: MessageCircle, current: true },
@@ -23,16 +16,14 @@ interface MainSideBarProps {
 
 export function AppSideBar({ activeTab, setActiveTab }: MainSideBarProps) {
   return (
-    <SidebarProvider>
-      <Sidebar className="fixed inset-y-0 left-0 z-20 w-[72px] border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80" collapsible='none'>
-        <SidebarContent className="flex flex-col items-center pt-14">
-          <SidebarMenu className="space-y-4 px-2">
+    <div className="flex h-full w-full flex-col items-center py-4 bg-gray-100 dark:bg-gray-800">
+      <div className="flex flex-col items-center justify-center space-y-4">
             {navigation.map((item) => (
-              <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton
+              <TooltipProvider key={item.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                <button
                   onClick={() => setActiveTab(item.id)}
-                  isActive={activeTab === item.id}
-                  tooltip={item.name}
                   className={cn(
                     "flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-muted hover:text-foreground",
                     activeTab === item.id &&
@@ -44,13 +35,13 @@ export function AppSideBar({ activeTab, setActiveTab }: MainSideBarProps) {
                     activeTab === item.id && "animate-in zoom-in-50 duration-300"
                   )} />
                   <span className="sr-only">{item.name}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                  </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.name}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ))}
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
-    </SidebarProvider>
+            </div>
+            </div>
   )
 }
-

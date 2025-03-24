@@ -5,6 +5,7 @@ import { CallSIPProvider } from "./providers/CallSipProvider";
 import { SIPProvider } from "./providers/SipProvider";
 import { TernSecureProvider } from "@tern-secure/nextjs";
 import { Analytics } from "@vercel/analytics/react"
+import { ThemeProvider } from "@/components/theme-provider"
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -32,14 +33,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* {children} */}
       <TernSecureProvider requiresVerification={false}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
       <SIPProvider>
         <CallSIPProvider>
           {children}
           <Analytics />
         </CallSIPProvider>
       </SIPProvider>
+      </ThemeProvider>
       </TernSecureProvider>
       </body>
     </html>

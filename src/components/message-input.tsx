@@ -149,7 +149,7 @@ export function MessageInput({
             size="icon"
             onClick={handleSendMessage}
             disabled={!message.trim() || disabled}
-            className={`rounded-full h-8 w-8 transition-colors ${message.trim() && !disabled ? "bg-primary hover:bg-primary/90" : "bg-muted"}`}
+            className={`rounded-full h-8 w-8 transition-colors ${message.trim() && !disabled ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground"}`}
           >
             <Send className="h-4 w-4" />
           </Button>

@@ -9,6 +9,7 @@ import type { User } from "@/lib/db/types"
 import { useChat } from "@/ternsecure-realtime/ctx/ChatCtx"
 import { ConversationHeader } from "@/components/conversation-header"
 import type { ConversationData, ChatMessage, UserStatus } from "@/ternsecure-realtime/utils/socket"
+import { useWebSkt } from "@/ternsecure-realtime/ctx/SocketWebSktCtx"
 import { Conversation } from "@/components/conversation"
 import { usePresence } from "@/ternsecure-realtime/hooks/usePresence"
 
@@ -23,6 +24,7 @@ export function ChatSidebar({
   onSelectUser, 
   onSelectChatUser 
 }: ChatSidebarProps) {
+  const { clientId } = useWebSkt()
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [conversations, setConversations] = useState<ConversationData[]>([])
@@ -35,6 +37,7 @@ export function ChatSidebar({
   })
   const [activeFilter, setActiveFilter] = useState<"all" | "unread" | "favorites">("all")
   const [hasMore, setHasMore] = useState(false)
+  const currentUserId = clientId
 
   const {
     setSelectedUser,
@@ -59,8 +62,57 @@ export function ChatSidebar({
       }
     }
 
+
+    const handleNewMessage = (message: ChatMessage) => {
+      console.log('New message received:', message); // Debug log
+      setConversations(prevConversations => {
+          // Extract both IDs from roomId (format: "user1_user2")
+          const [user1, user2] = message.roomId.split('_');
+          const recipientId = user1 === message.fromId ? user2 : user1;
+
+          const conversationExists = prevConversations.some(
+            conv => conv.otherUserId === message.fromId || conv.otherUserId === recipientId
+          );
+
+          if (!conversationExists) {
+            // Add new conversation at the beginning
+            const newConversation: ConversationData = {
+              roomId: message.roomId,
+              otherUserId: recipientId === currentUserId ? message.fromId : recipientId,
+              lastMessage: message,
+              unreadCount: 0,
+              lastActivity: new Date(message.timestamp).getTime()
+            };
+            return [newConversation, ...prevConversations];
+          }
+
+          return prevConversations.map(conv => {
+            const isRelevantConversation = 
+              conv.otherUserId === message.fromId || 
+              conv.otherUserId === recipientId;
+  
+            if (isRelevantConversation) {
+              console.log('Updating conversation for:', conv.otherUserId);
+              return {
+                ...conv,
+                lastMessage: message,
+                updatedAt: message.timestamp // If you have this field
+              };
+            }
+            return conv;
+          });
+        });
+      };
+    
     loadConversations()
-  }, [getConversations])
+    const unsubscribe = subscribeToMessages(handleNewMessage)
+    
+    return () => {
+      unsubscribe()
+    }
+  }, [getConversations, subscribeToMessages])
+
+
 
 
   const getFilteredConversations = () => {
