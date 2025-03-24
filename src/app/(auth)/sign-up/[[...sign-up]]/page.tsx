@@ -27,6 +27,7 @@ export default function Page() {
         photoURL: currentUser.photoURL || null,
         tenantId: currentUser.tenantId || 'default',
         emailVerified: currentUser.emailVerified || false,
+        disabled: false,
         phoneNumber: currentUser.phoneNumber || null,
         metadata: {
           creationTime: currentUser.metadata.creationTime,

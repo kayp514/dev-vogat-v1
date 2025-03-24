@@ -1,8 +1,8 @@
 'use client'
 
-import { CallHistory } from '../ui/callhistory';
-import { InputNumber } from '../ui/inputnumber';
-import { useCallSIP } from '@/app/CallSipProviderCtx';
+import { CallHistory } from '../../components/callhistory';
+import { InputNumber } from '../../components/inputnumber';
+import { useCallSIP } from '@/app/providers/CallSipProviderCtx';
 
 import type { UserData, CallerInfo } from "../type"
 

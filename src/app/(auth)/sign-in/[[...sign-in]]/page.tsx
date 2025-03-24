@@ -2,7 +2,6 @@
 
 import { SignIn } from '@tern-secure/nextjs'
 import { ternSecureAuth } from '@tern-secure/nextjs'
-import { prisma } from '@/lib/prisma'
 import { verifyDatabaseUser } from '@/app/actions'
 
 
@@ -15,23 +14,13 @@ export default function Page() {
             throw new Error("No user found after signin")
         }
         
-        const result  = await verifyDatabaseUser(currentUser.uid)
+        const result  = await verifyDatabaseUser(currentUser.uid, currentUser.tenantId || 'default')
 
         if (!result.success) {
             console.error("Verification failed:", result.error?.message)
             await ternSecureAuth.signOut()
             throw new Error(result.error?.message || "Verification failed")
         }
-
-        console.log("User authenticated and verified:", {
-            uid: result.user?.uid,
-            email: result.user?.email,
-            name: result.user?.name,
-            tenantId: result.user?.tenantId,
-            isAdmin: result.user?.isAdmin,
-            emailVerified: result.user?.emailVerified
-        })
-
 
     } catch (error) {
         console.error("Error in handleOnSuccess:", error)

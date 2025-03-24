@@ -5,6 +5,7 @@ export interface FirebaseAuthUser {
     photoURL?: string | null
     tenantId: string
     emailVerified: boolean
+    disabled: boolean
     phoneNumber: string | null
     metadata: {
         creationTime: string | undefined
@@ -20,6 +21,7 @@ export interface DatabaseUserInput {
   avatar: string | null
   tenantId: string
   isAdmin: boolean
+  disabled: boolean
   phoneNumber: string | null
   emailVerified: boolean
   CreatedAt: Date | null
@@ -39,4 +41,11 @@ export interface SignUpResult {
       message: string
     }
   }
+
+  export interface User {
+    uid: string
+    name: string
+    email: string
+    avatar?: string
+}
   

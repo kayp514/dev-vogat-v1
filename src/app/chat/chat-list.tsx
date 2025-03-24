@@ -1,292 +1,268 @@
-'use client'
-
-import { Search } from 'lucide-react'
+"use client"
+import { useEffect } from "react"
+import { formatDistanceToNow } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Card, CardHeader, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Chat } from "../types/chat"
+import type { User } from "../type"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
+import type { ConversationData, ChatMessage, UserStatus } from "@/ternsecure-realtime/utils/socket"
+import { useWebSkt } from "@/ternsecure-realtime/ctx/SocketWebSktCtx"
+import { useChat } from "@/ternsecure-realtime/ctx/ChatCtx"
+import { usePresence } from "@/ternsecure-realtime/hooks/usePresence"
+import { Conversation } from "@/components/conversation"
 
 interface ChatListProps {
-  onChatSelect: (chat: Chat) => void;
-  selectedChatId: string | number;
+  selectedUserId?: string
+  onSelectChat: (user: User) => void
 }
 
-export function ChatList({ onChatSelect, selectedChatId }: ChatListProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filter, setFilter] = useState<'all' | 'online' | 'unread'>('all')
+const ChatListButton = ({
+  user,
+  isSelected,
+  onSelect,
+  LastMessage,
+  presence = "unknown",
+}: {
+  user: User
+  isSelected: boolean
+  onSelect: (user: User) => void
+  LastMessage?: ChatMessage
+  presence?: UserStatus
+}) => {
+  const { presenceUpdates } = usePresence()
 
-  const filteredChats = chats.filter(chat => {
-    const matchesSearch = chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         chat.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesFilter = filter === 'all' || 
-                         (filter === 'online' && chat.status === 'online') ||
-                         (filter === 'unread' && Math.random() > 0.7) // Simulated unread state
+  const name = user.name || (user.email ? user.email.split("@")[0] : user.uid.substring(0, 8))
+  const avatarLetter = name[0].toUpperCase()
+  const avatar = user.avatar || user.avatar
 
-    return matchesSearch && matchesFilter
-  })
+  const userPresence = presenceUpdates.find((update) => update.clientId === user.uid)?.presence
+
+  const formatMessageTime = (timestamp: string) => {
+    const distance = formatDistanceToNow(new Date(timestamp), { addSuffix: true })
+    return distance === "less than a minute ago" ? "now" : distance
+  }
+
+  const truncateMessage = (message: string, maxLength = 30) => {
+    if (message.length <= maxLength) return message
+    return `${message.substring(0, maxLength)}...`
+  }
 
   return (
-    <Card className={cn(
-      "h-full border-r rounded-none transition-all duration-300 ease-in-out",
-      "w-[320px]"
-    )}>
-      <CardHeader className="p-4 space-y-4 pb-2">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold tracking-tight">Messages</h2>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                Filter
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[200px]">
-              <DropdownMenuLabel>Filter Messages</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setFilter('all')}>
-                All Messages
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter('online')}>
-                Online Contacts
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter('unread')}>
-                Unread Messages
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search messages..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-10rem)]">
-          <div className="space-y-0.5">
-            {filteredChats.map((chat) => (
-              <button
-                key={chat.id}
-                onClick={() => onChatSelect(chat)}
-                className={cn(
-                  "w-full flex items-center gap-3 p-3 text-left transition-all",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  selectedChatId === chat.id && "bg-accent/60 text-accent-foreground",
-                )}
-              >
-                <div className="relative">
-                  <Avatar className="h-10 w-10 border">
-                    <AvatarImage src={chat.avatar} />
-                    <AvatarFallback>{chat.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <span className={cn(
-                    "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background",
-                    "transition-colors duration-300",
-                    chat.status === 'online' && "bg-green-500",
-                    chat.status === 'busy' && "bg-yellow-500",
-                    chat.status === 'offline' && "bg-gray-400"
-                  )} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center gap-2">
-                    <p className="font-medium truncate text-sm">
-                      {chat.name}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {Math.random() > 0.7 && ( // Simulated unread state
-                        <Badge 
-                          variant="secondary" 
-                          className="h-5 w-5 rounded-full p-0 flex items-center justify-center"
-                        >
-                          {Math.floor(Math.random() * 5) + 1}
-                        </Badge>
-                      )}
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {chat.timestamp}
-                      </span>
-                    </div>
-                  </div>
-                  <p className={cn(
-                    "text-xs text-muted-foreground truncate leading-relaxed",
-                    "group-hover:text-accent-foreground/70",
-                    selectedChatId === chat.id && "text-accent-foreground/70"
-                  )}>
-                    {chat.lastMessage}
-                  </p>
-                </div>
-              </button>
-            ))}
+    <Button
+      key={user.uid}
+      onClick={() => onSelect(user)}
+      variant="ghost"
+      className={cn(
+        "w-full flex items-center gap-3 p-4 text-left transition-all h-[72px]",
+        "hover:bg-accent/50 hover:shadow-sm",
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+        isSelected ? "bg-accent/60 text-accent-foreground" : "",
+      )}
+    >
+      <div className="relative">
+        <Avatar className="h-12 w-12 border">
+          {user.avatar ? <AvatarImage src={avatar} alt={name} /> : <AvatarFallback>{avatarLetter}</AvatarFallback>}
+        </Avatar>
+        <span
+          className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-background ${
+            userPresence?.status === "online"
+              ? "bg-green-500"
+              : userPresence?.status === "busy"
+                ? "bg-red-500"
+                : userPresence?.status === "away"
+                  ? "bg-yellow-500"
+                  : userPresence?.status === "offline"
+                    ? "bg-gray-400"
+                    : "bg-slate-300"
+          }`}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center gap-2">
+          <p className="font-medium truncate text-sm">{name}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {LastMessage?.timestamp && (
+                <span className="text-xs text-muted-foreground flex-shrink-0">
+                  {formatMessageTime(LastMessage.timestamp)}
+                </span>
+              )}
+            </span>
           </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+        </div>
+        {LastMessage ? (
+          <p
+            className={cn(
+              "text-xs text-muted-foreground truncate leading-relaxed",
+              "group-hover:text-accent-foreground/70",
+              isSelected && "text-accent-foreground/70",
+            )}
+          >
+            {truncateMessage(LastMessage.message)}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground italic">No messages yet</p>
+        )}
+      </div>
+    </Button>
   )
 }
 
-const chats: Chat[] = [
-  {
-    id: "1",
-    name: "Alice Smith",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-    lastMessage: "Hey, how are you?",
-    timestamp: "2m ago",
-    status: "online",
-  },
-  {
-    id: "2",
-    name: "Bob Johnson",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-    lastMessage: "Can we schedule a meeting?",
-    timestamp: "1h ago",
-    status: "busy",
-  },
-  {
-    id: "3",
-    name: 'Leslie Alexander',
-    avatar:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Explicabo nihil m. Sed est rcitatieniet.',
-    timestamp: '1d ago',
-    status: "online",
-  },
-  {
-    id: "4",
-    name: 'Michael Foster',
-    avatar:
-      'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'L incidum itaque aut perferendis.',
-    timestamp: '2d ago',
-    status: "busy",
-  },
-  {
-    id: "5",
-    name: 'Dries Vincent',
-    avatar:
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Quia animi hara corporis nisi.',
-    timestamp: '2d ago',
-    status: "offline",
-  },
-  {
-    id: "6",
-    name: 'Lindsay Walton',
-    avatar:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Unde dolore euearubus culpa illum.',
-    timestamp: '3d ago',
-    status: "offline",
-  },
-  {
-    id: "7",
-    name: 'Lindsay Walton',
-    avatar:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Unde dolore execulpa illum.',
-    timestamp: '3d ago',
-    status: "offline",
-  },
-  {
-    id: "8",
-    name: 'Lindsay Walton',
-    avatar:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Unde dolore illum.',
-    timestamp: '3d ago',
-    status: "online",
-  },
-  {
-    id: "9",
-    name: 'Lindsay Walton',
-    avatar:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Unde dolore exercitus culpa illum.',
-    timestamp: '3d ago',
-    status: "online"
-  },
-  {
-    id: "10",
-    name: 'Lindsay Walton',
-    avatar:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Undeut c culpa illum.',
-    timestamp: '3d ago',
-    status: "online"
-  },
-  {
-    id: "11",
-    name: 'Lindsay Walton',
-    avatar:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Unde dolore exercitaus culpa illum.',
-    timestamp: '3d ago',
-    status: "online"
-  },
-  {
-    id: "12",
-    name: 'Lindsay Walton',
-    avatar:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Unde dolore exercitata illum.',
-    timestamp: '3d ago',
-    status: "busy"
-  },
-  {
-    id: "13",
-    name: 'Lindsay Walton',
-    avatar:
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Unde dolore exercitationem nobis  illum.',
-    timestamp: '3d ago',
-    status: "busy"
-  },
-  {
-    id: "14",
-    name: 'Leslie Alexander',
-    avatar:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Explicabo nihil m. Sed est rcitatieniet.',
-    timestamp: '1d ago',
-    status: "online"
-  },
-  {
-    id: "15",
-    name: 'Dries Vincent',
-    avatar:
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    lastMessage:
-      'Quia animi hara corporis nisi.',
-    timestamp: '2d ago',
-    status: "busy"
-  },
-]
+export function ChatList({ selectedUserId, onSelectChat }: ChatListProps) {
+  const {
+    selectedUser,
+    setSelectedUser,
+    subscribeToMessages,
+    getConversations,
+    getLastMessage,
+    getChatUserIds,
+    getUserById,
+  } = useChat()
+
+  const { clientId } = useWebSkt()
+
+  const [conversations, setConversations] = useState<ConversationData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const currentUserId = clientId
+
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filter, setFilter] = useState<"all" | "online" | "unread">("all")
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadConversations = async () => {
+      try {
+        setLoading(true)
+        const result = await getConversations({ limit: 50, offset: 0 })
+
+        if (isMounted) {
+          setConversations(result.conversations)
+          setHasMore(result.hasMore)
+          setLoading(false)
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError((err as Error).message)
+          setLoading(false)
+        }
+      }
+    }
+
+    const handleNewMessage = (message: ChatMessage) => {
+      if (!isMounted) return
+      console.log("New message received:", message) // Debug log
+      setConversations((prevConversations) => {
+        // Extract both IDs from roomId (format: "user1_user2")
+        const [user1, user2] = message.roomId.split("_")
+        const recipientId = user1 === message.fromId ? user2 : user1
+
+        const conversationExists = prevConversations.some(
+          (conv) => conv.otherUserId === message.fromId || conv.otherUserId === recipientId,
+        )
+
+        if (!conversationExists) {
+          // Add new conversation at the beginning
+          const newConversation: ConversationData = {
+            roomId: message.roomId,
+            otherUserId: recipientId === currentUserId ? message.fromId : recipientId,
+            lastMessage: message,
+            unreadCount: 0,
+            lastActivity: new Date(message.timestamp).getTime(),
+          }
+          return [newConversation, ...prevConversations]
+        }
+
+        return prevConversations.map((conv) => {
+          const isRelevantConversation = conv.otherUserId === message.fromId || conv.otherUserId === recipientId
+
+          if (isRelevantConversation) {
+            console.log("Updating conversation for:", conv.otherUserId)
+            return {
+              ...conv,
+              lastMessage: message,
+              updatedAt: message.timestamp, // If you have this field
+            }
+          }
+          return conv
+        })
+      })
+    }
+
+    loadConversations()
+    const unsubscribe = subscribeToMessages(handleNewMessage)
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
+  }, [getConversations, subscribeToMessages])
+
+  const { presenceUpdates, presenceState } = usePresence()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full p-4">
+        <div className="text-muted-foreground">Loading conversations...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-destructive">Error: {error}</div>
+      </div>
+    )
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full p-4">
+        <div className="text-muted-foreground">No conversations yet</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full">
+      <ScrollArea className="h-[calc(100vh-12rem)]">
+        <div className="space-y-1 p-1">
+          {conversations.map((conversation) => {
+            const otherUserId = conversation.otherUserId
+            const presenceUpdate = presenceState.get(otherUserId)
+            const status = presenceUpdate?.presence.status || "unknown"
+            const lastMessage = getLastMessage(otherUserId) || conversation.lastMessage
+            const isFromCurrentUser = lastMessage.fromId === currentUserId
+            const userData = isFromCurrentUser ? lastMessage.toData : lastMessage.metaData
+            const user: User = {
+              uid: otherUserId,
+              name: userData?.name || userData?.email?.split("@")[0] || otherUserId.substring(0, 8),
+              email: userData?.email || "",
+              avatar: userData?.avatar || "",
+            }
+
+            return (
+              <ChatListButton
+                key={otherUserId}
+                user={user}
+                isSelected={selectedUser?.uid === otherUserId}
+                onSelect={(user) => {
+                  setSelectedUser(user)
+                  onSelectChat(user)
+                }}
+                LastMessage={lastMessage}
+                presence={status}
+              />
+            )
+          })}
+        </div>
+      </ScrollArea>
+    </div>
+  )
+}
 
