@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { AppSideBar } from './sidebar'
 import { Header } from "@/components/header"
-import { ChatLayout } from '../app/chat/chat-layout'
-import { CallLayout } from '../app/calls/call-layout'
+import { ChatLayout } from '@/app/chat/chat-layout'
+import { CallLayout } from '@/app/calls/call-layout'
 import { useCallSIP } from '@/app/providers/CallSipProviderCtx'
 import { CallUI } from '@/components/callui'
 import { CallNotification } from './callnotify'
@@ -14,6 +14,7 @@ import { initializeCallSession} from "../app/type"
 import { Toaster } from '@/components/ui/toaster';
 import { SIPInitializer } from "../app/SIPInitializer";
 import { ConsoleLayout } from './console/console-layout'
+import { NotificationLayout } from '@/app/notifications/notification-layout'
 
 
 interface AppLayoutProps {
@@ -130,6 +131,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
         >
           {activeTab === "chat" && <ChatLayout />}
           {activeTab === "calls" && <CallLayout userData={userData} onCall={handleCall} />}
+          {activeTab === "notifications" && <NotificationLayout />}
           {activeTab === "console" && <ConsoleLayout />}
         </div>
         <Toaster />

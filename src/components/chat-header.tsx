@@ -29,7 +29,7 @@ export function ChatHeader({
   const avatarLetter = name[0].toUpperCase()
 
   const presenceUpdate = presenceState.get(selectedUser.uid)
-  const status = presenceUpdate?.presence.status || "unknown"
+  const status = presenceUpdate?.presence.status || "offline"
 
   return (
     <div className="flex items-center justify-between p-4 border-b bg-background/90 backdrop-blur-sm sticky top-0 z-10">
@@ -123,8 +123,28 @@ export function ChatHeader({
                   <p className="font-medium text-lg">{name}</p>
                   <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
                   <div className="flex items-center mt-2">
-                    <span className="inline-block h-2 w-2 rounded-full bg-green-500 mr-2"></span>
-                    <span className="text-xs">Online</span>
+                    <span className={`inline-block h-2 w-2 rounded-full mr-2 ${
+                      status === "online"
+                        ? "bg-green-500"
+                        : status === "busy"
+                          ? "bg-red-500"
+                          : status === "away"
+                            ? "bg-yellow-500"
+                            : status === "offline"
+                              ? "bg-gray-400"
+                              : "bg-slate-300"
+                    }`} />
+                    <span className="text-xs">
+                    {status === "online"
+                      ? "Online"
+                      : status === "busy"
+                        ? "Busy"
+                        : status === "away"
+                          ? "Away"
+                          : status === "offline"
+                            ? "Offline"
+                            : "Unknown status"}
+                    </span>
                   </div>
                 </div>
               </div>

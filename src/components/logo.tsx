@@ -11,7 +11,7 @@ interface LogoProps {
   size?: "sm" | "md" | "lg"
 }
 
-export function Logo({ src = "/logo.svg", fallback = "E", title = "Enterprise", className, size = "md" }: LogoProps) {
+export function Logo({ src = "/logo.svg", fallback = "V", title = "Vogat", className, size = "md" }: LogoProps) {
   const sizeClasses = {
     sm: "h-8 w-8",
     md: "h-10 w-10",

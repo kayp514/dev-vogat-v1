@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MessageSquare, Users } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Textarea } from "@/components/ui/textarea"
 
 interface ConversationHeaderProps {
   searchQuery: string
@@ -60,7 +61,11 @@ export function ConversationHeader({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="message">Initial message (optional)</Label>
-                    <Input id="message" placeholder="Type your first message..." />
+                    <Textarea 
+                    id="message" 
+                    placeholder="Type message..."
+                    className="min-h-[80px] max-h-[290px] resize-y"
+                    />
                   </div>
                   <Button className="w-full">
                     <MessageSquare className="h-4 w-4 mr-2" />

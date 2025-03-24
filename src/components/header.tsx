@@ -64,7 +64,7 @@ export function Header({ userData }: HeaderProps) {
           <div className="relative overflow-hidden rounded-md bg-primary/10 transition-all duration-300 group-hover:bg-primary/20 group-hover:scale-105">
             <Logo
               src=""
-              fallback="E"
+              fallback="V"
               size="md"
               className="relative z-10 text-primary transition-transform duration-300 group-hover:scale-100"
             />

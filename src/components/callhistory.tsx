@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { PhoneCall, PhoneOutgoing, PhoneMissed, Voicemail, Phone, Clock, CalendarDays, Filter } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import { type ChatStatus } from "../types/chat"
+import type { ChatStatus, UserStatus } from "@/app/types/chat"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Tooltip,
@@ -35,7 +35,7 @@ interface CallHistoryItem {
   user: {
     name: string
     imageUrl: string
-    status?: ChatStatus
+    status?: UserStatus
   }
   type: CallType
   duration: string

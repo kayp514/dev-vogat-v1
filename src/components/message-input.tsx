@@ -8,6 +8,10 @@ import { Send, Paperclip, Smile, Image, FileText, Mic } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
+import { init } from 'emoji-mart'
+
+init({ data })
+
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>
@@ -74,9 +78,10 @@ export function MessageInput({
   }
 
   return (
-    <div className="p-4 border-t bg-background sticky bottom-0 z-10">
-      <div className="relative flex items-center gap-2">
-        <div className="absolute left-0 flex items-center pl-3 gap-1.5">
+    <div className="p-2 border-t bg-background sticky bottom-0 z-20 w-full">
+      <div className="max-w-3xl mx-auto">
+      <div className="relative flex items-center gap-2 max-w-full">
+        <div className="absolute left-0 flex items-center pl-3 gap-1.5 z-10">
           <Popover>
             <PopoverTrigger asChild>
               <Button 
@@ -123,11 +128,12 @@ export function MessageInput({
             </PopoverTrigger>
             <PopoverContent side="top" align="start" className="w-[352px] p-0">
               <Picker 
-                data={data} 
                 onEmojiSelect={handleEmojiSelect}
-                theme="light"
+                set="native"
+                theme="auto"
                 previewPosition="none"
-                skinTonePosition="none"
+                skinTonePosition="search"
+                noCountryFlags="false"
                 maxFrequentRows={0}
               />
             </PopoverContent>
@@ -155,6 +161,7 @@ export function MessageInput({
           </Button>
         </div>
       </div>
+    </div>
     </div>
   )
 }

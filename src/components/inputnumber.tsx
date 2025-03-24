@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import type { CallerInfo, UserData } from "../type"
+import type { CallerInfo, UserData } from "@/app/type"
 
 
 const dialpadKeys = [
@@ -115,7 +115,6 @@ export function InputNumber({ userData, onCall }: InputNumberProps) {
         email: "",
         avatar: "",
         phoneNumber: phoneNumber,
-        status: "unknown",
         isHost: false,
         isVideoOn: false,
         isMuted: false,

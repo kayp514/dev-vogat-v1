@@ -1,5 +1,5 @@
 import type { UserStatus, ChatStatus, MessageType } from '@/app/type'
-
+export type { UserStatus, ChatStatus, MessageType }
 
 export interface UserData {
     displayName: string;
