@@ -3,22 +3,28 @@
 import { SignUp } from '@tern-secure/nextjs'
 import { createDatabaseUser } from "@/app/actions"
 import type { FirebaseAuthUser } from '@/lib/db/types'
-import { ternSecureAuth } from '@tern-secure/nextjs'
+import { useAuth } from '@tern-secure/nextjs'
 
 
 export default function Page() {
     const handleSignUpSuccess= async() => {
-     try {
-      const currentUser = await ternSecureAuth.currentUser
-      //console.log("Current Firebase User:", currentUser)
-
+      const { user } = useAuth()
+      const currentUser = user 
       if (!currentUser) {
         throw new Error("No user found after signup")
       }
 
-      if (!currentUser.uid || !currentUser.email) {
-        throw new Error("Firebase user missing required fields")
-      }
+     try {
+      //const currentUser = await ternSecureAuth.currentUser
+      //console.log("Current Firebase User:", currentUser)
+
+      //if (!currentUser) {
+      //  throw new Error("No user found after signup")
+      //}
+
+      //if (!currentUser.uid || !currentUser.email) {
+      //  throw new Error("Firebase user missing required fields")
+      //}
 
       const firebaseUser: FirebaseAuthUser = {
         uid: currentUser.uid,
