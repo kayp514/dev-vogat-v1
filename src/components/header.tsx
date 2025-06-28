@@ -4,7 +4,7 @@ import { Bell, LogOut, Settings, CheckCircle2, Sun, Moon, Laptop, Phone } from '
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import SettingsScreen from './settingsScreen'
-import { SignOut } from "@tern-secure/nextjs"
+//import { SignOut } from "@tern-secure/nextjs"
 import { PstnStatus } from './pstn-status'
 import { Logo } from "./logo"
 import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -54,7 +54,7 @@ export function Header({ userData }: HeaderProps) {
   )?.presence;
 
   const handleSignOut = () => {
-    return <SignOut />
+    //return <SignOut />
   };
 
   return (
@@ -287,7 +287,7 @@ export function Header({ userData }: HeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <SignOut />
+                
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

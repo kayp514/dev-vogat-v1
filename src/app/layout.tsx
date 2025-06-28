@@ -33,7 +33,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-      <TernSecureProvider requiresVerification={false}>
+      <TernSecureProvider
+        requiresVerification={false}
+        customDomain="http://ternsecure.com"
+        signInForceRedirectUrl="v0"
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
