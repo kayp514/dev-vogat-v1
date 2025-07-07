@@ -36,7 +36,6 @@ export default function RootLayout({
       <TernSecureProvider
         requiresVerification={false}
         customDomain="http://ternsecure.com"
-        signInForceRedirectUrl="v0"
       >
         <ThemeProvider
           attribute="class"
