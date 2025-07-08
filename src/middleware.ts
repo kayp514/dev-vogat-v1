@@ -1,6 +1,6 @@
 import { ternSecureMiddleware, createRouteMatcher } from '@tern-secure/nextjs/server';
 
-const publicPaths = createRouteMatcher(['/sign-in', '/sign-up'])
+const publicPaths = createRouteMatcher(['/sign-in', '/sign-up', '/api/session'])
 
 export const config = {
     matcher: [
