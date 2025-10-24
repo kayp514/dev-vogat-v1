@@ -6,6 +6,14 @@ import type { FirebaseAuthUser, DatabaseUserInput, SignUpResult } from "@/lib/db
 import { syncUserToRedis } from "@/lib/db/redis-sync"
 import { cacheUserData, CacheKeys , getRedisClient} from "@/lib/db/redis-sync-cache"
 
+import {
+  createNextSessionCookie,
+  clearNextSessionCookie,
+  clearSessionCookieServer,
+  createSessionCookieServer,
+  setNextServerSession,
+} from "@tern-secure/nextjs/admin";
+
 
 const DEFAULT_TENANT_ID = 'default'
 
@@ -195,3 +203,12 @@ export async function verifyDatabaseUser(uid: string, tenantId: string): Promise
   }
 }
 
+
+
+export {
+  clearNextSessionCookie,
+  clearSessionCookieServer,
+  createSessionCookieServer,
+  setNextServerSession,
+  createNextSessionCookie,
+};
