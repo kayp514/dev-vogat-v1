@@ -40,6 +40,7 @@ export function SignInFormField({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  
 
   const handleSignInSuccess = async (user: TernSecureUser) => {
     onSignInSuccess(user, {
@@ -97,7 +98,7 @@ export function SignInFormField({
 
   const signInWithGoogle = () => {
     signInWithSocialLogin("google", {
-      mode: "redirect",
+      mode: "popup",
       customParameters: {
         access_type: "offline",
         login_hint: "user@example.com",

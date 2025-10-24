@@ -27,15 +27,17 @@ interface MessageGroup {
   messages: ChatMessage[]
 }
 
-const statusSounds = {
+const statusSounds = typeof window !== 'undefined' ? {
   sent: new Audio('/sounds/sent.mp3'),
   delivered: new Audio('/sounds/sent.mp3')
-}
+} : null
 
-Object.values(statusSounds).forEach(sound => {
-  sound.load()
-  sound.volume = 0.4
-})
+if (statusSounds) {
+  Object.values(statusSounds).forEach(sound => {
+    sound.load()
+    sound.volume = 0.4
+  })
+}
 
 const MessageStatusIndicator = ({ status }: { status: MessageStatus }) => {
   return (
@@ -236,7 +238,7 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
       const previousStatus = messageStatuses[messageId];
       if (previousStatus !== newStatus) {
         console.log(`Message-List: Status changed for message ${messageId}: ${previousStatus} -> ${newStatus}`);
-        if (newStatus === 'sent') {
+        if (newStatus === 'sent' && statusSounds) {
           statusSounds.sent.play().catch(() => {});
         }
       }

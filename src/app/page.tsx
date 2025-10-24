@@ -1,5 +1,5 @@
-import VzeroPage from "./v0/page";
+import { redirect } from "next/navigation"
 
 export default function Page() {
-  return <VzeroPage />;
+  redirect('/v0')
 }
