@@ -40,7 +40,7 @@ export function SignInFormField({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  
+
 
   const handleSignInSuccess = async (user: TernSecureUser) => {
     onSignInSuccess(user, {
@@ -70,6 +70,7 @@ export function SignInFormField({
     }
     if (res?.status === "success") {
       createActiveSession({ session: res.user, redirectUrl: afterSignInUrl });
+      //handleSignInSuccess(res.user);
     }
   };
 

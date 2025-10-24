@@ -5,6 +5,7 @@ import { CallSIPProvider } from "./providers/CallSipProvider";
 import { SIPProvider } from "./providers/SipProvider";
 import { TernSecureProvider } from "@tern-secure/nextjs";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = localFont({
@@ -47,6 +48,7 @@ export default function RootLayout({
               <CallSIPProvider>
                 {children}
                 <Analytics />
+                <SpeedInsights />
               </CallSIPProvider>
             </SIPProvider>
           </ThemeProvider>
