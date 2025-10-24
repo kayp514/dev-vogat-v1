@@ -1,45 +1,55 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Phone, Video, Info, ChevronLeft } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import type { User } from "@/app/type"
-import { usePresence } from "@/ternsecure-realtime/hooks/usePresence"
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Phone, Video, Info, ChevronLeft } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import type { User } from "@/app/type";
+import { usePresence } from "@/ternsecure-realtime/hooks/usePresence";
 
 interface ChatHeaderProps {
-  selectedUser: User
-  onBackToList?: () => void
-  isMobile?: boolean
+  selectedUser: User;
+  onBackToList?: () => void;
+  isMobile?: boolean;
 }
 
-
-export function ChatHeader({ 
-    selectedUser, 
-    onBackToList, 
-    isMobile 
+export function ChatHeader({
+  selectedUser,
+  onBackToList,
+  isMobile,
 }: ChatHeaderProps) {
+  const { presenceState } = usePresence();
 
-    const { presenceState } = usePresence()
+  const name =
+    selectedUser.name ||
+    (selectedUser.email
+      ? selectedUser.email.split("@")[0]
+      : selectedUser.uid.substring(0, 8));
 
-    const name =
-    selectedUser.name || (selectedUser.email ? selectedUser.email.split("@")[0] : selectedUser.uid.substring(0, 8))
+  const avatarLetter = name[0].toUpperCase();
 
-  const avatarLetter = name[0].toUpperCase()
-
-  const presenceUpdate = presenceState.get(selectedUser.uid)
-  const status = presenceUpdate?.presence.status || "offline"
+  const presenceUpdate = presenceState.get(selectedUser.uid);
+  const status = presenceUpdate?.presence.status || "offline";
 
   return (
     <div className="flex items-center justify-between p-4 border-b bg-background/90 backdrop-blur-sm sticky top-0 z-10">
       <div className="flex items-center gap-3">
         {isMobile && (
-          <Button 
-          variant="ghost" 
-          size="icon" 
-          className="mr-1" 
-          onClick={onBackToList}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mr-1"
+            onClick={onBackToList}
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
@@ -54,12 +64,12 @@ export function ChatHeader({
               status === "online"
                 ? "bg-green-500"
                 : status === "busy"
-                  ? "bg-red-500"
-                  : status === "away"
-                    ? "bg-yellow-500"
-                    : status === "offline"
-                      ? "bg-gray-400"
-                      : "bg-slate-300"
+                ? "bg-red-500"
+                : status === "away"
+                ? "bg-yellow-500"
+                : status === "offline"
+                ? "bg-gray-400"
+                : "bg-slate-300"
             }`}
           />
         </div>
@@ -71,12 +81,12 @@ export function ChatHeader({
             {status === "online"
               ? "Online"
               : status === "busy"
-                ? "Busy"
-                : status === "away"
-                  ? "Away"
-                  : status === "offline"
-                    ? "Offline"
-                    : "Unknown status"}
+              ? "Busy"
+              : status === "away"
+              ? "Away"
+              : status === "offline"
+              ? "Offline"
+              : "Unknown status"}
           </p>
         </div>
       </div>
@@ -121,29 +131,33 @@ export function ChatHeader({
                 </Avatar>
                 <div>
                   <p className="font-medium text-lg">{name}</p>
-                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedUser.email}
+                  </p>
                   <div className="flex items-center mt-2">
-                    <span className={`inline-block h-2 w-2 rounded-full mr-2 ${
-                      status === "online"
-                        ? "bg-green-500"
-                        : status === "busy"
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full mr-2 ${
+                        status === "online"
+                          ? "bg-green-500"
+                          : status === "busy"
                           ? "bg-red-500"
                           : status === "away"
-                            ? "bg-yellow-500"
-                            : status === "offline"
-                              ? "bg-gray-400"
-                              : "bg-slate-300"
-                    }`} />
+                          ? "bg-yellow-500"
+                          : status === "offline"
+                          ? "bg-gray-400"
+                          : "bg-slate-300"
+                      }`}
+                    />
                     <span className="text-xs">
-                    {status === "online"
-                      ? "Online"
-                      : status === "busy"
+                      {status === "online"
+                        ? "Online"
+                        : status === "busy"
                         ? "Busy"
                         : status === "away"
-                          ? "Away"
-                          : status === "offline"
-                            ? "Offline"
-                            : "Unknown status"}
+                        ? "Away"
+                        : status === "offline"
+                        ? "Offline"
+                        : "Unknown status"}
                     </span>
                   </div>
                 </div>
@@ -163,6 +177,5 @@ export function ChatHeader({
         </Popover>
       </div>
     </div>
-  )
+  );
 }
-

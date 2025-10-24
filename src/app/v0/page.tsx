@@ -44,8 +44,7 @@ export default function VzeroPage() {
 
 
 
-  const { status } = useStatus(baseUserData.uid)
-  console.log('v0 page status', status)
+
 
   const userData = {
     ...baseUserData,
