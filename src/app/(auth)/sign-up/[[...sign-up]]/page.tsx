@@ -1,6 +1,6 @@
-'use client'
 
-import { SignUp } from '@tern-secure/nextjs'
+
+{/*import { SignUp } from '@tern-secure/nextjs'
 import { createDatabaseUser } from "@/app/actions"
 import type { FirebaseAuthUser } from '@/lib/db/types'
 import { useAuth } from '@tern-secure/nextjs'
@@ -61,4 +61,4 @@ const handleError = (error: Error) => {
   }
     
     return  <SignUp onSuccess={handleSignUpSuccess} onError={handleError} />
-}
+}*/}
