@@ -1,4 +1,11 @@
 
+export default function Page() {
+  return (
+    <div>
+      <h1>Sign Up</h1>
+    </div>
+  )
+}
 
 {/*import { SignUp } from '@tern-secure/nextjs'
 import { createDatabaseUser } from "@/app/actions"
