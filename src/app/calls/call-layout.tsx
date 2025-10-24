@@ -1,15 +1,19 @@
-import { CallService } from "./call-service"
-import type { UserData, CallerInfo } from "../type"
+import { CallService } from "./call-service";
+import type { UserData, CallerInfo } from "../type";
 
 interface CallLayoutProps {
-    userData: UserData
-    onCall: (phoneNumber: string, callerInfo: CallerInfo, calleeInfo: CallerInfo) => void
+  userData: UserData;
+  onCall: (
+    phoneNumber: string,
+    callerInfo: CallerInfo,
+    calleeInfo: CallerInfo
+  ) => void;
 }
 
 export function CallLayout({ userData, onCall }: CallLayoutProps) {
-    return (
+  return (
     <div className="flex h-full">
-        <CallService userData={userData} onCall={onCall} />
+      <CallService userData={userData} onCall={onCall} />
     </div>
-    )
-  }
+  );
+}

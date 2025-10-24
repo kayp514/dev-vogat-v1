@@ -1,16 +1,14 @@
-import { AuthHeader } from "../../components/auth-header"
+import { AuthHeader } from "../../components/auth-header";
 
 export default function AuthLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <>
       <AuthHeader />
-      <main className="pt-14">
-        {children}
-      </main>
+      <main className="pt-14">{children}</main>
     </>
-  )
+  );
 }

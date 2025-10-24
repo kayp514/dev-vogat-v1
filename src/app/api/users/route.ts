@@ -4,8 +4,8 @@ import { auth } from '@tern-secure/nextjs/server'
 
 export async function GET(request: Request) {
   try {
-    const session = await auth()
-    const uid = session.user?.uid
+    const { userId } = await auth()
+    const uid = userId
 
     if (!uid) {
       return NextResponse.json({ error: 'UID is required' }, { status: 400 });
