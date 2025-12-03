@@ -5,7 +5,7 @@ import { CallSIPProvider } from "./providers/CallSipProvider";
 import { SIPProvider } from "./providers/SipProvider";
 import { TernSecureProvider } from "@tern-secure/nextjs";
 import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = localFont({
@@ -30,30 +30,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+    <TernSecureProvider
+      appName="vgtClient"
+      appCheck={{
+        provider: "reCaptchaV3",
+        siteKey: "6LfzGRgsAAAAAGEvbwbcLgT4IHWmuWv4kEDRA5hi",
+        isTokenAutoRefreshEnabled: true,
+      }}
+      apiUrl="ternsecure-auth-admin.vercel.app"
+      ternUIUrl="https://cdn.jsdelivr.net/npm/@tern-secure/auth@1.1.0-canary.v20251202183844/dist/ternsecure.browser.js"
+      persistence="browserCookie"
+      requiresVerification={false}
+    >
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
       >
-        <TernSecureProvider
-          requiresVerification={false}
-          persistence="local"
-        >
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <SIPProvider>
-              <CallSIPProvider>
-                {children}
-                <Analytics />
-                <SpeedInsights />
-              </CallSIPProvider>
-            </SIPProvider>
-          </ThemeProvider>
-        </TernSecureProvider>
-      </body>
-    </html>
+        <SIPProvider>
+          <CallSIPProvider>
+            {children}
+            <Analytics />
+            <SpeedInsights />
+          </CallSIPProvider>
+        </SIPProvider>
+      </ThemeProvider>
+    </TernSecureProvider>
   );
 }
