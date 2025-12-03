@@ -1,7 +1,4 @@
-import {
-  ternSecureMiddleware,
-  createRouteMatcher,
-} from "@tern-secure/nextjs/server";
+import { ternSecureProxy, createRouteMatcher } from '@tern-secure/nextjs/server';
 
 const publicPaths = createRouteMatcher([
   "/sign-in",
@@ -14,15 +11,21 @@ const publicPaths = createRouteMatcher([
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
   ],
 };
 
-export default ternSecureMiddleware(
+export default ternSecureProxy(
   async (auth, request) => {
+    //const url = new URL('/unauthorized', request.url);
     if (!publicPaths(request)) {
-      await auth.protect();
+      await auth.protect((require) => {
+        return require({ role: "admin" });
+      });
     }
   },
+  {
+    session: { maxAge: '1 hour' }
+  }
 );
