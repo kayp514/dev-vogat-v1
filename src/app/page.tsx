@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation"
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  redirect('/v0')
+export default function Home() {
+  redirect("/v0")
 }
