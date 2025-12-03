@@ -7,7 +7,7 @@ const AUTH_SERVER_URL = process.env.NEXT_PUBLIC_SOCKET_URL
 export async function POST(request: Request) {
   try {
 
-    const { userId } = await auth()
+    const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json(
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ sessionId, serverPublicKey });
   } catch (error) {
-    console.error('Auth error:', error);
+    //console.error('Auth error:', error);
     return NextResponse.json(
       { error: 'Authentication failed' },
       { status: 500 }

@@ -26,6 +26,9 @@ export default ternSecureProxy(
     }
   },
   {
+    appCheck: {
+      strategy: "memory"
+    },
     session: { maxAge: '1 hour' }
   }
 );
