@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <TernSecureProvider
-      appName="TernSecure"
+      appName="vgtClient"
       appCheck={{
         provider: "reCaptchaV3",
         siteKey: "6LfzGRgsAAAAAGEvbwbcLgT4IHWmuWv4kEDRA5hi",
