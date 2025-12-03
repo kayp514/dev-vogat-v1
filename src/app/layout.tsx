@@ -31,13 +31,12 @@ export default function RootLayout({
 }>) {
   return (
     <TernSecureProvider
-      appName="vgtClient"
       appCheck={{
         provider: "reCaptchaV3",
         siteKey: "6LfzGRgsAAAAAGEvbwbcLgT4IHWmuWv4kEDRA5hi",
         isTokenAutoRefreshEnabled: true,
       }}
-      apiUrl="ternsecure-auth-admin.vercel.app"
+      //apiUrl="ternsecure-auth-admin.vercel.app"
       ternUIUrl="https://cdn.jsdelivr.net/npm/@tern-secure/auth@1.1.0-canary.v20251202183844/dist/ternsecure.browser.js"
       persistence="browserCookie"
       requiresVerification={false}
