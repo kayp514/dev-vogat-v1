@@ -32,13 +32,3 @@ jobs:
         
       - name: Lint
         run: npm run lint
-        
-      - name: Check changeset
-        run: |
-          # Check if .changeset directory exists
-          if [ ! -d ".changeset" ]; then
-            echo "Creating .changeset directory"
-            npx changeset init
-          fi
-          npx changeset status --since=main
-        continue-on-error: true

@@ -1,17 +1,14 @@
-'use client'
-
-import { SignIn } from '@tern-secure/nextjs';
+import { SignIn } from "@tern-secure/nextjs";
 
 export default function Page() {
-  return (
-    <SignIn forceRedirectUrl="/v0" />
-);
+  return <SignIn />;
 }
 
 /**
  * The following code is commented out. It shows a previous implementation of the Page component
  */
-{/*
+{
+  /*
 import { SignIn } from "@tern-secure/nextjs";
 import { useAuth } from "@tern-secure/nextjs";
 import { verifyDatabaseUser } from "@/app/actions";
@@ -50,4 +47,5 @@ import { verifyDatabaseUser } from "@/app/actions";
   };
   return <SignIn onSuccess={handleOnSuccess} onError={handleError} />;
 }
-*/}
+*/
+}
