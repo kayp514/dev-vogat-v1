@@ -86,7 +86,7 @@ export function Header({ userData }: HeaderProps) {
   };
 
   return (
-    <div className="flex h-full items-center justify-between px-4 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm transition-all duration-200 hover:bg-background/90">
+    <div className="flex h-full items-center justify-between px-4 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-xs transition-all duration-200 hover:bg-background/90">
       <div className="flex-1">
         <div className="flex items-center gap-3 group">
           <div className="relative overflow-hidden rounded-md bg-primary/10 transition-all duration-300 group-hover:bg-primary/20 group-hover:scale-105">
@@ -96,7 +96,7 @@ export function Header({ userData }: HeaderProps) {
               size="md"
               className="relative z-10 text-primary transition-transform duration-300 group-hover:scale-100"
             />
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+            <div className="absolute inset-0 bg-linear-to-tr from-primary/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
           </div>
           <div className="flex flex-col">
             <h1 className="text-lg font-semibold tracking-tight text-foreground transition-all duration-300 group-hover:text-primary">
@@ -316,7 +316,7 @@ export function Header({ userData }: HeaderProps) {
                       onClick={() => setTheme("light")}
                       className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
                         theme === "light"
-                          ? "bg-background text-foreground shadow-sm"
+                          ? "bg-background text-foreground shadow-xs"
                           : "hover:bg-background/50 text-muted-foreground"
                       }`}
                     >
@@ -327,7 +327,7 @@ export function Header({ userData }: HeaderProps) {
                       onClick={() => setTheme("dark")}
                       className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
                         theme === "dark"
-                          ? "bg-background text-foreground shadow-sm"
+                          ? "bg-background text-foreground shadow-xs"
                           : "hover:bg-background/50 text-muted-foreground"
                       }`}
                     >
@@ -338,7 +338,7 @@ export function Header({ userData }: HeaderProps) {
                       onClick={() => setTheme("system")}
                       className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded text-xs font-medium transition-colors ${
                         theme === "system"
-                          ? "bg-background text-foreground shadow-sm"
+                          ? "bg-background text-foreground shadow-xs"
                           : "hover:bg-background/50 text-muted-foreground"
                       }`}
                     >

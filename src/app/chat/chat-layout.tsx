@@ -58,7 +58,7 @@ export function ChatLayout() {
 
   return (
     <div className="h-full w-full flex p-2 bg-gray-100 dark:bg-gray-800">
-      <Card className="w-full h-full border border-border shadow-sm rounded-lg overflow-hidden">
+      <Card className="w-full h-full border border-border shadow-xs rounded-lg overflow-hidden">
         <CardContent className="p-0 h-full flex">
           <div
           className={cn(

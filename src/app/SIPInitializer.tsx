@@ -41,7 +41,7 @@ export function SIPInitializer() {
           "max-w-2xl mx-auto",
           "border-2",
           "shadow-lg",
-          "backdrop-blur bg-background/95"
+          "backdrop-blur-sm bg-background/95"
         )}
       >
         <div className="flex items-center justify-between">

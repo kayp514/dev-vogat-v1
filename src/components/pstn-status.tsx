@@ -99,8 +99,8 @@ interface PstnStatusProps {
         <HoverCard openDelay={200}>
           <HoverCardTrigger asChild>
           <Card className={cn(
-            "bg-background/60 backdrop-blur-sm border-muted transition-all duration-200", 
-            "hover:bg-accent/50 hover:shadow-sm",
+            "bg-background/60 backdrop-blur-xs border-muted transition-all duration-200", 
+            "hover:bg-accent/50 hover:shadow-xs",
             "relative",
             className
           )}>

@@ -42,7 +42,7 @@ export function ChatHeader({
   const status = presenceUpdate?.presence.status || "offline";
 
   return (
-    <div className="flex items-center justify-between p-4 border-b bg-background/90 backdrop-blur-sm sticky top-0 z-10">
+    <div className="flex items-center justify-between p-4 border-b bg-background/90 backdrop-blur-xs sticky top-0 z-10">
       <div className="flex items-center gap-3">
         {isMobile && (
           <Button

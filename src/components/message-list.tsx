@@ -76,7 +76,7 @@ const MessageBubble = ({
   deliveryStatus: Record<string, MessageStatus>
 }) => {
   const bubbleClassName = cn(
-    "p-3 shadow-sm break-words",
+    "p-3 shadow-xs wrap-break-word",
     isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted",
     shouldGroupWithPrev && shouldGroupWithNext
       ? "rounded-md"
@@ -100,10 +100,10 @@ const MessageBubble = ({
     )}>
       <div className={cn(
         "flex items-end gap-2 max-w-[70%]",
-        isCurrentUser ? "order-1" : "order-none"
+        isCurrentUser ? "order-1" : "order-0"
       )}>
         {!isCurrentUser && (
-          <div className="flex-shrink-0 w-8 self-end">
+          <div className="shrink-0 w-8 self-end">
             {!shouldGroupWithPrev && (
               <Avatar className="h-8 w-8">
                 <AvatarFallback>
@@ -368,7 +368,7 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
                     <span className="w-full border-t" />
                   </div>
                   <div className="relative flex justify-center">
-                    <span className="bg-background px-3 text-xs text-muted-foreground rounded-full border shadow-sm">
+                    <span className="bg-background px-3 text-xs text-muted-foreground rounded-full border shadow-xs">
                       {formatMessageDate(group.date)}
                     </span>
                   </div>
