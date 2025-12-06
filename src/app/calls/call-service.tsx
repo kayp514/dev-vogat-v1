@@ -18,7 +18,7 @@ export function CallService({ userData, onCall }: CallServiceProps) {
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
-      <div className="w-[320px] border-r flex-shrink-0 bg-background">
+      <div className="w-[320px] border-r shrink-0 bg-background">
         <div className="p-4 space-y-4">
           <InputNumber userData={userData} onCall={onCall} />
         </div>

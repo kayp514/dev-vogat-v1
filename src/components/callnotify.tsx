@@ -26,13 +26,13 @@ export function CallNotification({ callerNumber, onAccept, onReject }: CallNotif
   return (
     <Card className={cn(
       "fixed z-50 shadow-lg",
-      "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
+      "bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80",
       "border-2 border-primary/20",
       isDesktop ? "bottom-4 right-4 w-[400px]" : "bottom-0 right-0 left-0 m-4 w-auto",
       "animate-in slide-in-from-bottom-5 duration-300"
     )}>
       {/* Pulsing Header */}
-      <div className="relative h-1 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 rounded-t-lg overflow-hidden">
+      <div className="relative h-1 bg-linear-to-r from-primary/20 via-primary/30 to-primary/20 rounded-t-lg overflow-hidden">
         <div className="absolute inset-0 bg-primary/20 animate-pulse" />
       </div>
 

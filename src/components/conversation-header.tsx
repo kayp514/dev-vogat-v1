@@ -36,7 +36,7 @@ export function ConversationHeader({
   return (
     <>
       {/* Header */}
-      <div className="p-3 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+      <div className="p-3 border-b bg-background/80 backdrop-blur-xs sticky top-0 z-10">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Messages</h2>
           <div className="flex items-center gap-2">

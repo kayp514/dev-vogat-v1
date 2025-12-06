@@ -182,7 +182,7 @@ export function InputNumber({ userData, onCall }: InputNumberProps) {
                     <Button
                       key={key.value}
                       variant="outline"
-                      className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-gray-800 bg-white shadow hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50"
+                      className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-gray-800 bg-white shadow-sm hover:bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50"
                       onClick={() => handleNumberInput(key.value)}
                     >
                       {key.value}

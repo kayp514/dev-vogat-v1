@@ -33,9 +33,9 @@ export function ParticipantScreen({
     <div
       className={cn(
         "group relative h-full rounded-xl overflow-hidden transition-all duration-300",
-        "bg-gradient-to-br from-muted/20 to-muted/30",
-        "backdrop-blur-sm border shadow-md",
-        isFullscreen && "fixed inset-0 z-[60] rounded-none w-screen h-screen max-w-none",
+        "bg-linear-to-br from-muted/20 to-muted/30",
+        "backdrop-blur-xs border shadow-md",
+        isFullscreen && "fixed inset-0 z-60 rounded-none w-screen h-screen max-w-none",
         isGridView && "aspect-video",
       )}
     >
@@ -44,7 +44,7 @@ export function ParticipantScreen({
         {participant.isVideoOn ? (
           <div className={cn("w-full h-full relative overflow-hidden")}>
             {/* Video placeholder - in real implementation, replace with actual video element */}
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted/10 to-muted/20">
+            <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-muted/10 to-muted/20">
               <VideoIcon className="h-12 w-12 text-muted-foreground/30" />
             </div>
           </div>
@@ -65,8 +65,8 @@ export function ParticipantScreen({
       <div
         className={cn(
           "absolute inset-0 flex flex-col justify-between",
-          "z-[50]",
-          "bg-gradient-to-t from-background/40 via-transparent to-background/40",
+          "z-50",
+          "bg-linear-to-t from-background/40 via-transparent to-background/40",
           "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
         )}
       >
@@ -74,7 +74,7 @@ export function ParticipantScreen({
         <div className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="bg-background/60 backdrop-blur-sm text-foreground">
+              <Badge variant="secondary" className="bg-background/60 backdrop-blur-xs text-foreground">
                 {participant.role === "caller" ? "You" : participant.name}
               </Badge>
               {participant.isMuted && (
@@ -103,7 +103,7 @@ export function ParticipantScreen({
                     className={cn(
                       "h-8 w-8 rounded-full",
                       "bg-background/60 hover:bg-background/80",
-                      "backdrop-blur-sm",
+                      "backdrop-blur-xs",
                     )}
                     onClick={() => onToggleVideo(participant.id)}
                   >
@@ -123,7 +123,7 @@ export function ParticipantScreen({
                     className={cn(
                         "h-8 w-8 rounded-full",
                         "bg-background/60 hover:bg-background/80",
-                        "backdrop-blur-sm",
+                        "backdrop-blur-xs",
                     )}
                     onClick={() => onToggleMute(participant.id)}
                   >
@@ -143,7 +143,7 @@ export function ParticipantScreen({
                     className={cn(
                         "h-8 w-8 rounded-full",
                         "bg-background/60 hover:bg-background/80",
-                        "backdrop-blur-sm",
+                        "backdrop-blur-xs",
                     )}
                     onClick={() => onToggleFullscreen()}
                   >
@@ -165,7 +165,7 @@ export function ParticipantScreen({
                         "h-8 w-8 rounded-full",
                         "bg-destructive/10 hover:bg-destructive/20",
                         "text-destructive",
-                        "backdrop-blur-sm",
+                        "backdrop-blur-xs",
                       )}
                       onClick={() => onRemoveParticipant(participant.id)}
                     >

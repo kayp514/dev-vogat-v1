@@ -62,7 +62,7 @@ const ConversationItem = ({
       onClick={() => onSelectChat(user)}
     >
       <div className="flex items-center gap-3">
-        <div className="relative flex-shrink-0">
+        <div className="relative shrink-0">
           <Avatar className="h-11 w-11 border border-muted">
             {user.avatar ? (
               <AvatarImage src={user.avatar} />
@@ -92,7 +92,7 @@ const ConversationItem = ({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center h-4 w-4 rounded-full bg-green-100 flex-shrink-0">
+                      <div className="flex items-center justify-center h-4 w-4 rounded-full bg-green-100 shrink-0">
                         <ExternalLink className="h-2.5 w-2.5 text-green-600" />
                       </div>
                     </TooltipTrigger>
@@ -114,7 +114,7 @@ const ConversationItem = ({
             {conversation.unreadCount > 0 && (
               <Badge
                 variant="destructive"
-                className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center flex-shrink-0"
+                className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center shrink-0"
               >
                 {conversation.unreadCount}
               </Badge>
@@ -140,7 +140,7 @@ export function Conversation({
 
   return (
     <>
-      <div className="bg-background/80 backdrop-blur-sm border-b px-2 py-2 z-10">
+      <div className="bg-background/80 backdrop-blur-xs border-b px-2 py-2 z-10">
         <div className="flex space-x-1 rounded-lg bg-muted/50 p-1">
           <Button
             variant={activeFilter === "all" ? "default" : "ghost"}

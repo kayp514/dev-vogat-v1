@@ -114,12 +114,12 @@ export function AppLayout({ userData }: AppLayoutProps) {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      <header className="fixed top-0 left-0 right-0 z-20 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-20 h-16 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80 shadow-xs">
       <SIPInitializer />
       <Header userData={userData} />
       </header>
       <div className="flex mt-16 h-[calc(100vh-4rem)]">
-        <aside className="w-16 h-full bg-muted/20 shadow-sm">
+        <aside className="w-16 h-full bg-muted/20 shadow-xs">
         <AppSideBar setActiveTab={setActiveTab} activeTab={activeTab} />
         </aside>
       <main className="flex-1  h-full overflow-hidden">

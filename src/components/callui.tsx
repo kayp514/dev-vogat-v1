@@ -219,7 +219,7 @@ export function CallUI({
         )}
       >
         {isMaximized && (
-          <div className="fixed inset-0 bg-background/60 backdrop-blur-sm -z-10" aria-hidden="true" />
+          <div className="fixed inset-0 bg-background/60 backdrop-blur-xs -z-10" aria-hidden="true" />
         )}
         <Card
           className={cn(
@@ -228,7 +228,7 @@ export function CallUI({
             isMaximized 
               ? "h-[calc(100vh-3.5rem)] w-full border-0" 
               : "w-[300px] rounded-lg",
-            "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80",
+            "bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80",
           )}
         >
           <div
@@ -260,7 +260,7 @@ export function CallUI({
           </div>
 
           {isMaximized ? (
-            <div className="h-14 px-4 bg-background/95 border-b backdrop-blur-sm flex items-center">
+            <div className="h-14 px-4 bg-background/95 border-b backdrop-blur-xs flex items-center">
               <div className="flex items-center gap-4 w-[200px]">
                 <div className="flex items-center gap-2">
                   <Signal className="h-4 w-4 text-green-500" />
@@ -272,7 +272,7 @@ export function CallUI({
               <div className="flex-1 flex justify-center">
                 <div className="flex items-center gap-2">
                   <TooltipProvider delayDuration={100}>
-                    <div className="flex items-center gap-2 rounded-full bg-muted/80 p-1.5 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 rounded-full bg-muted/80 p-1.5 backdrop-blur-xs">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -421,10 +421,10 @@ export function CallUI({
                             "fixed bottom-24 right-10 w-[320px] h-[180px]",
                             "shadow-lg rounded-xl overflow-hidden",
                             "border border-border/50",
-                            "backdrop-blur-sm",
+                            "backdrop-blur-xs",
                             "transition-all duration-300",
                             "hover:scale-105",
-                            "z-[45]"
+                            "z-45"
                       ),
                     ),
 

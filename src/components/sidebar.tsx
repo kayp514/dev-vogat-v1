@@ -29,7 +29,7 @@ export function AppSideBar({ activeTab, setActiveTab }: AppSideBarProps) {
                   className={cn(
                     "relative flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-200 ease-in-out",
                     // Default state with subtle background
-                    "bg-background/80 text-muted-foreground shadow-sm border border-transparent",
+                    "bg-background/80 text-muted-foreground shadow-xs border border-transparent",
                     // Hover effects with dynamic colors based on icon type
                     "hover:scale-105",
                     item.id === "chat" &&

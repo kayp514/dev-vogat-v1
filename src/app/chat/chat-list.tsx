@@ -56,8 +56,8 @@ const ChatListButton = ({
       variant="ghost"
       className={cn(
         "w-full flex items-center gap-3 p-4 text-left transition-all h-[72px]",
-        "hover:bg-accent/50 hover:shadow-sm",
-        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+        "hover:bg-accent/50 hover:shadow-xs",
+        "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
         isSelected ? "bg-accent/60 text-accent-foreground" : "",
       )}
     >
@@ -85,7 +85,7 @@ const ChatListButton = ({
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground whitespace-nowrap">
               {LastMessage?.timestamp && (
-                <span className="text-xs text-muted-foreground flex-shrink-0">
+                <span className="text-xs text-muted-foreground shrink-0">
                   {formatMessageTime(LastMessage.timestamp)}
                 </span>
               )}
