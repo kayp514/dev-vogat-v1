@@ -48,7 +48,6 @@ export function AppLayout({ userData }: AppLayoutProps) {
     setCurrentCallerInfo(callerInfo)
     setCurrentCalleeInfo(calleeInfo)
 
-    // Initialize call session with the provided info
     const newSession = initializeCallSession(`call-${Date.now()}`, callerInfo, calleeInfo, "outgoing")
     setCallSession(newSession)
 
