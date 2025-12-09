@@ -14,7 +14,6 @@ interface ChatSidebarProps {
 
 export function ChatSidebar({
   selectedUser,
-  onSelectUser,
   onSelectChatUser,
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
