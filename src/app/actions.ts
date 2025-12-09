@@ -59,7 +59,6 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
       avatar: firebaseUser.photoURL ?? null,
       tenantId: firebaseUser.tenantId || 'default',
       isAdmin: true,
-      disabled: firebaseUser.disabled ?? false,
       phoneNumber: firebaseUser.phoneNumber ?? null,
       emailVerified: firebaseUser.emailVerified ?? false,
       CreatedAt: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
