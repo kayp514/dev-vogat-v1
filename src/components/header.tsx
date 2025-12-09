@@ -73,7 +73,7 @@ export function Header({ userData }: HeaderProps) {
     (update: PresenceUpdate) => update.clientId === userData.uid
   )?.presence;
 
-  const handleSignOut = () => {
+  const createSignOut = () => {
     signOut({
       async onBeforeSignOut() {
         await clearNextSessionCookie({
@@ -355,8 +355,12 @@ export function Header({ userData }: HeaderProps) {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
+              <DropdownMenuItem
+                onClick={createSignOut}
+                className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 focus:bg-red-50 dark:focus:bg-red-950 cursor-pointer"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
