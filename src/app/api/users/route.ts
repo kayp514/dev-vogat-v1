@@ -1,35 +1,34 @@
-import { getRedisClient, CacheKeys } from '@/lib/db/redis-sync-cache';
-import { NextResponse } from 'next/server';
-import { auth } from '@tern-secure/nextjs/server'
+import { searchUsers } from '@/lib/db/queries'
+import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  try {
-    const { userId } = await auth()
-    const uid = userId
+  const { searchParams } = new URL(request.url)
+  const query = searchParams.get('q')
 
-    if (!uid) {
-      return NextResponse.json({ error: 'UID is required' }, { status: 400 });
-    }
-
-    const client = await getRedisClient();
-    const cachedUser = await client.hGetAll(CacheKeys.USER_DATA('default', uid));
-    
-    return NextResponse.json(cachedUser || { status: 'offline' });
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
+  if (!query) {
+    return NextResponse.json({
+      success: false,
+      error: {
+        code: 'INVALID_QUERY',
+        message: 'Search query must be at least 2 characters'
+      }
+    })
   }
-}
 
-export async function POST(request: Request) {
-    try {
-      const { uid } = await request.json();
-      const client = await getRedisClient();
-      const cachedUser = await client.hGetAll(CacheKeys.USER_DATA('default', uid));
-      
-      return NextResponse.json(cachedUser || { status: 'offline' });
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
-    }
+  try {
+    const result = await searchUsers(query)
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Search API error:', error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'SEARCH_ERROR',
+          message: error instanceof Error ? error.message : 'Failed to search users'
+        }
+      },
+      { status: 500 }
+    )
+  }
 }

@@ -1,14 +1,14 @@
 "use client"
-import { Search, Plus, Filter } from "lucide-react"
+import { useState } from "react"
+import { Search, Filter } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MessageSquare, Users } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Textarea } from "@/components/ui/textarea"
+import { NewMessageDialog } from "./new-message-dialog"
 
 interface ConversationHeaderProps {
   searchQuery: string
@@ -33,6 +33,8 @@ export function ConversationHeader({
   filterOptions,
   setFilterOptions,
 }: ConversationHeaderProps) {
+  const [isNewMessageOpen, setIsNewMessageOpen] = useState(false)
+
   return (
     <>
       {/* Header */}
@@ -40,40 +42,7 @@ export function ConversationHeader({
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Messages</h2>
           <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="start" side="right" sideOffset={10}>
-                <div className="p-4 border-b">
-                  <h4 className="font-medium text-sm">New Conversation</h4>
-                  <p className="text-xs text-muted-foreground mt-1">Start chatting with a contact or phone number</p>
-                </div>
-                <div className="p-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="recipient">Recipient</Label>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input id="recipient" placeholder="Search contacts or enter phone number..." className="pl-8" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Initial message (optional)</Label>
-                    <Textarea 
-                    id="message" 
-                    placeholder="Type message..."
-                    className="min-h-[80px] max-h-[290px] resize-y"
-                    />
-                  </div>
-                  <Button className="w-full">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Start Conversation
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <NewMessageDialog open={isNewMessageOpen} onOpenChange={setIsNewMessageOpen} />
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="icon" className="h-8 w-8">
