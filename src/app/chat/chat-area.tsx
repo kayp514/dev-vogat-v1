@@ -34,22 +34,6 @@ export function ChatArea({
     }
   };
 
-  if (!selectedUser) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-4 bg-muted/10">
-        <div className="max-w-md">
-          <div className="bg-primary/10 p-6 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
-            <MessageSquare className="h-12 w-12 text-primary" />
-          </div>
-          <h2 className="text-2xl font-semibold mb-2">Your messages</h2>
-          <p className="text-muted-foreground mb-6">
-            Select a conversation or start a new one to begin messaging
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-full">
       <ChatHeader
@@ -57,7 +41,10 @@ export function ChatArea({
         onBackToList={onBackToList}
         isMobile={isMobile}
       />
-      <MessageList currentUserId={clientId} selectedUser={selectedUser} />
+      <MessageList
+        currentUserId={clientId}
+        selectedUser={selectedUser}
+      />
       <MessageInput
         onSendMessage={handleSendMessage}
         onTyping={handleTyping}

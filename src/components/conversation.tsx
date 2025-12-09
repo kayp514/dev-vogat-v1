@@ -46,8 +46,7 @@ const ConversationButton = (props: ConversationButtonProps) => {
   const name =
     user.name ||
     (user.email ? user.email.split("@")[0] : user.uid.substring(0, 8));
-  const avatarLetter = name[0]?.toUpperCase();
-  const avatar = user.avatar || user.avatar;
+  const avatarLetter = name[0]?.toUpperCase() || "U";
 
   const userPresence = presenceUpdates.find(
     update => update.clientId === user.uid
@@ -80,7 +79,7 @@ const ConversationButton = (props: ConversationButtonProps) => {
         <div className="relative shrink-0">
           <Avatar className="h-10 w-10 ring-2 ring-background">
             {user.avatar ? (
-              <AvatarImage src={avatar} alt={name} />
+              <AvatarImage src={user.avatar} alt={name} />
             ) : (
               <AvatarFallback className="bg-primary/10 text-primary">
                 {avatarLetter}
@@ -339,7 +338,6 @@ export function Conversation({
             <div className="space-y-1">
               {conversations.map((conversation) => {
                 const otherUserId = conversation.otherUserId;
-                // Get presence status if available
                 const presenceUpdate = presenceState.get(otherUserId);
                 const status = presenceUpdate?.presence.status || "unknown";
                 const lastMessage =

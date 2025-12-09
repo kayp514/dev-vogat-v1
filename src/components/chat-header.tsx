@@ -18,7 +18,7 @@ import type { User } from "@/app/type";
 import { usePresence } from "@/ternsecure-realtime/hooks/usePresence";
 
 interface ChatHeaderProps {
-  selectedUser: User;
+  selectedUser: User | null;
   onBackToList?: () => void;
   isMobile?: boolean;
 }
@@ -29,6 +29,16 @@ export function ChatHeader({
   isMobile,
 }: ChatHeaderProps) {
   const { presenceState } = usePresence();
+
+  if (!selectedUser) {
+    return (
+      <div className="px-6 py-4 border-b">
+        <h2 className="text-sm font-semibold text-muted-foreground">
+          Select a conversation
+        </h2>
+      </div>
+    )
+  }
 
   const name =
     selectedUser.name ||
