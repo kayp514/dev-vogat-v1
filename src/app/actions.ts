@@ -47,7 +47,7 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
             description: 'Default organization for new users',
             plan: 'basic',
             maxUsers: 300,
-            active: true,
+            disabled: false,
           },
         })
       }
