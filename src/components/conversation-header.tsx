@@ -1,39 +1,35 @@
-"use client"
-import { useState } from "react"
-import { Search, Filter } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { MessageSquare, Users } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { NewMessageDialog } from "./new-message-dialog"
+"use client";
+import { useState } from "react";
+import { MessageSquare, Users } from "lucide-react";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NewMessageDialog } from "./new-message-dialog";
+import { SearchConversation } from "./search-conversation";
+import { ConversationFilter } from "./conversation-filter";
 
-interface ConversationHeaderProps {
-  searchQuery: string
-  setSearchQuery: (query: string) => void
-  activeTab: string
-  setActiveTab: (tab: string) => void
+type ConversationHeaderProps = {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
   filterOptions: {
-    showOnlineOnly: boolean
-    showUnreadOnly: boolean
-  }
+    showOnlineOnly: boolean;
+    showUnreadOnly: boolean;
+  };
   setFilterOptions: (options: {
-    showOnlineOnly: boolean
-    showUnreadOnly: boolean
-  }) => void
-}
+    showOnlineOnly: boolean;
+    showUnreadOnly: boolean;
+  }) => void;
+};
 
-export function ConversationHeader({
-  searchQuery,
-  setSearchQuery,
-  activeTab,
-  setActiveTab,
-  filterOptions,
-  setFilterOptions,
-}: ConversationHeaderProps) {
-  const [isNewMessageOpen, setIsNewMessageOpen] = useState(false)
+export function ConversationHeader(props: ConversationHeaderProps) {
+  const {
+    searchQuery,
+    filterOptions,
+    setFilterOptions,
+    setSearchQuery,
+    activeTab,
+  } = props;
+  const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
 
   return (
     <>
@@ -42,50 +38,21 @@ export function ConversationHeader({
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Messages</h2>
           <div className="flex items-center gap-2">
-            <NewMessageDialog open={isNewMessageOpen} onOpenChange={setIsNewMessageOpen} />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8">
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56" align="end">
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Filter Conversations</h4>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="online-only"
-                      checked={filterOptions.showOnlineOnly}
-                      onCheckedChange={(checked) =>
-                        setFilterOptions({ ...filterOptions, showOnlineOnly: checked === true })
-                      }
-                    />
-                    <Label htmlFor="online-only">Online contacts only</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="unread-only"
-                      checked={filterOptions.showUnreadOnly}
-                      onCheckedChange={(checked) =>
-                        setFilterOptions({ ...filterOptions, showUnreadOnly: checked === true })
-                      }
-                    />
-                    <Label htmlFor="unread-only">Unread messages only</Label>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <NewMessageDialog
+              open={isNewMessageOpen}
+              onOpenChange={setIsNewMessageOpen}
+            />
+            <ConversationFilter
+              filterOptions={filterOptions}
+              setFilterOptions={setFilterOptions}
+            />
           </div>
         </div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search conversations..."
-            className="pl-8 bg-background/50 border-muted focus-visible:ring-1 focus-visible:ring-primary"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+        <SearchConversation
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          activeTab={activeTab}
+        />
       </div>
 
       {/* Tabs */}
@@ -108,6 +75,5 @@ export function ConversationHeader({
         </TabsList>
       </div>
     </>
-  )
+  );
 }
-

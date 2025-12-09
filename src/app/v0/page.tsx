@@ -13,9 +13,7 @@ import { ChatProvider } from "@/ternsecure-realtime/providers/ChatProvider";
 const API_KEY = process.env.TERNSECURE_REALTIME_KEY;
 
 export default function VzeroPage() {
-  const { user, sessionClaims } = useAuth();
-  console.log("V0 page user:", user);
-  console.log("V0 page sessionClaims:", sessionClaims);
+  const { user } = useAuth();
 
   if (!user) return null;
 
