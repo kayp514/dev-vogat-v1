@@ -4,6 +4,10 @@ import { useState, useCallback, useTransition } from 'react'
 import { useDebounce } from './use-debounce'
 import type {  User } from '@/lib/db/types'
 
+const API = "https://api-vogat.vercel.app"
+const API_VERSION = "v1"
+const SEARCH_ENDPOINT = "users/search"
+
 export function useSearch() {
   const [users, setUsers] = useState<User[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -17,7 +21,7 @@ export function useSearch() {
 
     startTransition(async () => {
       try {
-        const response = await fetch(`/api/users/?q=${encodeURIComponent(query)}`)
+        const response = await fetch(`${API}/${API_VERSION}/${SEARCH_ENDPOINT}?q=${encodeURIComponent(query)}`)
         const data = await response.json()
         
         if (data.success) {

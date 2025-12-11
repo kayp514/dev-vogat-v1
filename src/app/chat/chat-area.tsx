@@ -6,7 +6,6 @@ import type { User } from "@/lib/db/types";
 import { useChat } from "@/ternsecure-realtime/ctx/ChatCtx";
 import { useWebSkt } from "@/ternsecure-realtime/ctx/SocketWebSktCtx";
 import { MessageInput } from "@/components/message-input";
-import { MessageSquare } from "lucide-react";
 
 interface ChatAreaProps {
   selectedUser: User | null;

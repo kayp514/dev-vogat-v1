@@ -101,6 +101,7 @@ const MessageBubble = ({
 
   return (
     <div
+      key={message.messageId}
       className={cn(
         "flex w-full items-end space-x-2",
         isCurrentUser ? "justify-end" : "justify-start",
@@ -110,7 +111,7 @@ const MessageBubble = ({
       <div
         className={cn(
           "flex items-end gap-2 max-w-[70%]",
-          isCurrentUser && "flex-row-reverse"
+          isCurrentUser ? "flex-row-reverse space-x-reverse" : "order-0"
         )}
       >
         <div className="shrink-0 w-8 self-end">
@@ -126,16 +127,16 @@ const MessageBubble = ({
         </div>
         <div className="flex-1 space-y-1">
           <div className={bubbleClassName}>
-            <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+            <p className="text-sm leading-relaxed">{message.message}</p>
           </div>
           {showMetadata && (
             <div
               className={cn(
-                "flex items-center gap-1",
+                "flex items-center justify-between mt-1 space-x-2",
                 isCurrentUser ? "justify-end" : "justify-start"
               )}
             >
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs opacity-70">
                 {formatMessageTime(message.timestamp)}
               </span>
               {isCurrentUser && (
@@ -300,7 +301,7 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
     return () => {
       unsubscribe();
     };
-  }, [subscribeToMessageStatus, messageStatuses]);
+  }, [subscribeToMessageStatus]);
 
   useEffect(() => {
     if (!selectedUser) return;

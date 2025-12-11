@@ -4,7 +4,7 @@ import { createUser } from "@/lib/db/queries"
 import { prisma } from "@/lib/prisma"
 import type { FirebaseAuthUser, DatabaseUserInput, SignUpResult } from "@/lib/db/types"
 import { syncUserToRedis } from "@/lib/db/redis-sync"
-import { cacheUserData, CacheKeys , getRedisClient} from "@/lib/db/redis-sync-cache"
+import { cacheUserData, CacheKeys, getRedisClient } from "@/lib/db/redis-sync-cache"
 
 import {
   createNextSessionCookie,
@@ -19,10 +19,7 @@ const DEFAULT_TENANT_ID = 'default'
 
 
 export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promise<SignUpResult> {
-    //console.log("1. createDatabaseUser received:", JSON.stringify(firebaseUser, null, 2))
-
   if (!firebaseUser || typeof firebaseUser !== "object") {
-    //console.error("2. Invalid input:", firebaseUser)
     return {
       success: false,
       error: {
@@ -34,23 +31,22 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
 
   try {
     const existingTenant = await prisma.tenants.findUnique({
-        where: { id: DEFAULT_TENANT_ID },
+      where: { id: DEFAULT_TENANT_ID },
+    })
+
+    if (!existingTenant) {
+      await prisma.tenants.create({
+        data: {
+          id: DEFAULT_TENANT_ID,
+          name: 'LifeSprint',
+          domain: 'lifesprintcare.ca',
+          description: 'Default organization for new users',
+          plan: 'basic',
+          maxUsers: 300,
+          disabled: false,
+        },
       })
-  
-      if (!existingTenant) {
-        console.log("Creating default tenant...")
-        await prisma.tenants.create({
-          data: {
-            id: DEFAULT_TENANT_ID,
-            name: 'LifeSprint',
-            domain: 'lifesprintcare.ca',
-            description: 'Default organization for new users',
-            plan: 'basic',
-            maxUsers: 300,
-            disabled: false,
-          },
-        })
-      }
+    }
 
     const userInput: DatabaseUserInput = {
       uid: firebaseUser.uid,
@@ -62,18 +58,16 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
       phoneNumber: firebaseUser.phoneNumber ?? null,
       emailVerified: firebaseUser.emailVerified ?? false,
       CreatedAt: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
-      LastSignInAt: firebaseUser.metadata.lastSignInTime 
+      LastSignInAt: firebaseUser.metadata.lastSignInTime
         ? new Date(firebaseUser.metadata.lastSignInTime)
         : new Date(),
     }
-    //console.log("3. Transformed to DatabaseUserInput:", JSON.stringify(userInput, null, 2))
 
     const user = await createUser(userInput)
-   // console.log("4. Database user created:", JSON.stringify(user, null, 2))
 
     if (!user) {
-        throw new Error("No user returned from database creation")
-      }
+      throw new Error("No user returned from database creation")
+    }
 
     return {
       success: true,
@@ -85,7 +79,6 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
       },
     }
   } catch (error) {
-    console.error("5. Error in createDatabaseUser:", error)
     return {
       success: false,
       error: {
@@ -134,37 +127,37 @@ export async function verifyDatabaseUser(uid: string, tenantId: string): Promise
         updatedAt: new Date(parseInt(cachedUser.lastActive))
       };
     } else {
-      
-    dbUser = await prisma.users.findUnique({
-      where: { uid },
-      select: {
-        uid: true,
-        email: true,
-        name: true,
-        avatar: true,
-        tenantId: true,
-        isAdmin: true,
-        emailVerified: true,
-        disabled: true,
-        updatedAt: true
-      }
-    })
 
-    if (dbUser) {
-      // Cache the user data for next time
-      await cacheUserData({
-        uid: dbUser.uid,
-        tenantId: dbUser.tenantId,
-        name: dbUser.name || '',
-        email: dbUser.email,
-        avatar: dbUser.avatar || '',
-        lastActive: dbUser.updatedAt.getTime(),
-        status: 'online',
-        isAdmin: dbUser.isAdmin,
-        disabled: dbUser.disabled,
-      });
+      dbUser = await prisma.users.findUnique({
+        where: { uid },
+        select: {
+          uid: true,
+          email: true,
+          name: true,
+          avatar: true,
+          tenantId: true,
+          isAdmin: true,
+          emailVerified: true,
+          disabled: true,
+          updatedAt: true
+        }
+      })
+
+      if (dbUser) {
+        // Cache the user data for next time
+        await cacheUserData({
+          uid: dbUser.uid,
+          tenantId: dbUser.tenantId,
+          name: dbUser.name || '',
+          email: dbUser.email,
+          avatar: dbUser.avatar || '',
+          lastActive: dbUser.updatedAt.getTime(),
+          status: 'online',
+          isAdmin: dbUser.isAdmin,
+          disabled: dbUser.disabled,
+        });
+      }
     }
-  }
 
     if (!dbUser) {
       return {
@@ -185,7 +178,7 @@ export async function verifyDatabaseUser(uid: string, tenantId: string): Promise
         }
       }
     }
-    
+
     return {
       success: true,
       user: dbUser
