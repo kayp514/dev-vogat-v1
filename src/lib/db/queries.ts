@@ -10,7 +10,7 @@ export async function getUser(uid: string) {
     console.log("2. Attempting prisma.user.findUnique")
     const dbUser = await prisma.users.findUnique({
       where: { uid },
-      select : {
+      select: {
         uid: true,
         email: true,
         emailVerified: true,
@@ -52,53 +52,53 @@ export async function getUser(uid: string) {
 }
 
 export async function searchUsers(query: string, limit: number = 10): Promise<SearchResult> {
-    try {
-      const dbUser = await prisma.users.findMany({
-        where: {
-          OR: [
-            {
-              name: {
-                contains: query,
-                mode: 'insensitive', // Case-insensitive search
-              },
+  try {
+    const dbUser = await prisma.users.findMany({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: query,
+              mode: 'insensitive', // Case-insensitive search
             },
-            {
-              email: {
-                contains: query,
-                mode: 'insensitive',
-              },
+          },
+          {
+            email: {
+              contains: query,
+              mode: 'insensitive',
             },
-          ],
-        },
-        select: {
-          uid: true,
-          name: true,
-          email: true,
-          avatar: true,
-        },
-        take: limit,
-      });
-  
-      return {
-        success: true,
-        users: dbUser.map((user: { uid: string; name: string | null; email: string; avatar: string | null }) => ({
-            uid: user.uid,
-            name: user.name || user.email?.split('@')[0],
-            email: user.email,
-            avatar: user.avatar ?? undefined,
-        })),
-      };
-    } catch (error) {
-      console.error('Error searching users:', error);
-      return {
-        success: false,
-        error: {
-          code: 'SEARCH_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to search users',
-        },
-      };
-    }
+          },
+        ],
+      },
+      select: {
+        uid: true,
+        name: true,
+        email: true,
+        avatar: true,
+      },
+      take: limit,
+    });
+
+    return {
+      success: true,
+      users: dbUser.map((user: { uid: string; name: string | null; email: string; avatar: string | null }) => ({
+        uid: user.uid,
+        name: user.name || user.email?.split('@')[0],
+        email: user.email,
+        avatar: user.avatar ?? undefined,
+      })),
+    };
+  } catch (error) {
+    console.error('Error searching users:', error);
+    return {
+      success: false,
+      error: {
+        code: 'SEARCH_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to search users',
+      },
+    };
   }
+}
 
 
 
@@ -110,20 +110,20 @@ export async function createUser(data: DatabaseUserInput | null) {
 
   try {
     const sanitizedData = {
-        uid: data.uid,
-        email: data.email.toLowerCase(),
-        name: data.name,
-        avatar: data.avatar,
-        tenantId: data.tenantId,
-        isAdmin: data.isAdmin,
-        phoneNumber: data.phoneNumber,
-        emailVerified: data.emailVerified,
-        CreatedAt: data.CreatedAt,
-        LastSignInAt: data.LastSignInAt,
-        updatedAt: new Date(),
-        disabled: false
-      }
-   const user =  await prisma.users.create({
+      uid: data.uid,
+      email: data.email.toLowerCase(),
+      name: data.name,
+      avatar: data.avatar,
+      tenantId: data.tenantId,
+      isAdmin: data.isAdmin,
+      phoneNumber: data.phoneNumber,
+      emailVerified: data.emailVerified,
+      CreatedAt: data.CreatedAt,
+      LastSignInAt: data.LastSignInAt,
+      updatedAt: new Date(),
+      disabled: false
+    }
+    const user = await prisma.users.create({
       data: sanitizedData,
       select: {
         uid: true,
@@ -295,8 +295,8 @@ export async function createNewChat(currentUserId: string, otherUserId: string, 
         }
       });
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         chat: updatedChat,
         isExisting: true
       };

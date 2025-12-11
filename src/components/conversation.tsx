@@ -218,6 +218,7 @@ export function Conversation({
 }: ConversationProps) {
   const {
     selectedUser,
+    setSelectedUser,
     subscribeToMessages,
     getConversations,
     getLastMessage,
@@ -364,7 +365,7 @@ export function Conversation({
                     user={user}
                     isSelected={selectedUser?.uid === otherUserId}
                     onSelect={(user) => {
-                      onSelectChat(user);
+                      setSelectedUser(user);
                       onSelectChat(user);
                     }}
                     lastMessage={lastMessage}

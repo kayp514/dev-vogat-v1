@@ -7,29 +7,29 @@ const DEFAULT_TENANT_ID = 'default'
 export async function GET(request: Request) {
   try {
 
-    const session = await auth()
-    
-    if (!session?.user?.uid) {
+    const { user } = await auth()
+
+    if (!user?.uid) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: { 
-            code: 'UNAUTHORIZED', 
-            message: 'Not authenticated' 
-          } 
-        }, 
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Not authenticated'
+          }
+        },
         { status: 401 }
       )
     }
 
-    const result = await getUserChats(session.user.uid, session.user.tenantId || '')
+    const result = await getUserChats(user.uid, user.tenantId || DEFAULT_TENANT_ID)
 
     if (!result.success) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: result.error 
-        }, 
+        {
+          success: false,
+          error: result.error
+        },
         { status: 500 }
       )
     }
@@ -42,13 +42,13 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Chats API error:', error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: { 
-          code: 'INTERNAL_ERROR', 
-          message: 'Failed to fetch chats' 
-        } 
-      }, 
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to fetch chats'
+        }
+      },
       { status: 500 }
     )
   }
@@ -56,18 +56,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const {user } = await auth()
-    console.log('api chat', user?.uid)
-    
+    const { user } = await auth()
+
     if (!user?.uid) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: { 
-            code: 'UNAUTHORIZED', 
-            message: 'Not authenticated' 
-          } 
-        }, 
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Not authenticated'
+          }
+        },
         { status: 401 }
       )
     }
@@ -76,13 +75,13 @@ export async function POST(request: Request) {
 
     if (!recipientId || !content?.trim()) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: { 
-            code: 'INVALID_INPUT', 
-            message: 'Recipient and message content are required' 
-          } 
-        }, 
+        {
+          success: false,
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'Recipient and message content are required'
+          }
+        },
         { status: 400 }
       )
     }
@@ -96,10 +95,10 @@ export async function POST(request: Request) {
 
     if (!result.success) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: result.error 
-        }, 
+        {
+          success: false,
+          error: result.error
+        },
         { status: 500 }
       )
     }
@@ -112,13 +111,13 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error in Sending Message:', error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: { 
-          code: 'INTERNAL_ERROR', 
-          message: 'Failed to send message' 
-        } 
-      }, 
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to send message'
+        }
+      },
       { status: 500 }
     )
   }
