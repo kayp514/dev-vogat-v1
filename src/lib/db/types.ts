@@ -22,8 +22,8 @@ export interface DatabaseUserInput {
   isAdmin: boolean
   phoneNumber: string | null
   emailVerified: boolean
-  CreatedAt: Date | null
-  LastSignInAt: Date | null
+  createdAt: Date | null
+  lastSignInAt: Date | null
 }
   
 export interface SignUpResult {

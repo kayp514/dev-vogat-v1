@@ -7,6 +7,7 @@ import { TernSecureProvider } from "@tern-secure/nextjs";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/components/theme-provider";
+import { QueryProvider } from "./providers/QueryProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -45,20 +46,22 @@ export default function RootLayout({
           persistence="browserCookie"
           requiresVerification={false}
         >
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <SIPProvider>
-              <CallSIPProvider>
-                {children}
-                <Analytics />
-                <SpeedInsights />
-              </CallSIPProvider>
-            </SIPProvider>
-          </ThemeProvider>
+          <QueryProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <SIPProvider>
+                <CallSIPProvider>
+                  {children}
+                  <Analytics />
+                  <SpeedInsights />
+                </CallSIPProvider>
+              </SIPProvider>
+            </ThemeProvider>
+          </QueryProvider>
         </TernSecureProvider>
       </body>
     </html>

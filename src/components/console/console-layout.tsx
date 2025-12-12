@@ -15,11 +15,11 @@ import { ConsoleBilling } from "./console-billing"
 
 
 // Component map for different tabs
-const TabComponents: Record<string, React.ReactNode> = {
-  'sip-trunk': <SipTrunk />,
-  'user': <ConsoleUser />,
-  'numbers': <ConsoleDID />,
-  'monitoring': (
+const TabComponents: Record<string, React.ComponentType> = {
+  'sip-trunk': SipTrunk,
+  'user': ConsoleUser,
+  'numbers': ConsoleDID,
+  'monitoring': () => (
     <Card className="border-none shadow-none">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -37,7 +37,7 @@ const TabComponents: Record<string, React.ReactNode> = {
       </CardContent>
     </Card>
   ),
-  'settings': (
+  'settings': () => (
     <Card className="border-none shadow-none">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -55,12 +55,14 @@ const TabComponents: Record<string, React.ReactNode> = {
       </CardContent>
     </Card>
   ),
-  'billing': <ConsoleBilling />,
+  'billing': ConsoleBilling,
 }
 
 export function ConsoleLayout() {
   const [activeTab, setActiveTab] = useState("user")
   const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const ActiveComponent = TabComponents[activeTab]
 
   return (
     <div className="flex h-full">
@@ -97,7 +99,9 @@ export function ConsoleLayout() {
           <div className="flex justify-center w-full py-6 px-4">
             <div className="w-full max-w-6xl">
               <div className="animate-in fade-in slide-in-from-right-5 duration-500">
-                {TabComponents[activeTab] || (
+                {ActiveComponent ? (
+                  <ActiveComponent />
+                ) : (
                   <div className="flex h-[60vh] items-center justify-center">
                     <p className="text-muted-foreground">Select a section from the sidebar</p>
                   </div>
