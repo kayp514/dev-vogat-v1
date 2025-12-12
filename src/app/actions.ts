@@ -57,8 +57,8 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
       isAdmin: true,
       phoneNumber: firebaseUser.phoneNumber ?? null,
       emailVerified: firebaseUser.emailVerified ?? false,
-      CreatedAt: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
-      LastSignInAt: firebaseUser.metadata.lastSignInTime
+      createdAt: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
+      lastSignInAt: firebaseUser.metadata.lastSignInTime
         ? new Date(firebaseUser.metadata.lastSignInTime)
         : new Date(),
     }

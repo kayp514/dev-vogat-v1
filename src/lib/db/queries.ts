@@ -100,6 +100,91 @@ export async function searchUsers(query: string, limit: number = 10): Promise<Se
   }
 }
 
+export async function getAllUsers(page: number = 1, pageSize: number = 10, searchQuery?: string) {
+  try {
+    const skip = (page - 1) * pageSize;
+    
+    const where = searchQuery ? {
+      OR: [
+        {
+          name: {
+            contains: searchQuery,
+            mode: 'insensitive' as const,
+          },
+        },
+        {
+          email: {
+            contains: searchQuery,
+            mode: 'insensitive' as const,
+          },
+        },
+        {
+          phoneNumber: {
+            contains: searchQuery,
+            mode: 'insensitive' as const,
+          },
+        },
+      ],
+    } : {};
+
+    const [users, totalCount] = await Promise.all([
+      prisma.users.findMany({
+        where,
+        select: {
+          uid: true,
+          email: true,
+          phoneNumber: true,
+          tenantId: true,
+          disabled: true,
+          createdAt: true,
+          lastSignInAt: true,
+          isAdmin: true,
+        },
+        skip,
+        take: pageSize,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      prisma.users.count({ where }),
+    ]);
+
+    const usersWithRoles = users.map(user => {
+      let role: 'admin' | 'user' = user.isAdmin ? 'admin' : 'user';
+
+      return {
+        uid: user.uid,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        tenantId: user.tenantId,
+        disabled: user.disabled,
+        createdAt: user.createdAt ? user.createdAt.toISOString() : new Date().toISOString(),
+        lastSignInAt: user.lastSignInAt?.toISOString() || null,
+        role,
+        isAdmin: user.isAdmin,
+        customClaims: { role },
+      };
+    });
+
+    return {
+      success: true,
+      users: usersWithRoles,
+      totalCount,
+      totalPages: Math.ceil(totalCount / pageSize),
+      currentPage: page,
+    };
+  } catch (error) {
+    console.error('Error fetching all users:', error);
+    return {
+      success: false,
+      error: {
+        code: 'FETCH_USERS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch users',
+      },
+    };
+  }
+}
+
 
 
 export async function createUser(data: DatabaseUserInput | null) {
@@ -118,8 +203,8 @@ export async function createUser(data: DatabaseUserInput | null) {
       isAdmin: data.isAdmin,
       phoneNumber: data.phoneNumber,
       emailVerified: data.emailVerified,
-      CreatedAt: data.CreatedAt,
-      LastSignInAt: data.LastSignInAt,
+      createdAt: data.createdAt,
+      lastSignInAt: data.lastSignInAt,
       updatedAt: new Date(),
       disabled: false
     }

@@ -26,6 +26,19 @@ export function PageHeader({ title, description, actions, className }: PageHeade
 }
 
 
+export function PageHeaderVogat({ title, description, actions, className }: PageHeaderProps) {
+  return (
+    <div>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight dark:text-white">{title}</h1>
+        {description && <p className="text-muted-foreground dark:text-gray-300 mt-1">{description}</p>}
+      </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  )
+}
+
+
 
 export function PageWrapper({ children, className }: PageWrapperProps) {
   return <div className={cn("space-y-6", className)}>{children}</div>
