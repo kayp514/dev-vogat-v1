@@ -12,9 +12,6 @@ import { ConsoleUser } from "./console-user"
 import { ConsoleDID } from "./console-did"
 import { ConsoleBilling } from "./console-billing"
 
-
-
-// Component map for different tabs
 const TabComponents: Record<string, React.ComponentType> = {
   'sip-trunk': SipTrunk,
   'user': ConsoleUser,
