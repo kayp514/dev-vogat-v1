@@ -33,12 +33,9 @@ export function UsersPagination({
   onPageChange,
   isFetching = false,
   isPlaceholderData = false,
-  hasMore = false,
   rowCount,
   itemsPerPage,
 }: UsersPaginationProps) {
-  console.log(table.getState()) //access the entire internal state
-console.log(table.getState().rowSelection) //access a specific state property
 
   const handlePreviousPage = () => {
     if (currentPage > 1 && !isFetching) {
@@ -47,13 +44,13 @@ console.log(table.getState().rowSelection) //access a specific state property
   };
 
   const handleNextPage = () => {
-    if (!isPlaceholderData && hasMore) {
+    if (!isPlaceholderData && currentPage < totalPages) {
       onPageChange(currentPage + 1);
     }
   };
 
   const canGoPrevious = currentPage > 1;
-  const canGoNext = isPlaceholderData || !hasMore;
+  const canGoNext = currentPage < totalPages;
 
   const startItem = totalUsers === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalUsers);
@@ -97,8 +94,8 @@ console.log(table.getState().rowSelection) //access a specific state property
           <Button
             variant="outline"
             className="h-8 w-8 p-0 bg-transparent"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={handlePreviousPage}
+            disabled={!canGoPrevious}
           >
             <span className="sr-only">Go to previous page</span>
             <ChevronLeft className="h-4 w-4" />
@@ -106,8 +103,8 @@ console.log(table.getState().rowSelection) //access a specific state property
           <Button
             variant="outline"
             className="h-8 w-8 p-0 bg-transparent"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={handleNextPage}
+            disabled={!canGoNext}
           >
             <span className="sr-only">Go to next page</span>
             <ChevronRight className="h-4 w-4" />

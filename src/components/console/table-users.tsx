@@ -71,16 +71,14 @@ export function UsersDataTable(props: UsersDataTableProps) {
     //getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onPaginationChange: setPagination,
-    //autoResetPageIndex: false,
+    autoResetPageIndex: false,
     state: {
       sorting,
       columnVisibility,
       pagination,
     },
     manualPagination: true,
-    rowCount: props.rowCount,
-    //pageCount: totalPages,
-    debugTable: true,
+    rowCount: props.rowCount
   });
 
   return (

@@ -35,18 +35,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TernSecureProvider
-          appCheck={{
-            provider: "reCaptchaV3",
-            siteKey: "6LfzGRgsAAAAAGEvbwbcLgT4IHWmuWv4kEDRA5hi",
-            isTokenAutoRefreshEnabled: true,
-          }}
-          //apiUrl="ternsecure-auth-admin.vercel.app"
-          ternUIUrl="https://cdn.jsdelivr.net/npm/@tern-secure/auth@1.1.0-canary.v20251210182014/dist/ternsecure.browser.js"
-          persistence="local"
-          requiresVerification={false}
-        >
-          <QueryProvider>
+        <QueryProvider>
+          <TernSecureProvider
+            appCheck={{
+              provider: "reCaptchaV3",
+              siteKey: "6LfzGRgsAAAAAGEvbwbcLgT4IHWmuWv4kEDRA5hi",
+              isTokenAutoRefreshEnabled: true,
+            }}
+            //apiUrl="ternsecure-auth-admin.vercel.app"
+            ternUIUrl="https://cdn.jsdelivr.net/npm/@tern-secure/auth@1.1.0-canary.v20251210182014/dist/ternsecure.browser.js"
+            persistence="local"
+            requiresVerification={false}
+          >
             <ThemeProvider
               attribute="class"
               defaultTheme="system"
@@ -61,8 +61,8 @@ export default function RootLayout({
                 </CallSIPProvider>
               </SIPProvider>
             </ThemeProvider>
-          </QueryProvider>
-        </TernSecureProvider>
+          </TernSecureProvider>
+        </QueryProvider>
       </body>
     </html>
   );
