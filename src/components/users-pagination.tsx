@@ -1,58 +1,76 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import type { Table } from "@tanstack/react-table";
+import type { UserData } from "@/types";
 
 interface UsersPaginationProps {
-  totalUsers: number
-  totalPages: number
-  currentPage: number
-  onPageChange: (page: number) => void
-  isLoading?: boolean
+  table: Table<UserData>;
+  totalUsers: number;
+  totalPages: number;
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  isFetching?: boolean;
+  isPlaceholderData?: boolean;
+  hasMore?: boolean;
+  rowCount: number;
+  itemsPerPage: number;
 }
 
 export function UsersPagination({
+  table,
   totalUsers,
   totalPages,
   currentPage,
   onPageChange,
-  isLoading = false,
+  isFetching = false,
+  isPlaceholderData = false,
+  rowCount,
+  itemsPerPage,
 }: UsersPaginationProps) {
+
   const handlePreviousPage = () => {
-    if (currentPage > 1 && !isLoading) {
-      onPageChange(currentPage - 1)
+    if (currentPage > 1 && !isFetching) {
+      onPageChange(currentPage - 1);
     }
-  }
+  };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages && !isLoading) {
-      onPageChange(currentPage + 1)
+    if (!isPlaceholderData && currentPage < totalPages) {
+      onPageChange(currentPage + 1);
     }
-  }
+  };
 
-  const canGoPrevious = currentPage > 1 && !isLoading
-  const canGoNext = currentPage < totalPages && !isLoading
+  const canGoPrevious = currentPage > 1;
+  const canGoNext = currentPage < totalPages;
 
-  const startItem = totalUsers === 0 ? 0 : (currentPage - 1) * 10 + 1
-  const endItem = Math.min(currentPage * 10, totalUsers)
+  const startItem = totalUsers === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalUsers);
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 sm:space-x-2 p-4 pt-3 border-t">
       <div className="flex-1 text-sm text-muted-foreground text-center sm:text-left">
-        {isLoading ? (
+        {isFetching ? (
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading users...
           </div>
         ) : (
-          `Showing ${startItem} to ${endItem} of ${totalUsers} user(s)`
+          `Showing ${startItem} to ${endItem} of ${rowCount} user(s)`
         )}
       </div>
       <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
           <p className="text-sm font-medium">Rows per page</p>
-          <Select value="10" disabled={isLoading}>
+          <Select value={table.getState().pagination.pageSize.toString()}>
             <SelectTrigger className="h-8 w-[70px]">
               <SelectValue placeholder="10" />
             </SelectTrigger>
@@ -66,7 +84,7 @@ export function UsersPagination({
           </Select>
         </div>
         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-          {isLoading ? (
+          {isFetching ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             `Page ${currentPage} of ${Math.max(1, totalPages)}`
@@ -94,5 +112,5 @@ export function UsersPagination({
         </div>
       </div>
     </div>
-  )
+  );
 }

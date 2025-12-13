@@ -5,6 +5,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  PaginationState,
   type ColumnDef,
   type SortingState,
   type VisibilityState,
@@ -20,28 +21,34 @@ import {
 import { PageWrapper, PageHeaderVogat } from "@/components/page-layout";
 import { UsersSearchFilters } from "@/components/users-search";
 import type { UserData } from "@/types";
-import { UsersPagination } from "../users-pagination";
+import { UsersPagination } from "@/components/users-pagination";
 
 type UsersDataTableProps = {
   columns: ColumnDef<UserData>[];
   data: UserData[];
   totalUsers: number;
+  rowCount: number;
   totalPages: number;
   currentPage: number;
   onPageChange: (page: number) => void;
   globalFilter: string;
   onGlobalFilterChange: (value: string) => void;
-  isLoading?: boolean;
+  isFetching?: boolean;
+  isPlaceholderData?: boolean;
+  hasMore?: boolean;
+  itemsPerPage: number;
 };
 
 export function UsersDataTable(props: UsersDataTableProps) {
   const {
     data,
     columns,
-    totalPages,
     globalFilter,
     onGlobalFilterChange,
-    isLoading,
+    isFetching,
+    isPlaceholderData,
+    hasMore,
+    itemsPerPage,
   } = props;
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -50,20 +57,28 @@ export function UsersDataTable(props: UsersDataTableProps) {
     role: false,
   });
 
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: props.currentPage - 1,
+    pageSize: itemsPerPage,
+  });
+
   const table = useReactTable({
     data,
     columns,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    //getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    onPaginationChange: setPagination,
+    autoResetPageIndex: false,
     state: {
       sorting,
       columnVisibility,
+      pagination,
     },
     manualPagination: true,
-    pageCount: totalPages,
+    rowCount: props.rowCount
   });
 
   return (
@@ -77,7 +92,7 @@ export function UsersDataTable(props: UsersDataTableProps) {
           table={table}
           globalFilter={globalFilter}
           setGlobalFilter={onGlobalFilterChange}
-          disabled={isLoading}
+          disabled={isFetching}
         />
         <Table>
           <TableHeader>
@@ -139,11 +154,16 @@ export function UsersDataTable(props: UsersDataTableProps) {
           </TableBody>
         </Table>
         <UsersPagination
+          table={table}
           totalUsers={props.totalUsers}
           totalPages={props.totalPages}
           currentPage={props.currentPage}
           onPageChange={props.onPageChange}
-          isLoading={isLoading}
+          isFetching={isFetching}
+          isPlaceholderData={isPlaceholderData}
+          hasMore={hasMore}
+          rowCount={props.rowCount}
+          itemsPerPage={itemsPerPage}
         />
       </div>
     </PageWrapper>

@@ -11,15 +11,16 @@ import type { UserData } from "@/types";
 const API = "https://api-vogat.vercel.app";
 const API_VERSION = "v1";
 const USERS_ENDPOINT = "users";
+const MAX_RESULTS = 100;
+const ITEMS_PER_PAGE = 10;
 
 const usersFetcher = async (page: number) => {
   const params = new URLSearchParams({
-    maxResults: "100",
+    maxResults: MAX_RESULTS.toString(),
   });
 
   if (page > 1) {
-    const offset = (page - 1) * 10;
-    params.append("nextPage", offset.toString());
+    params.append("nextPage", page.toString());
   }
 
   const url = `${API}/${API_VERSION}/${USERS_ENDPOINT}?${params.toString()}`;
@@ -29,24 +30,33 @@ const usersFetcher = async (page: number) => {
     throw new Error(result.error?.message || "Failed to fetch users");
   }
 
-  return result;
+  return {
+    users: result.users,
+    currentPage: result.currentPage,
+    pageCount: result.totalPages,
+    rowCount: result.totalCount,
+    hasMore: result.hasMore,
+  };
 };
 
 function UserList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [globalFilter, setGlobalFilter] = useState("");
-  const itemsPerPage = 10;
+
+  // Calculate the API page based on the current UI page
+  const apiPage =
+    Math.floor(((currentPage - 1) * ITEMS_PER_PAGE) / MAX_RESULTS) + 1;
 
   const { data, isPending, isFetching, isPlaceholderData } = useQuery({
-    queryKey: ["users", currentPage],
-    queryFn: () => usersFetcher(currentPage),
+    queryKey: ["users", apiPage],
+    queryFn: () => usersFetcher(apiPage),
     staleTime: 5 * 60 * 1000, // 5 minutes
     placeholderData: keepPreviousData,
   });
 
   const users = data?.users || [];
-  const serverTotalUsers = data?.totalCount || 0;
-  const serverTotalPages = data?.totalPages || 0;
+  const hasMore = data?.hasMore || false;
+  const totalCount = data?.rowCount || 0;
 
   const filteredUsers = useMemo(() => {
     if (!globalFilter) return users;
@@ -61,11 +71,21 @@ function UserList() {
     );
   }, [users, globalFilter]);
 
-  const totalUsers = filteredUsers.length;
-  const totalPages = Math.ceil(totalUsers / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentUsers = filteredUsers.slice(startIndex, endIndex);
+  // If filtering, we only have the current batch. If not, we use the total count from API.
+  const totalUsers = globalFilter ? filteredUsers.length : totalCount;
+  const pageCount = Math.ceil(totalUsers / ITEMS_PER_PAGE);
+
+  // Calculate the slice of users to display
+  let currentUsers: UserData[] = [];
+  if (globalFilter) {
+    // When filtering, we paginate the filtered results of the current batch
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    currentUsers = filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  } else {
+    // When not filtering, we slice the current batch based on the page offset within the batch
+    const startIndex = ((currentPage - 1) * ITEMS_PER_PAGE) % MAX_RESULTS;
+    currentUsers = filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }
 
   if (isPending) return <UsersTableSkeleton />;
 
@@ -83,12 +103,16 @@ function UserList() {
       columns={columns}
       data={currentUsers}
       totalUsers={totalUsers}
-      totalPages={totalPages}
+      rowCount={totalUsers}
+      totalPages={pageCount}
       currentPage={currentPage}
       onPageChange={onPageChange}
       globalFilter={globalFilter}
       onGlobalFilterChange={onGlobalFilterChange}
-      isLoading={false}
+      isFetching={isFetching}
+      isPlaceholderData={isPlaceholderData}
+      hasMore={hasMore}
+      itemsPerPage={ITEMS_PER_PAGE}
     />
   );
 }
