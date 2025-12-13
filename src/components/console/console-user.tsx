@@ -23,7 +23,7 @@ const usersFetcher = async (page: number) => {
   //if (page > 1) {
   //  const offset = (page - 1) * MAX_RESULTS;
    // params.append("nextPage", offset.toString());
- // }
+ //}
 
   const url = `${API}/${API_VERSION}/${USERS_ENDPOINT}?${params.toString()}`;
   const result = await fetcher(url);
