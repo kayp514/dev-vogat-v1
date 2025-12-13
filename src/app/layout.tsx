@@ -43,7 +43,7 @@ export default function RootLayout({
           }}
           //apiUrl="ternsecure-auth-admin.vercel.app"
           ternUIUrl="https://cdn.jsdelivr.net/npm/@tern-secure/auth@1.1.0-canary.v20251210182014/dist/ternsecure.browser.js"
-          persistence="browserCookie"
+          persistence="local"
           requiresVerification={false}
         >
           <QueryProvider>

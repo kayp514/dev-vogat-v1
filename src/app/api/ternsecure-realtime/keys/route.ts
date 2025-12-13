@@ -6,20 +6,20 @@ const AUTH_SERVER_URL = process.env.NEXT_PUBLIC_SOCKET_URL
 export async function POST(request: Request) {
   try {
 
-    const { userId } = await auth()
+    //const { userId } = await auth()
 
-    if (!userId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: { 
-            code: 'UNAUTHORIZED', 
-            message: 'Not authenticated' 
-          } 
-        }, 
-        { status: 401 }
-      )
-    }
+   // if (!userId) {
+   //   return NextResponse.json(
+   //     { 
+   //       success: false, 
+    //      error: { 
+    //        code: 'UNAUTHORIZED', 
+   //         message: 'Not authenticated' 
+    //      } 
+   //     }, 
+   //     { status: 401 }
+  //    )
+  //  }
 
     const { sessionId, clientPublicKey } = await request.json();
 
