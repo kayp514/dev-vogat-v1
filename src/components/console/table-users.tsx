@@ -2,11 +2,9 @@ import { useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   PaginationState,
-  type ColumnDef,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
@@ -22,9 +20,10 @@ import { PageWrapper, PageHeaderVogat } from "@/components/page-layout";
 import { UsersSearchFilters } from "@/components/users-search";
 import type { UserData } from "@/types";
 import { UsersPagination } from "@/components/users-pagination";
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { columns } from "@/components/columns-users";
 
 type UsersDataTableProps = {
-  columns: ColumnDef<UserData>[];
   data: UserData[];
   totalUsers: number;
   rowCount: number;
@@ -37,30 +36,33 @@ type UsersDataTableProps = {
   isPlaceholderData?: boolean;
   hasMore?: boolean;
   itemsPerPage: number;
+  onItemsPerPageChange?: (pageSize: number) => void;
 };
 
 export function UsersDataTable(props: UsersDataTableProps) {
   const {
     data,
-    columns,
     globalFilter,
     onGlobalFilterChange,
     isFetching,
     isPlaceholderData,
     hasMore,
     itemsPerPage,
+    onItemsPerPageChange,
   } = props;
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     uid: false,
     role: false,
+    tenantId: false,
   });
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: props.currentPage - 1,
     pageSize: itemsPerPage,
   });
+
 
   const table = useReactTable({
     data,
@@ -78,7 +80,7 @@ export function UsersDataTable(props: UsersDataTableProps) {
       pagination,
     },
     manualPagination: true,
-    rowCount: props.rowCount
+    rowCount: props.rowCount,
   });
 
   return (
@@ -94,13 +96,14 @@ export function UsersDataTable(props: UsersDataTableProps) {
           setGlobalFilter={onGlobalFilterChange}
           disabled={isFetching}
         />
+        <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} colSpan={header.colSpan}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -153,6 +156,7 @@ export function UsersDataTable(props: UsersDataTableProps) {
             )}
           </TableBody>
         </Table>
+        </div>
         <UsersPagination
           table={table}
           totalUsers={props.totalUsers}
@@ -164,6 +168,7 @@ export function UsersDataTable(props: UsersDataTableProps) {
           hasMore={hasMore}
           rowCount={props.rowCount}
           itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={onItemsPerPageChange}
         />
       </div>
     </PageWrapper>

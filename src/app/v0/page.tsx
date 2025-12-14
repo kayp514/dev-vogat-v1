@@ -2,10 +2,7 @@
 
 import { AppLayout } from "../../components/app-layout";
 import { useAuth } from "@tern-secure/nextjs";
-import useSWR from "swr";
-import { fetcher } from "@/lib/utils";
 import { UserData } from "../type";
-import { useStatus } from "@/hooks/use-status";
 import { createSocketConfig } from "@/ternsecure-realtime/utils/socketSessionConfig";
 import { SocketProvider } from "@/ternsecure-realtime/providers/SocketProvider";
 import { ChatProvider } from "@/ternsecure-realtime/providers/ChatProvider";
@@ -16,11 +13,6 @@ export default function VzeroPage() {
   const { user } = useAuth();
 
   if (!user) return null;
-
-  ///const { data: cachedUser } = useSWR(
-  //  user?.uid ? `/api/users` : null,
-  //   fetcher,
-  //);
 
   const baseUserData: UserData = {
     id: "me",

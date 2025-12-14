@@ -23,6 +23,7 @@ interface UsersPaginationProps {
   hasMore?: boolean;
   rowCount: number;
   itemsPerPage: number;
+  onItemsPerPageChange?: (pageSize: number) => void;
 }
 
 export function UsersPagination({
@@ -35,6 +36,7 @@ export function UsersPagination({
   isPlaceholderData = false,
   rowCount,
   itemsPerPage,
+  onItemsPerPageChange,
 }: UsersPaginationProps) {
 
   const handlePreviousPage = () => {
@@ -70,9 +72,16 @@ export function UsersPagination({
       <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
           <p className="text-sm font-medium">Rows per page</p>
-          <Select value={table.getState().pagination.pageSize.toString()}>
+          <Select
+            value={itemsPerPage.toString()}
+            onValueChange={(value) => {
+              const pageSize = Number(value);
+              table.setPageSize(pageSize);
+              onItemsPerPageChange?.(pageSize);
+            }}
+          >
             <SelectTrigger className="h-8 w-[70px]">
-              <SelectValue placeholder="10" />
+              <SelectValue placeholder={itemsPerPage.toString()} />
             </SelectTrigger>
             <SelectContent side="top">
               <SelectItem value="10">10</SelectItem>

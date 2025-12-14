@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowUpDown, XCircle, CheckCircle2 } from "lucide-react";
 import type { UserData } from "@/types";
 
-export const columns: ColumnDef<UserData>[] = [
+export const columns: ColumnDef<UserData>[] = 
+[
   {
     accessorKey: "email",
     header: ({ column }) => {
