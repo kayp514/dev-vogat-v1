@@ -22,7 +22,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('q')
 
-    // If search query provided, search contacts
     if (query) {
       const result = await searchMyContacts(user.uid, query)
       

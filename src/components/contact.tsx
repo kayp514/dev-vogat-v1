@@ -4,18 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, UserPlus, Mail, Phone } from "lucide-react";
-import { useContactSearch } from "@/hooks/use-contact-search";
-import { useEffect } from "react";
-
-interface Contact {
-  uid: string;
-  name: string | null;
-  email: string;
-  avatar: string | null;
-  phoneNumber: string | null;
-  tenantId: string;
-  addedAt?: Date;
-}
+import { useEffect, useState } from "react";
+import { useChat } from "@/ternsecure-realtime";
+import type { Contact } from "@/ternsecure-realtime/utils/socket";
 
 type ContactButtonProps = {
   contact: Contact;
@@ -102,19 +93,29 @@ const EmptyState = () => (
 );
 
 export function Contact() {
-  const { contacts, isPending, error, loadContacts } = useContactSearch();
+  const { subscribeToContact } = useChat();
+  const [loading, setLoading] = useState(true);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadContacts();
-  }, [loadContacts]);
+    const unsubscribe = subscribeToContact((contactsList) => {
+      setContacts(contactsList);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [subscribeToContact]);
 
   return (
     <ScrollArea className="flex-1 h-[calc(100vh-225px)]">
       <div className="space-y-1 p-2">
-        {isPending && <Loading />}
+        {loading && <Loading />}
         {error && <ErrorDisplay message={error} />}
-        {!isPending && !error && contacts.length === 0 && <EmptyState />}
-        {!isPending &&
+        {!loading && !error && contacts.length === 0 && <EmptyState />}
+        {!loading &&
           !error &&
           contacts.length > 0 &&
           contacts.map((contact) => (

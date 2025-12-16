@@ -1,10 +1,11 @@
 "use server"
 
-import { createUser } from "@/lib/db/queries"
+import { createUser, searchMyContacts, getMyContacts } from "@/lib/db/queries"
 import { prisma } from "@/lib/prisma"
 import type { FirebaseAuthUser, DatabaseUserInput, SignUpResult } from "@/lib/db/types"
 import { syncUserToRedis } from "@/lib/db/redis-sync"
 import { cacheUserData, CacheKeys, getRedisClient } from "@/lib/db/redis-sync-cache"
+import { auth } from "@tern-secure/nextjs/server"
 
 import {
   createNextSessionCookie,
@@ -16,6 +17,17 @@ import {
 
 
 const DEFAULT_TENANT_ID = 'default'
+
+
+interface Contact {
+  uid: string;
+  name: string | null;
+  email: string;
+  avatar: string | null;
+  phoneNumber: string | null;
+  tenantId?: string;
+  addedAt?: Date;
+}
 
 
 export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promise<SignUpResult> {
@@ -198,6 +210,49 @@ export async function verifyDatabaseUser(uid: string, tenantId: string): Promise
       }
     }
   }
+}
+
+export async function searchMyContactsWithAPI(query?: string) {
+  const res = await fetch('/api/contacts' + (query ? `?q=${encodeURIComponent(query)}` : ''), { method: 'GET' })
+  return res.json()
+}
+
+export async function searchMyContactsNoAPI(query?: string): Promise<{
+  success: boolean;
+  contacts?: Contact[];
+  error?: { code: string; message: string };
+}> {
+  const { userId } = await auth()
+  if (!userId) return { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } }
+  if (query) {
+    const result = await searchMyContacts(userId, query)
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error
+      }
+    }
+
+    return {
+      success: true,
+      contacts: result.contacts
+    }
+  }
+  const result = await getMyContacts(userId)
+
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.error
+    }
+  }
+
+  return {
+    success: true,
+    contacts: result.contacts
+  }
+
 }
 
 

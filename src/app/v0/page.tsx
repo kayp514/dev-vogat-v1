@@ -1,29 +1,14 @@
-"use client";
-
-import { AppLayout } from "../../components/app-layout";
-import { useAuth } from "@tern-secure/nextjs";
-import { UserData } from "../type";
+import { auth } from "@tern-secure/nextjs/server";
+import { ClientWrapper } from "./client-wrapper";
 import { createSocketConfig } from "@/ternsecure-realtime/utils/socketSessionConfig";
 import { SocketProvider } from "@/ternsecure-realtime/providers/SocketProvider";
-import { ChatProvider } from "@/ternsecure-realtime/providers/ChatProvider";
 
 const API_KEY = process.env.TERNSECURE_REALTIME_KEY;
 
-export default function VzeroPage() {
-  const { user } = useAuth();
+export default async function VzeroPage() {
+  const { user, redirectToSignIn } = await auth();
 
-  if (!user) return null;
-
-  const baseUserData: UserData = {
-    id: "me",
-    name:
-      user?.displayName ||
-      (user?.email ? user.email.split("@")[0] : user?.uid.substring(0, 8)),
-    email: user?.email || "",
-    uid: user?.uid || "",
-    avatar: user?.photoURL || "",
-    phoneNumber: user?.phoneNumber || "+1 (647) 243-8101",
-  };
+  if (!user) return redirectToSignIn();
 
   const socketConfig = createSocketConfig(
     user?.uid || "",
@@ -34,15 +19,9 @@ export default function VzeroPage() {
     }
   );
 
-  const userData = {
-    ...baseUserData,
-  };
-
   return (
     <SocketProvider config={socketConfig}>
-      <ChatProvider clientMetaData={userData}>
-        <AppLayout userData={userData} />
-      </ChatProvider>
+      <ClientWrapper user={user} />
     </SocketProvider>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useTransition } from "react";
 import { useDebounce } from "./use-debounce";
+import { searchMyContactsWithAPI, searchMyContactsNoAPI } from "@/app/actions";
 
 interface Contact {
   uid: string;
@@ -9,7 +10,7 @@ interface Contact {
   email: string;
   avatar: string | null;
   phoneNumber: string | null;
-  tenantId: string;
+  tenantId?: string;
   addedAt?: Date;
 }
 
@@ -42,6 +43,8 @@ export function useContactSearch(options?: UseContactSearchOptions) {
           try {
             const response = await fetch(`/api/contacts`);
             const data = await response.json();
+            //const data = await getMyContacts();
+            //const data = await searchMyContactsNoAPI();
 
             if (data.success) {
               setContacts(data.contacts);
@@ -62,12 +65,14 @@ export function useContactSearch(options?: UseContactSearchOptions) {
       // Search contacts with query
       startTransition(async () => {
         try {
-          const response = await fetch(
-            `/api/contacts?q=${encodeURIComponent(query)}&limit=${limit}`
-          );
-          const data = await response.json();
+          //const response = await fetch(
+         //   `/api/contacts?q=${encodeURIComponent(query)}&limit=${limit}`
+          //);
+          //const data = await response.json();
 
-          if (data.success) {
+          const data = await searchMyContactsNoAPI(query);
+
+          if (data.success && data.contacts) {
             setContacts(data.contacts);
             setError(null);
           } else {
@@ -88,10 +93,11 @@ export function useContactSearch(options?: UseContactSearchOptions) {
   const loadContacts = useCallback(() => {
     startTransition(async () => {
       try {
-        const response = await fetch(`/api/contacts`);
-        const data = await response.json();
+        //const response = await fetch(`/api/contacts`);
+        //const data = await response.json();
+         const data = await searchMyContactsNoAPI();
 
-        if (data.success) {
+        if (data.success && data.contacts) {
           setContacts(data.contacts);
           setError(null);
         } else {

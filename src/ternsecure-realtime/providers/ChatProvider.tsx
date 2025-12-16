@@ -1,39 +1,37 @@
-'use client'
+"use client";
 
-import { useState, useCallback, useRef} from 'react'
-import { useWebSkt } from '@/ternsecure-realtime/ctx/SocketWebSktCtx'
-import { ChatCtx } from '@/ternsecure-realtime/ctx/ChatCtx'
-import type { 
-  ChatMessage, 
-  ChatError, 
-  ClientAdditionalData, 
-  ClientMetaData, 
+import { useState, useCallback, useRef } from "react";
+import { useWebSkt } from "@/ternsecure-realtime/ctx/SocketWebSktCtx";
+import { ChatCtx } from "@/ternsecure-realtime/ctx/ChatCtx";
+import type {
+  ChatMessage,
+  ChatError,
+  ClientAdditionalData,
+  ClientMetaData,
+  Contact,
   MessageStatus,
-  ConversationData
- } from "@/ternsecure-realtime/utils/socket"
-
- 
+  ConversationData,
+} from "@/ternsecure-realtime/utils/socket";
 
 interface ChatProviderProps {
-  children: React.ReactNode
-  clientAdditionalData?: ClientAdditionalData
-  clientMetaData?: ClientMetaData,
-  onMessageSent?: (message: ChatMessage) => void
-  onMessageReceived?: (message: ChatMessage) => void
-  onMessageDelivered?: (messageId: string) => void
-  onMessageError?: (error: ChatError) => void
-  onTypingStatusChange?: (userId: string, isTyping: boolean) => void
-  onProfileUpdated?: () => void
+  children: React.ReactNode;
+  clientAdditionalData?: ClientAdditionalData;
+  clientMetaData?: ClientMetaData;
+  onMessageSent?: (message: ChatMessage) => void;
+  onMessageReceived?: (message: ChatMessage) => void;
+  onMessageDelivered?: (messageId: string) => void;
+  onMessageError?: (error: ChatError) => void;
+  onTypingStatusChange?: (userId: string, isTyping: boolean) => void;
+  onProfileUpdated?: () => void;
 }
 
 interface PendingMessage {
-  message: ChatMessage
-  attempts: number
-  timestamp: number
+  message: ChatMessage;
+  attempts: number;
+  timestamp: number;
 }
 
-
-export function ChatProvider({ 
+export function ChatProvider({
   children,
   clientAdditionalData,
   clientMetaData,
@@ -42,118 +40,136 @@ export function ChatProvider({
   onMessageDelivered,
   onMessageError,
   onTypingStatusChange,
-  onProfileUpdated
+  onProfileUpdated,
 }: ChatProviderProps) {
   //const { socket, isConnected, clientId } = useSocket()
-  const { socket, isConnected, clientId, registerEventHandler, subscriptionManager} = useWebSkt()
-  const [selectedUser, setSelectedUser] = useState<ClientMetaData | null>(null)
-  const [localUserData, setLocalUserData] = useState<Record<string, ClientMetaData>>({})
-  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({})
-  const [isTyping, setIsTyping] = useState<Record<string, boolean>>({})
-  const [pendingMessages, setPendingMessages] = useState<Record<string, PendingMessage>>({})
-  const [deliveryStatus, setDeliveryStatus] = useState<Record<string, MessageStatus>>({})
-  const currentUserId = clientId
-  const messagesRef = useRef<Record<string, ChatMessage[]>>({})
-  const knownUsersRef = useRef<Record<string, ClientMetaData>>({})
-  const chatUsersRef = useRef<Map<string, ClientMetaData>>(new Map())
-  const lastMessagesRef = useRef<Map<string, ChatMessage>>(new Map())
-  const [loadingConversations, setLoadingConversations] = useState(false)
-  const [userListVersion, setUserListVersion] = useState(0)
+  const {
+    socket,
+    isConnected,
+    clientId,
+    registerEventHandler,
+    subscriptionManager,
+  } = useWebSkt();
+  const [selectedUser, setSelectedUser] = useState<ClientMetaData | null>(null);
+  const [localUserData, setLocalUserData] = useState<
+    Record<string, ClientMetaData>
+  >({});
+  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
+  const [isTyping, setIsTyping] = useState<Record<string, boolean>>({});
+  const [pendingMessages, setPendingMessages] = useState<
+    Record<string, PendingMessage>
+  >({});
+  const [deliveryStatus, setDeliveryStatus] = useState<
+    Record<string, MessageStatus>
+  >({});
+  const currentUserId = clientId;
+  const messagesRef = useRef<Record<string, ChatMessage[]>>({});
+  const knownUsersRef = useRef<Record<string, ClientMetaData>>({});
+  const chatUsersRef = useRef<Map<string, ClientMetaData>>(new Map());
+  const lastMessagesRef = useRef<Map<string, ChatMessage>>(new Map());
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [userListVersion, setUserListVersion] = useState(0);
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [contactsLoading, setContactsLoading] = useState(true)
 
+  const subscribeToMessages = useCallback(
+    (callback: (message: ChatMessage) => void) => {
+      if (!subscriptionManager) return () => {};
 
-  const subscribeToMessages = useCallback((
-    callback: (message: ChatMessage) => void
-  ) => {
-    if (!subscriptionManager) return () => {};
+      return subscriptionManager.subscribeToMessages((message: ChatMessage) => {
+        // Update messages state
+        setMessages((prev) => {
+          const roomId = message.roomId;
+          const existingMessages = prev[roomId] || [];
 
-    return subscriptionManager.subscribeToMessages((message: ChatMessage) => {
-      
-      // Update messages state
-      setMessages(prev => {
-        const roomId = message.roomId;
-        const existingMessages = prev[roomId] || [];
-        
-        // Check if we already have this message
-        if (existingMessages.some(m => m.messageId === message.messageId)) {
-          return prev;
-        }
-        
-        // Add the new message
-        const updatedMessages = [...existingMessages, message].sort(
-          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        );
-        
-        return {
-          ...prev,
-          [roomId]: updatedMessages
-        };
+          // Check if we already have this message
+          if (existingMessages.some((m) => m.messageId === message.messageId)) {
+            return prev;
+          }
+
+          // Add the new message
+          const updatedMessages = [...existingMessages, message].sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+
+          return {
+            ...prev,
+            [roomId]: updatedMessages,
+          };
+        });
+
+        // Update last message reference
+        const [user1, user2] = message.roomId.split("_");
+        const recipientId = user1 === message.fromId ? user2 : user1;
+
+        // Update last message reference for both users
+        lastMessagesRef.current.set(message.fromId, message);
+        lastMessagesRef.current.set(recipientId, message);
+
+        callback(message);
       });
-      
-      // Update last message reference
-      const [user1, user2] = message.roomId.split('_');
-      const recipientId = user1 === message.fromId ? user2 : user1;
 
-      // Update last message reference for both users
-      lastMessagesRef.current.set(message.fromId, message);
-      lastMessagesRef.current.set(recipientId, message);
-
-      callback(message);
-    });
-  
-   // socket.on('chat:message', handleMessage)
-    //const unregisterHandler = registerEventHandler('chat:message', handleMessage);
-    //const unregister = (socket as any).registerEventHandler('chat:message', handleMessage);
-    //return subscriptionManager.subscribeToMessages(handleMessage);
-    //return () => {
+      // socket.on('chat:message', handleMessage)
+      //const unregisterHandler = registerEventHandler('chat:message', handleMessage);
+      //const unregister = (socket as any).registerEventHandler('chat:message', handleMessage);
+      //return subscriptionManager.subscribeToMessages(handleMessage);
+      //return () => {
       //socket.off('chat:message', handleMessage);
       //unregisterHandler();
-     // unregisterHandler()
-    //}
-  }, [subscriptionManager])
+      // unregisterHandler()
+      //}
+    },
+    [subscriptionManager]
+  );
 
-  const subscribeToErrors = useCallback((
-    callback: (error: ChatError) => void
-  ) => {
-    if (!socket) return () => {}
-  
-    socket.on('chat:error', callback)
-  
-    return () => {
-      socket.off('chat:error', callback)
-    }
-  }, [socket])
-  
+  const subscribeToErrors = useCallback(
+    (callback: (error: ChatError) => void) => {
+      if (!socket) return () => {};
 
-  const subscribeToMessageStatus = useCallback((
-    callback: (messageId: string, status: MessageStatus) => void
-  ) => {
-    if (!subscriptionManager) return () => {};
+      socket.on("chat:error", callback);
 
-    return subscriptionManager.subscribeToMessageStatus((messageId: string, status: MessageStatus) => {
-      console.log(`Status update for message ${messageId}:`, status);
+      return () => {
+        socket.off("chat:error", callback);
+      };
+    },
+    [socket]
+  );
 
-      // Update internal state
-      setDeliveryStatus(prev => ({
-        ...prev,
-        [messageId]: status
-      }));
+  const subscribeToMessageStatus = useCallback(
+    (callback: (messageId: string, status: MessageStatus) => void) => {
+      if (!subscriptionManager) return () => {};
 
-      // Notify callback
-      callback(messageId, status);
+      return subscriptionManager.subscribeToMessageStatus(
+        (messageId: string, status: MessageStatus) => {
+          console.log(`Status update for message ${messageId}:`, status);
 
-      // Handle optional callbacks
-      if (status === 'delivered') {
-        onMessageDelivered?.(messageId);
-      } else if (status === 'error') {
-        onMessageError?.({ 
-          messageId, 
-          error: 'Failed to deliver message' 
-        });
-      }
-    });
-  }, [subscriptionManager, onMessageDelivered, onMessageError]);
-  
-{/*  const subscribeToMessageStatus = useCallback((
+          // Update internal state
+          setDeliveryStatus((prev) => ({
+            ...prev,
+            [messageId]: status,
+          }));
+
+          // Notify callback
+          callback(messageId, status);
+
+          // Handle optional callbacks
+          if (status === "delivered") {
+            onMessageDelivered?.(messageId);
+          } else if (status === "error") {
+            onMessageError?.({
+              messageId,
+              error: "Failed to deliver message",
+            });
+          }
+        }
+      );
+    },
+    [subscriptionManager, onMessageDelivered, onMessageError]
+  );
+
+  {
+    /*  const subscribeToMessageStatus = useCallback((
     callback: (messageId: string, status: string) => void
   ) => {
     if (!socket) return () => {}
@@ -222,406 +238,499 @@ export function ChatProvider({
       socket.emit('chat:unsubscribe_status');
       unregisterHandler();
     }
-  }, [socket]); */}
+  }, [socket]); */
+  }
 
+  const getRoomId = useCallback(
+    (userId: string): string => {
+      return [currentUserId, userId].sort().join("_");
+    },
+    [currentUserId]
+  );
 
-  const getRoomId = useCallback((userId: string): string => {
-    return [currentUserId, userId].sort().join('_')
-  }, [currentUserId])
+  const sendMessage = useCallback(
+    async (
+      content: string,
+      recipientId: string,
+      recipientData?: ClientMetaData
+    ): Promise<string> => {
+      if (!recipientId) {
+        throw new Error("Recipient ID is required");
+      }
 
+      if (!currentUserId) {
+        throw new Error("Current user ID is not set");
+      }
 
-  const sendMessage = useCallback(async (
-    content: string,
-    recipientId: string,
-    recipientData?: ClientMetaData
-  ): Promise<string> => {
-
-
-    if (!recipientId) {
-      throw new Error('Recipient ID is required');
-    }
-  
-    if (!currentUserId) {
-      throw new Error('Current user ID is not set');
-    }
-
-    const metaData = clientMetaData || {
-      uid: currentUserId,
-      name: currentUserId.substring(0, 8),
-      email: `${currentUserId}@example.com`,
-    };
-
-    const toData = recipientData || {
-      uid: recipientId,
-      name: recipientId.substring(0, 8),
-      email: `${recipientId}@example.com`,
-    }
-
-    const localMessageId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    try {
-      socket?.emit('chat:private', {
-        targetId: recipientId,
-        message: content,
-        metaData,
-        toData
-      });
-      
-      // Generate a local message ID since we're not waiting for server response
-      
-      return localMessageId;
-      
-    } catch (error) {
-      console.error('Error sending message:', error)
-      throw error
-    }
-  }, [socket, isConnected, currentUserId, clientMetaData])
-
-  const setTypingStatus = useCallback((isTyping: boolean, recipientId: string) => {
-    //if (!socket || !isConnected) return
-
-    //socket.emit('chat:typing', {
-     // targetId: recipientId,
-      //isTyping
-    //})
-  }, [socket, isConnected])
-
-  const getConversations = useCallback(async (options?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<{
-    conversations: ConversationData[];
-    hasMore: boolean;
-  }> => {
-
-
-    setLoadingConversations(true)
-
-    try {
-      return new Promise<{conversations: ConversationData[], hasMore: boolean}>((resolve, reject) => {
-        const requestId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        const responseHandler = (response: {
-        requestId: string;
-        success: boolean;
-        conversations?: any[];
-        hasMore?: boolean;
-        error?: string;
-       }) => {
-        if (response.requestId !== requestId) return;
-
-        socket?.off('chat:conversations_response', responseHandler);
-        setLoadingConversations(false)
-
-        if(response.success && response.conversations) {
-          const conversations = response.conversations || [];
-            conversations.forEach(conv => {
-              if (conv.lastMessage) {
-                lastMessagesRef.current.set(conv.otherUserId, conv.lastMessage);
-              }
-          });
-      
-          resolve({
-            conversations: conversations,
-            hasMore: response.hasMore || false,
-          })
-        } else {
-          reject(new Error((response && response.error) || 'Failed to load conversations'))
-        }
-       };
-
-       //socket?.on('chat:conversations_response', responseHandler);
-       const unregisterHandler = registerEventHandler('chat:conversations_response', responseHandler);
-
-       socket?.emit('chat:conversations', {
-        requestId,
-        limit: options?.limit || 50,
-        offset: options?.offset || 0,
-       });
-      });
-    } catch (error) {
-      setLoadingConversations(false)
-      console.error('Error laoding conversations:', error)
-      throw error
-    }
-  }, [socket, isConnected])
-
-  const getLastMessage = useCallback((userId: string): ChatMessage | undefined => {
-    return lastMessagesRef.current.get(userId);
-  }, [])
-
-  const getMessages = useCallback(async (
-    roomId: string,
-    options?: {
-      limit?: number;
-      before?: string;
-      after?: string;
-    }
-  ): Promise<ChatMessage[]> => {
-
-    return new Promise<ChatMessage[]>((resolve, reject) => {
-      const requestId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const responseHandler = (response: {
-        requestId: string;
-        success: boolean;
-        messages?: ChatMessage[];
-        error?: string;
-      }) => {
-        if (response.requestId !== requestId) return;
-        socket?.off('chat:messages_response', responseHandler);
-
-        if (response.success && response.messages) {
-          const messages = response.messages || [];
-
-          if(!messagesRef.current[roomId]) {
-            messagesRef.current[roomId] = [];
-          }
-          const existingIds = new Set(messagesRef.current[roomId].map(m => m.messageId));
-          const newMessages = messages.filter(m => !existingIds.has(m.messageId));
-          
-          messagesRef.current[roomId] = [
-            ...messagesRef.current[roomId],
-            ...newMessages
-          ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-          
-          // Update messages state
-          setMessages(prev => ({
-            ...prev,
-            [roomId]: messagesRef.current[roomId]
-          }));
-          
-          resolve(messages);
-        } else {
-          reject(new Error(response?.error || 'Failed to load messages'));
-        }
+      const metaData = clientMetaData || {
+        uid: currentUserId,
+        name: currentUserId.substring(0, 8),
+        email: `${currentUserId}@example.com`,
       };
-      //socket?.on('chat:messages_response', responseHandler);
-      const unregisterHandler = registerEventHandler('chat:messages_response', responseHandler);
 
-      socket?.emit('chat:messages', {
-        requestId,
-        roomId,
-        limit: options?.limit || 50,
-        before: options?.before,
-        after: options?.after,
+      const toData = recipientData || {
+        uid: recipientId,
+        name: recipientId.substring(0, 8),
+        email: `${recipientId}@example.com`,
+      };
+
+      const localMessageId = `local_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
+      try {
+        socket?.emit("chat:private", {
+          targetId: recipientId,
+          message: content,
+          metaData,
+          toData,
+        });
+
+        // Generate a local message ID since we're not waiting for server response
+
+        return localMessageId;
+      } catch (error) {
+        console.error("Error sending message:", error);
+        throw error;
+      }
+    },
+    [socket, isConnected, currentUserId, clientMetaData]
+  );
+
+  const setTypingStatus = useCallback(
+    (isTyping: boolean, recipientId: string) => {
+      //if (!socket || !isConnected) return
+      //socket.emit('chat:typing', {
+      // targetId: recipientId,
+      //isTyping
+      //})
+    },
+    [socket, isConnected]
+  );
+
+  const getConversations = useCallback(
+    async (options?: {
+      limit?: number;
+      offset?: number;
+    }): Promise<{
+      conversations: ConversationData[];
+      hasMore: boolean;
+    }> => {
+      setLoadingConversations(true);
+
+      try {
+        return new Promise<{
+          conversations: ConversationData[];
+          hasMore: boolean;
+        }>((resolve, reject) => {
+          const requestId = `${Date.now()}_${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
+
+          const responseHandler = (response: {
+            requestId: string;
+            success: boolean;
+            conversations?: any[];
+            hasMore?: boolean;
+            error?: string;
+          }) => {
+            if (response.requestId !== requestId) return;
+
+            socket?.off("chat:conversations_response", responseHandler);
+            setLoadingConversations(false);
+
+            if (response.success && response.conversations) {
+              const conversations = response.conversations || [];
+              conversations.forEach((conv) => {
+                if (conv.lastMessage) {
+                  lastMessagesRef.current.set(
+                    conv.otherUserId,
+                    conv.lastMessage
+                  );
+                }
+              });
+
+              resolve({
+                conversations: conversations,
+                hasMore: response.hasMore || false,
+              });
+            } else {
+              reject(
+                new Error(
+                  (response && response.error) || "Failed to load conversations"
+                )
+              );
+            }
+          };
+
+          //socket?.on('chat:conversations_response', responseHandler);
+          const unregisterHandler = registerEventHandler(
+            "chat:conversations_response",
+            responseHandler
+          );
+
+          socket?.emit("chat:conversations", {
+            requestId,
+            limit: options?.limit || 50,
+            offset: options?.offset || 0,
+          });
+        });
+      } catch (error) {
+        setLoadingConversations(false);
+        console.error("Error laoding conversations:", error);
+        throw error;
+      }
+    },
+    [socket, isConnected]
+  );
+
+  const getLastMessage = useCallback(
+    (userId: string): ChatMessage | undefined => {
+      return lastMessagesRef.current.get(userId);
+    },
+    []
+  );
+
+  const getMessages = useCallback(
+    async (
+      roomId: string,
+      options?: {
+        limit?: number;
+        before?: string;
+        after?: string;
+      }
+    ): Promise<ChatMessage[]> => {
+      return new Promise<ChatMessage[]>((resolve, reject) => {
+        const requestId = `${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+        const responseHandler = (response: {
+          requestId: string;
+          success: boolean;
+          messages?: ChatMessage[];
+          error?: string;
+        }) => {
+          if (response.requestId !== requestId) return;
+          socket?.off("chat:messages_response", responseHandler);
+
+          if (response.success && response.messages) {
+            const messages = response.messages || [];
+
+            if (!messagesRef.current[roomId]) {
+              messagesRef.current[roomId] = [];
+            }
+            const existingIds = new Set(
+              messagesRef.current[roomId].map((m) => m.messageId)
+            );
+            const newMessages = messages.filter(
+              (m) => !existingIds.has(m.messageId)
+            );
+
+            messagesRef.current[roomId] = [
+              ...messagesRef.current[roomId],
+              ...newMessages,
+            ].sort(
+              (a, b) =>
+                new Date(a.timestamp).getTime() -
+                new Date(b.timestamp).getTime()
+            );
+
+            // Update messages state
+            setMessages((prev) => ({
+              ...prev,
+              [roomId]: messagesRef.current[roomId],
+            }));
+
+            resolve(messages);
+          } else {
+            reject(new Error(response?.error || "Failed to load messages"));
+          }
+        };
+        //socket?.on('chat:messages_response', responseHandler);
+        const unregisterHandler = registerEventHandler(
+          "chat:messages_response",
+          responseHandler
+        );
+
+        socket?.emit("chat:messages", {
+          requestId,
+          roomId,
+          limit: options?.limit || 50,
+          before: options?.before,
+          after: options?.after,
+        });
       });
-    });
-  }, [socket]);
-
+    },
+    [socket]
+  );
 
   const clearMessages = useCallback((roomId: string) => {
-    setMessages(prev => {
-      const { [roomId]: removed, ...rest } = prev
-      return rest
-    })
-  }, [])
-
+    setMessages((prev) => {
+      const { [roomId]: removed, ...rest } = prev;
+      return rest;
+    });
+  }, []);
 
   const markMessageAsRead = useCallback((messageId: string, roomId: string) => {
-    setMessages(prev => ({
+    setMessages((prev) => ({
       ...prev,
-      [roomId]: prev[roomId]?.map(msg => 
-        msg.messageId === messageId 
-          ? { ...msg, read: true }
-          : msg
-      ) || []
-    }))
-  }, [])
+      [roomId]:
+        prev[roomId]?.map((msg) =>
+          msg.messageId === messageId ? { ...msg, read: true } : msg
+        ) || [],
+    }));
+  }, []);
 
   const getChatUserIds = useCallback(() => {
-    const userIds = new Set<string>()
-    
+    const userIds = new Set<string>();
+
     // Extract all unique user IDs from room IDs
-    Object.keys(messages).forEach(roomId => {
-      const [user1, user2] = roomId.split('_')
-      if (user1 !== currentUserId) userIds.add(user1)
-      if (user2 !== currentUserId) userIds.add(user2)
-    })
-    
-    return Array.from(userIds)
-  }, [messages, currentUserId])
+    Object.keys(messages).forEach((roomId) => {
+      const [user1, user2] = roomId.split("_");
+      if (user1 !== currentUserId) userIds.add(user1);
+      if (user2 !== currentUserId) userIds.add(user2);
+    });
 
-  const getUserFromMessages = useCallback((userId: string): ClientMetaData | null => {
-    // If this is the current user, use client metadata
-    if (userId === currentUserId) {
+    return Array.from(userIds);
+  }, [messages, currentUserId]);
+
+  const getUserFromMessages = useCallback(
+    (userId: string): ClientMetaData | null => {
+      // If this is the current user, use client metadata
+      if (userId === currentUserId) {
+        return {
+          uid: currentUserId,
+          name:
+            clientMetaData?.name ||
+            clientMetaData?.email?.split("@")[0] ||
+            currentUserId.substring(0, 8),
+          email: clientMetaData?.email || `${currentUserId}@example.com`,
+          avatar: clientMetaData?.avatar || undefined,
+        };
+      }
+
+      // Look through all messages to find metadata for this user
+      for (const roomId in messagesRef.current) {
+        const roomMessages = messagesRef.current[roomId];
+
+        // Look for messages from this user (they'll have metadata)
+        const messageWithMetadata = roomMessages.find(
+          (msg) => msg.fromId === userId && msg.metaData
+        );
+
+        if (messageWithMetadata?.metaData) {
+          return {
+            uid: userId,
+            name:
+              messageWithMetadata.metaData.name ||
+              messageWithMetadata.metaData.email?.split("@")[0] ||
+              userId.substring(0, 8),
+            email:
+              messageWithMetadata.metaData.email || `${userId}@example.com`,
+            avatar: messageWithMetadata.metaData.avatar || undefined,
+          };
+        }
+
+        const messageWithToData = roomMessages.find(
+          (msg) => msg.toId === userId && msg.toData
+        );
+
+        if (messageWithToData?.toData) {
+          return {
+            uid: userId,
+            name:
+              messageWithToData.toData.name ||
+              messageWithToData.toData.email?.split("@")[0] ||
+              userId.substring(0, 8),
+            email: messageWithToData.toData.email || `${userId}@example.com`,
+            avatar: messageWithToData.toData.avatar || undefined,
+          };
+        }
+      }
+
+      // If no metadata found, return basic user object
       return {
-        uid: currentUserId,
-        name: clientMetaData?.name || clientMetaData?.email?.split('@')[0] || currentUserId.substring(0, 8),
-        email: clientMetaData?.email || `${currentUserId}@example.com`,
-        avatar: clientMetaData?.avatar || undefined
+        uid: userId,
+        name: userId.substring(0, 8),
+        email: `${userId}@example.com`,
       };
-    }
-    
-    // Look through all messages to find metadata for this user
-    for (const roomId in messagesRef.current) {
-      const roomMessages = messagesRef.current[roomId];
-      
-      // Look for messages from this user (they'll have metadata)
-      const messageWithMetadata = roomMessages.find(msg => 
-        msg.fromId === userId && msg.metaData
-      );
-      
-      if (messageWithMetadata?.metaData) {
-        return {
-          uid: userId,
-          name: messageWithMetadata.metaData.name || messageWithMetadata.metaData.email?.split('@')[0] || userId.substring(0, 8),
-          email: messageWithMetadata.metaData.email || `${userId}@example.com`,
-          avatar: messageWithMetadata.metaData.avatar || undefined
-        };
-      }
-
-      const messageWithToData = roomMessages.find(msg => 
-        msg.toId === userId && msg.toData
-      );
-
-      if (messageWithToData?.toData) {
-        return {
-          uid: userId,
-          name: messageWithToData.toData.name || messageWithToData.toData.email?.split('@')[0] || userId.substring(0, 8),
-          email: messageWithToData.toData.email || `${userId}@example.com`,
-          avatar: messageWithToData.toData.avatar || undefined
-        };
-      }
-    }
-    
-    // If no metadata found, return basic user object
-    return {
-      uid: userId,
-      name: userId.substring(0, 8),
-      email: `${userId}@example.com`
-    };
-  }, [messages, currentUserId, clientMetaData, selectedUser]);
-
+    },
+    [messages, currentUserId, clientMetaData, selectedUser]
+  );
 
   // Update the getChatUsers function to prioritize local user data
   const getChatUsers = useCallback((): ClientMetaData[] => {
     // Extract all unique user IDs from room IDs and messages
     const userIds = new Set<string>();
-    
+
     // Add users from known room IDs
-    Object.keys(messagesRef.current).forEach(roomId => {
-      const [user1, user2] = roomId.split('_');
+    Object.keys(messagesRef.current).forEach((roomId) => {
+      const [user1, user2] = roomId.split("_");
       if (user1 !== currentUserId) userIds.add(user1);
       if (user2 !== currentUserId) userIds.add(user2);
     });
-    
+
     // Add users from known users ref (populated from message metadata)
-    Object.keys(knownUsersRef.current).forEach(userId => {
+    Object.keys(knownUsersRef.current).forEach((userId) => {
       if (userId !== currentUserId) userIds.add(userId);
     });
-    
+
     // Convert user IDs to user objects
-    return Array.from(userIds).map(userId => {
+    return Array.from(userIds).map((userId) => {
       // Check known users from messages
       if (knownUsersRef.current[userId]) {
         return knownUsersRef.current[userId];
       }
-      
+
       // Fallback to basic user info
       return {
         uid: userId,
         name: userId.substring(0, 8),
-        email: `${userId}@example.com`
+        email: `${userId}@example.com`,
       };
     });
   }, [currentUserId, userListVersion]);
-  
 
   const getChatUsersLocalData = useCallback((): ClientMetaData[] => {
     const userMap = new Map<string, ClientMetaData>();
-  
+
     // First add any users from our local data store
     Object.entries(localUserData).forEach(([userId, userData]) => {
       if (userId !== currentUserId) {
         userMap.set(userId, userData);
       }
     });
-    
+
     // Extract all unique users from messages
-    Object.values(messages).forEach(roomMessages => {
-      roomMessages.forEach(message => {
+    Object.values(messages).forEach((roomMessages) => {
+      roomMessages.forEach((message) => {
         // Add sender if it's not the current user
         if (message.fromId !== currentUserId) {
           // If we already have this user from local data, prefer that
           if (!userMap.has(message.fromId)) {
             userMap.set(message.fromId, {
               uid: message.fromId,
-              name: message.metaData?.name || message.metaData?.email || message.fromId.substring(0, 8),
+              name:
+                message.metaData?.name ||
+                message.metaData?.email ||
+                message.fromId.substring(0, 8),
               avatar: message.metaData?.avatar || undefined,
-              email: message.metaData?.email || `${message.fromId}@example.com`
+              email: message.metaData?.email || `${message.fromId}@example.com`,
             });
           }
         }
-        
+
         // Add recipient if it's not the current user
         if (message.toId && message.toId !== currentUserId) {
           // If we already have this user from local data, prefer that
           if (!userMap.has(message.toId)) {
             userMap.set(message.toId, {
               uid: message.toId,
-              name: message.toData?.name || message.toData?.email || message.toId.substring(0, 8),
+              name:
+                message.toData?.name ||
+                message.toData?.email ||
+                message.toId.substring(0, 8),
               avatar: message.toData?.avatar || undefined,
-              email: message.toData?.email || `${message.toId}@example.com`
+              email: message.toData?.email || `${message.toId}@example.com`,
             });
           }
         }
       });
     });
-    
+
     return Array.from(userMap.values());
   }, [messages, currentUserId, localUserData]);
 
   // Function to get user by ID for components to use
-  const getUserById = useCallback((userId: string): ClientMetaData => {
-    // getUserFromMessages already checks messages and provides fallbacks
-    const userFromMessages = getUserFromMessages(userId);
-    if (userFromMessages) return userFromMessages;
-    
-    // Only add the check for lastMessagesRef if not already in getUserFromMessages
-    for (const [_, message] of lastMessagesRef.current.entries()) {
-      if (message.fromId === userId && message.metaData) {
-        return message.metaData;
+  const getUserById = useCallback(
+    (userId: string): ClientMetaData => {
+      // getUserFromMessages already checks messages and provides fallbacks
+      const userFromMessages = getUserFromMessages(userId);
+      if (userFromMessages) return userFromMessages;
+
+      // Only add the check for lastMessagesRef if not already in getUserFromMessages
+      for (const [_, message] of lastMessagesRef.current.entries()) {
+        if (message.fromId === userId && message.metaData) {
+          return message.metaData;
+        }
       }
-    }
-    
-    // Fallback to basic info
-    return {
-      uid: userId,
-      name: userId.substring(0, 8),
-      email: `${userId}@example.com`
-    };
-  }, [getUserFromMessages]);
+
+      // Fallback to basic info
+      return {
+        uid: userId,
+        name: userId.substring(0, 8),
+        email: `${userId}@example.com`,
+      };
+    },
+    [getUserFromMessages]
+  );
+
+  const subscribeToContact = useCallback(
+    (callback: (contacts: Contact[]) => void) => {
+      if (!socket || !isConnected) return () => {};
+
+      const responseHandler = (response: {
+        success: boolean;
+        contacts?: Contact[];
+        error?: string;
+      }) => {
+        if (response.success && response.contacts) {
+          setContacts(response.contacts);
+          setContactsLoading(false);
+          callback(response.contacts);
+        } else {
+          console.error('Error loading contacts:', response.error);
+          setContactsLoading(false);
+        }
+      };
+
+      const unregisterHandler = registerEventHandler(
+        'contact:list_response',
+        responseHandler
+      );
+
+      socket.emit('contact:list');
+
+      return () => {
+        unregisterHandler();
+      };
+    },
+    [socket, isConnected, registerEventHandler]
+  );
 
   return (
-    <ChatCtx.Provider value={{
-      selectedUser,
-      messages,
-      isConnected,
-      isTyping,
-      pendingMessages: Object.keys(pendingMessages),
-      currentUserId,
-      clientAdditionalData: clientAdditionalData || null,
-      clientMetaData: clientMetaData || null,
-      deliveryStatus,
-      setSelectedUser,
-      sendMessage,
-      setTypingStatus,
-      clearMessages,
-      markMessageAsRead,
-      getLastMessage,
-      getMessages,
-      getConversations,
-      getChatUserIds,
-      getChatUsers,
-      getChatUsersLocalData,
-      getUserById,
-      getRoomId,
-      //getMessageStatus,
-      subscribeToMessages,
-      subscribeToErrors,
-      subscribeToMessageStatus
-    }}>
+    <ChatCtx.Provider
+      value={{
+        selectedUser,
+        messages,
+        isConnected,
+        isTyping,
+        pendingMessages: Object.keys(pendingMessages),
+        currentUserId,
+        clientAdditionalData: clientAdditionalData || null,
+        clientMetaData: clientMetaData || null,
+        deliveryStatus,
+        setSelectedUser,
+        sendMessage,
+        setTypingStatus,
+        clearMessages,
+        markMessageAsRead,
+        getLastMessage,
+        getMessages,
+        getConversations,
+        getChatUserIds,
+        getChatUsers,
+        getChatUsersLocalData,
+        getUserById,
+        getRoomId,
+        //getMessageStatus,
+        subscribeToMessages,
+        subscribeToErrors,
+        subscribeToMessageStatus,
+        subscribeToContact,
+      }}
+    >
       {children}
     </ChatCtx.Provider>
-  )
+  );
 }
