@@ -42,7 +42,7 @@ export default function RootLayout({
               siteKey: "6LfzGRgsAAAAAGEvbwbcLgT4IHWmuWv4kEDRA5hi",
               isTokenAutoRefreshEnabled: true,
             }}
-            //apiUrl="ternsecure-auth-admin.vercel.app"
+            //apiUrl="localhost:3001"
             ternUIUrl="https://cdn.jsdelivr.net/npm/@tern-secure/auth@1.1.0-canary.v20251210182014/dist/ternsecure.browser.js"
             persistence="local"
             requiresVerification={false}

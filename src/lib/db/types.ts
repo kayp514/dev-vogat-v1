@@ -25,6 +25,17 @@ export interface DatabaseUserInput {
   createdAt: Date | null
   lastSignInAt: Date | null
 }
+
+export interface WorkspaceCreateInput {
+  id?: string
+  name: string
+  description?: string | null
+  ownerId: string
+  tenantId: string
+  type: string
+  disabled: boolean
+  settings?: any
+}
   
 export interface SignUpResult {
     success: boolean
@@ -33,6 +44,11 @@ export interface SignUpResult {
       email: string
       tenantId: string
       emailVerified: boolean
+    }
+    workspace?: {
+      id: string
+      name: string
+      type: string
     }
     error?: {
       code: string

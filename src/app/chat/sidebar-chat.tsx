@@ -5,6 +5,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import type { User } from "@/lib/db/types";
 import { ConversationHeader } from "@/components/conversation-header";
 import { Conversation } from "@/components/conversation";
+import { Contact } from "@/components/contact";
 
 interface ChatSidebarProps {
   selectedUser: User | null;
@@ -53,6 +54,12 @@ export function ChatSidebar({
             selectedUserId={selectedUser?.uid}
             onSelectChat={onSelectChatUser}
           />
+        </TabsContent>
+        <TabsContent
+          value="contacts"
+          className="flex-1 p-0 m-0 overflow-hidden flex flex-col"
+        >
+          <Contact />
         </TabsContent>
       </Tabs>
     </div>

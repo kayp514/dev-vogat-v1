@@ -1,8 +1,8 @@
 "use client";
 
 import type { User } from "@/lib/db/types";
-import { useState } from "react";
-import { useSearch } from "@/hooks/use-search";
+import { useState, useEffect } from "react";
+import { useContactSearch } from "@/hooks/use-contact-search";
 import { useChat } from "@/ternsecure-realtime";
 import { Search, Plus, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,14 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+interface Contact {
+  uid: string;
+  name: string | null;
+  email: string;
+  avatar: string | null;
+  phoneNumber: string | null;
+}
+
 interface NewMessageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,16 +32,24 @@ interface NewMessageDialogProps {
 
 export function NewMessageDialog(props: NewMessageDialogProps) {
   const { open, onOpenChange, onSend } = props;
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Contact | null>(null);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const { users, searchQuery, isPending, updateSearchQuery } = useSearch();
+  const { contacts, searchQuery, isPending, updateSearchQuery, loadContacts } = useContactSearch();
   const { sendMessage } = useChat();
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Load contacts when dialog opens
+  useEffect(() => {
+    if (open) {
+      loadContacts();
+    }
+  }, [open, loadContacts]);
+
+  // Filter contacts by search query
+  const filteredContacts = contacts.filter(
+    (contact) =>
+      contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      contact.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleStartChat = async () => {
@@ -41,36 +57,36 @@ export function NewMessageDialog(props: NewMessageDialogProps) {
 
     setIsSending(true);
     try {
-      const response = await fetch("api/chats", {
+      const response = await fetch("/api/chats", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          recipientId: selectedUser.uid,
-          content: message.trim(),
+          participantUids: [selectedUser.uid],
+          type: "direct",
         }),
       });
 
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error?.message || "Failed to send message");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create chat");
       }
 
-      // Send the message via socket after DB save is successful
-      await sendMessage(message.trim(), selectedUser.uid, selectedUser);
+      const { chat } = await response.json();
 
-      onOpenChange(false);
+      await sendMessage(chat.id, message.trim());
+
+      if (onSend) {
+        onSend(selectedUser as User, message.trim());
+      }
+
+      // Reset and close
       setSelectedUser(null);
       setMessage("");
       updateSearchQuery("");
-
-      if (onSend) {
-        onSend(selectedUser, message);
-      }
+      onOpenChange(false);
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Failed to start chat:", error);
+      alert(error instanceof Error ? error.message : "Failed to start chat. Please try again.");
     } finally {
       setIsSending(false);
     }
@@ -114,28 +130,28 @@ export function NewMessageDialog(props: NewMessageDialogProps) {
                   <div className="p-2 text-center text-sm text-muted-foreground">
                     Loading...
                   </div>
-                ) : filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
+                ) : filteredContacts.length > 0 ? (
+                  filteredContacts.map((contact) => (
                     <div
-                      key={user.uid}
+                      key={contact.uid}
                       className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer"
-                      onClick={() => setSelectedUser(user)}
+                      onClick={() => setSelectedUser(contact)}
                     >
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={user.avatar || undefined} />
-                        <AvatarFallback>{user.name?.[0]}</AvatarFallback>
+                        <AvatarImage src={contact.avatar || undefined} />
+                        <AvatarFallback>{contact.name?.[0]}</AvatarFallback>
                       </Avatar>
                       <div className="text-sm overflow-hidden">
-                        <div className="font-medium truncate">{user.name}</div>
+                        <div className="font-medium truncate">{contact.name}</div>
                         <div className="text-xs text-muted-foreground truncate">
-                          {user.email}
+                          {contact.email}
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="p-2 text-center text-sm text-muted-foreground">
-                    No users found
+                    No contacts found
                   </div>
                 )}
               </div>
