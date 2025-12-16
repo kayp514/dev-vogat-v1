@@ -63,20 +63,25 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
         : new Date(),
     }
 
-    const user = await createUser(userInput)
+    const result = await createUser(userInput)
 
-    if (!user) {
+    if (!result || !result.user) {
       throw new Error("No user returned from database creation")
     }
 
     return {
       success: true,
       user: {
-        uid: user.uid,
-        email: user.email,
-        tenantId: user.tenantId,
-        emailVerified: user.emailVerified,
+        uid: result.user.uid,
+        email: result.user.email,
+        tenantId: result.user.tenantId,
+        emailVerified: result.user.emailVerified,
       },
+      workspace: {
+        id: result.workspace.id,
+        name: result.workspace.name,
+        type: result.workspace.type
+      }
     }
   } catch (error) {
     return {
