@@ -7,7 +7,6 @@ import { TernSecureProvider } from "@tern-secure/nextjs";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/components/theme-provider";
-import { QueryProvider } from "./providers/QueryProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -35,34 +34,32 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <QueryProvider>
-          <TernSecureProvider
-            appCheck={{
-              provider: "reCaptchaV3",
-              siteKey: "6LfzGRgsAAAAAGEvbwbcLgT4IHWmuWv4kEDRA5hi",
-              isTokenAutoRefreshEnabled: true,
-            }}
-            //apiUrl="localhost:3001"
-            ternUIUrl="https://cdn.jsdelivr.net/npm/@tern-secure/auth@1.1.0-canary.v20251210182014/dist/ternsecure.browser.js"
-            persistence="local"
-            requiresVerification={false}
+        <TernSecureProvider
+          appCheck={{
+            provider: "reCaptchaV3",
+            siteKey: "6LfzGRgsAAAAAGEvbwbcLgT4IHWmuWv4kEDRA5hi",
+            isTokenAutoRefreshEnabled: true,
+          }}
+          //apiUrl="localhost:3001"
+          ternUIUrl="https://cdn.jsdelivr.net/npm/@tern-secure/auth@1.1.0-canary.v20251210182014/dist/ternsecure.browser.js"
+          persistence="browserCookie"
+          requiresVerification={false}
+        >
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
           >
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <SIPProvider>
-                <CallSIPProvider>
-                  {children}
-                  <Analytics />
-                  <SpeedInsights />
-                </CallSIPProvider>
-              </SIPProvider>
-            </ThemeProvider>
-          </TernSecureProvider>
-        </QueryProvider>
+            <SIPProvider>
+              <CallSIPProvider>
+                {children}
+                <Analytics />
+                <SpeedInsights />
+              </CallSIPProvider>
+            </SIPProvider>
+          </ThemeProvider>
+        </TernSecureProvider>
       </body>
     </html>
   );

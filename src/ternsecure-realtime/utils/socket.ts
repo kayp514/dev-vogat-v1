@@ -40,57 +40,59 @@ export interface ClientAdditionalData {
 
 
 export interface StatusUpdate {
-    userId: string;
-    status: UserStatus;
-    timestamp: number;
+  userId: string;
+  status: UserStatus;
+  timestamp: number;
 }
-  
-  export interface ServerToClientEvents {
-    statusUpdate: (update: StatusUpdate) => void;
-    userConnected: (userId: string) => void;
-    userDisconnected: (userId: string) => void;
-  }
-  
-  export interface ClientToServerEvents {
-    'chat:private': (
-      data: { targetId: string; message: string; metaData?: ClientMetaData; toData?: ClientMetaData },
-      callback?: (response: { success: boolean; messageId?: string; error?: string }) => void
-    ) => void;
-    'chat:profile_update': (data: ClientAdditionalData) => void;
-    //'chat:confirm_receipt': (data: { messageId: string }, callback?: (response: { received: boolean }) => void) => void;
 
-    'chat:status': (data: { messageId: string; status: string; fromId?: string}, callback?: (response: { received: boolean }) => void) => void;
-    'chat:subscribe_status': () => void;
-    'chat:unsubscribe_status': () => void;
-    'chat:messages': (options: { requestId: string; roomId: string; limit?: number; before?: string; after?: string }, callback?: (response: { success: boolean; messages?: ChatMessage[]; error?: string }) => void) => void;
-    'chat:conversations': (options: { requestId: string; limit?: number; offset?: number }, callback?: (response: { success: boolean; conversations?: any[]; hasMore?: boolean; error?: string }) => void) => void;
+export interface ServerToClientEvents {
+  statusUpdate: (update: StatusUpdate) => void;
+  userConnected: (userId: string) => void;
+  userDisconnected: (userId: string) => void;
+}
 
-    'presence:update': (presence: Presence) => void;
+export interface ClientToServerEvents {
+  'chat:private': (
+    data: { targetId: string; message: string; metaData?: ClientMetaData; toData?: ClientMetaData },
+    callback?: (response: { success: boolean; messageId?: string; error?: string }) => void
+  ) => void;
+  'chat:profile_update': (data: ClientAdditionalData) => void;
+  //'chat:confirm_receipt': (data: { messageId: string }, callback?: (response: { received: boolean }) => void) => void;
 
-    'client:publicKey': (publicKey: string) => void;
-    'encrypted': (data: { event: string; data: string }) => void;
+  'chat:status': (data: { messageId: string; status: string; fromId?: string }, callback?: (response: { received: boolean }) => void) => void;
+  'chat:subscribe_status': () => void;
+  'chat:unsubscribe_status': () => void;
+  'chat:messages': (options: { requestId: string; roomId: string; limit?: number; before?: string; after?: string }, callback?: (response: { success: boolean; messages?: ChatMessage[]; error?: string }) => void) => void;
+  'chat:conversations': (options: { requestId: string; limit?: number; offset?: number }, callback?: (response: { success: boolean; conversations?: any[]; hasMore?: boolean; error?: string }) => void) => void;
 
-    'binary': (data: ArrayBuffer, isEncrypted: boolean) => void;
-  }
+  'contact:list': (options?: { requestId?: string; limit?: number; offset?: number }, callback?: (response: { success: boolean; contacts?: Contact[]; error?: string }) => void) => void;
 
-  export interface InterServerEvents {
-    ping: () => void
-  }
-  
+  'presence:update': (presence: Presence) => void;
 
-  export interface SocketData {
-    clientId: string
-    apiKey: string
-  }
+  'client:publicKey': (publicKey: string) => void;
+  'encrypted': (data: { event: string; data: string }) => void;
 
-  export interface ClientMetaData {
-    uid: string | undefined
-    name?: string | null
-    email?: string | null
-    avatar?: string | null
-  }
+  'binary': (data: ArrayBuffer, isEncrypted: boolean) => void;
+}
 
-  
+export interface InterServerEvents {
+  ping: () => void
+}
+
+
+export interface SocketData {
+  clientId: string
+  apiKey: string
+}
+
+export interface ClientMetaData {
+  uid: string | undefined
+  name?: string | null
+  email?: string | null
+  avatar?: string | null
+}
+
+
 export interface ChatMessage {
   messageId: string;
   roomId: string;
@@ -113,8 +115,19 @@ export interface ConversationData {
 }
 
 export interface ChatError {
-    messageId?: string;
-    error: string;
+  messageId?: string;
+  error: string;
+}
+
+
+export interface Contact {
+  uid: string;
+  name: string | null;
+  email: string;
+  avatar: string | null;
+  phoneNumber: string | null;
+  tenantId?: string;
+  addedAt?: Date;
 }
 
 
