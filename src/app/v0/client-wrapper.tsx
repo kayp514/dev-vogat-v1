@@ -41,10 +41,12 @@ export function ClientWrapper({ user }: { user: TernSecureUserServer }) {
   };
 
   return (
+    <SocketProvider config={socketConfig}>
     <ChatProvider clientMetaData={userData}>
       <QueryProvider>
         <AppLayout userData={userData} />
       </QueryProvider>
     </ChatProvider>
+    </SocketProvider>
   );
 }
