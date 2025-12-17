@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, UserPlus, Mail, Phone } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useChat } from "@/ternsecure-realtime";
+import { useEffect } from "react";
 import type { Contact } from "@/ternsecure-realtime/utils/socket";
+import { useContactSearch } from "@/hooks/use-contact-search";
 
 type ContactButtonProps = {
   contact: Contact;
@@ -93,46 +93,19 @@ const EmptyState = () => (
 );
 
 export function Contact() {
-  const { subscribeToContact } = useChat();
-  const [loading, setLoading] = useState(true);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  //useEffect(() => {
-  //  const unsubscribe = subscribeToContact((contactsList) => {
-  //    setContacts(contactsList);
-  //    setLoading(false);
-  //  });
-  //
-  //  return () => {
-  //    unsubscribe();
-  //  };
-  //}, [subscribeToContact]);
-
+  const { contacts, isPending, error, loadContacts } = useContactSearch();
 
   useEffect(() => {
-    const eventSource = new EventSource("/api/contacts/stream");
-
-    eventSource.onmessage = (event) => {
-      const contact = JSON.parse(event.data);
-      setContacts((prev) => [...prev, contact]);
-    };
-
-    eventSource.onerror = () => {
-      eventSource.close();
-      setLoading(false);
-    };
-
-    return () => eventSource.close();
-  }, []);
+    loadContacts();
+  }, [loadContacts]);
 
   return (
     <ScrollArea className="flex-1 h-[calc(100vh-225px)]">
       <div className="space-y-1 p-2">
-        {loading && <Loading />}
+        {isPending && <Loading />}
         {error && <ErrorDisplay message={error} />}
-        {!loading && !error && contacts.length === 0 && <EmptyState />}
-        {!loading &&
+        {!isPending && !error && contacts.length === 0 && <EmptyState />}
+        {!isPending &&
           !error &&
           contacts.length > 0 &&
           contacts.map((contact) => (
