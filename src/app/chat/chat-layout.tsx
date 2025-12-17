@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { type User } from "../type";
+import { type User } from "@/app/type";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChatSidebar } from "./sidebar-chat";
 import { ChatArea } from "./chat-area";

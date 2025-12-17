@@ -40,10 +40,7 @@ export function ChatArea({
         onBackToList={onBackToList}
         isMobile={isMobile}
       />
-      <MessageList
-        currentUserId={clientId}
-        selectedUser={selectedUser}
-      />
+      <MessageList currentUserId={clientId} selectedUser={selectedUser} />
       <MessageInput
         onSendMessage={handleSendMessage}
         onTyping={handleTyping}

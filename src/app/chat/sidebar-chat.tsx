@@ -59,7 +59,10 @@ export function ChatSidebar({
           value="contacts"
           className="flex-1 p-0 m-0 overflow-hidden flex flex-col"
         >
-          <Contact />
+          <Contact
+            selectedUserId={selectedUser?.uid}
+            onSelectChat={onSelectChatUser}
+          />
         </TabsContent>
       </Tabs>
     </div>

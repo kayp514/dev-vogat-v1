@@ -324,7 +324,7 @@ export function Conversation({
         setActiveFilter={setActiveFilter}
       />
 
-      <ScrollArea className="flex-1 h-[calc(100vh-225px)]">
+      <ScrollArea className="h-[calc(100vh-225px)]">
         {loading ? (
           <Loading />
         ) : error ? (
@@ -381,7 +381,7 @@ export function Conversation({
   );
 }
 
-export function ContactsTab() {
+export function Contacts() {
   return (
     <>
       <div className="flex justify-end p-2 border-b bg-background sticky top-[137px] z-10">
