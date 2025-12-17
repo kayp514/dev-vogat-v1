@@ -35,7 +35,8 @@ export function NewMessageDialog(props: NewMessageDialogProps) {
   const [selectedUser, setSelectedUser] = useState<Contact | null>(null);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const { contacts, searchQuery, isPending, updateSearchQuery, loadContacts } = useContactSearch();
+  const { contacts, searchQuery, isPending, updateSearchQuery, loadContacts } =
+    useContactSearch();
   const { sendMessage } = useChat();
 
   // Load contacts when dialog opens
@@ -61,7 +62,8 @@ export function NewMessageDialog(props: NewMessageDialogProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          participantUids: [selectedUser.uid],
+          recipientId: selectedUser.uid,
+          content: message.trim(),
           type: "direct",
         }),
       });
@@ -73,7 +75,7 @@ export function NewMessageDialog(props: NewMessageDialogProps) {
 
       const { chat } = await response.json();
 
-      await sendMessage(chat.id, message.trim());
+      await sendMessage(message.trim(), chat.recipientId, selectedUser);
 
       if (onSend) {
         onSend(selectedUser as User, message.trim());
@@ -86,7 +88,11 @@ export function NewMessageDialog(props: NewMessageDialogProps) {
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to start chat:", error);
-      alert(error instanceof Error ? error.message : "Failed to start chat. Please try again.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to start chat. Please try again."
+      );
     } finally {
       setIsSending(false);
     }
@@ -142,7 +148,9 @@ export function NewMessageDialog(props: NewMessageDialogProps) {
                         <AvatarFallback>{contact.name?.[0]}</AvatarFallback>
                       </Avatar>
                       <div className="text-sm overflow-hidden">
-                        <div className="font-medium truncate">{contact.name}</div>
+                        <div className="font-medium truncate">
+                          {contact.name}
+                        </div>
                         <div className="text-xs text-muted-foreground truncate">
                           {contact.email}
                         </div>
