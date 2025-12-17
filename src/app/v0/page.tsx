@@ -10,16 +10,18 @@ export default async function VzeroPage() {
 
   if (!user) return redirectToSignIn();
 
-  //const socketConfig = createSocketConfig(
-  //  user?.uid || "",
-  //  API_KEY ?? "fake_vgt_key",
-  //  {
-  //    storageType: "localStorage",
-  //    storageKey: "app_socket_session",
-  //  }
-  //);
+  const socketConfig = createSocketConfig(
+    user?.uid || "",
+    API_KEY ?? "fake_vgt_key",
+    {
+      storageType: "localStorage",
+      storageKey: "app_socket_session",
+    }
+  );
 
   return (
+    <SocketProvider config={socketConfig}>
       <ClientWrapper user={user} />
+    </SocketProvider>
   );
 }
