@@ -98,16 +98,33 @@ export function Contact() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = subscribeToContact((contactsList) => {
-      setContacts(contactsList);
-      setLoading(false);
-    });
+  //useEffect(() => {
+  //  const unsubscribe = subscribeToContact((contactsList) => {
+  //    setContacts(contactsList);
+  //    setLoading(false);
+  //  });
+  //
+  //  return () => {
+  //    unsubscribe();
+  //  };
+  //}, [subscribeToContact]);
 
-    return () => {
-      unsubscribe();
+
+  useEffect(() => {
+    const eventSource = new EventSource("/api/contacts/stream");
+
+    eventSource.onmessage = (event) => {
+      const contact = JSON.parse(event.data);
+      setContacts((prev) => [...prev, contact]);
     };
-  }, [subscribeToContact]);
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      setLoading(false);
+    };
+
+    return () => eventSource.close();
+  }, []);
 
   return (
     <ScrollArea className="flex-1 h-[calc(100vh-225px)]">
