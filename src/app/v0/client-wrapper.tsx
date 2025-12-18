@@ -1,5 +1,5 @@
-import { AppLayout } from "../../components/app-layout";
-import { UserData } from "../type";
+import { AppLayout } from "@/components/app-layout";
+import { UserData } from "@/app/type";
 import { createSocketConfig } from "@/ternsecure-realtime/utils/socketSessionConfig";
 import { SocketProvider } from "@/ternsecure-realtime/providers/SocketProvider";
 import { ChatProvider } from "@/ternsecure-realtime/providers/ChatProvider";

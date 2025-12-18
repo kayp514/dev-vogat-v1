@@ -1,4 +1,3 @@
-// src/app/SIPContext.tsx
 'use client'
 
 import React, { useState, useCallback, useEffect, ReactNode } from 'react'
