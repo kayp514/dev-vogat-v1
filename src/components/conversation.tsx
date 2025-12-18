@@ -5,13 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { MessageSquare, Users, UserPlus } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import type { User } from "@/app/type";
 import type {
   ConversationData,
@@ -21,6 +15,8 @@ import type {
 import { useChat, useWebSkt } from "@/ternsecure-realtime";
 import { usePresence } from "@/ternsecure-realtime/hooks/usePresence";
 import { useState, useEffect } from "react";
+import { fetcher } from "@/lib/utils";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 type ConversationProps = {
   activeFilter: "all" | "unread" | "favorites";
@@ -49,7 +45,7 @@ const ConversationButton = (props: ConversationButtonProps) => {
   const avatarLetter = name[0]?.toUpperCase() || "U";
 
   const userPresence = presenceUpdates.find(
-    update => update.clientId === user.uid
+    (update) => update.clientId === user.uid
   )?.presence;
 
   const isUserTyping = Boolean(isTyping[user.uid]);
@@ -102,9 +98,7 @@ const ConversationButton = (props: ConversationButtonProps) => {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-semibold truncate">
-              {name}
-            </span>
+            <span className="text-sm font-semibold truncate">{name}</span>
             {lastMessage?.timestamp && (
               <span className="text-xs text-muted-foreground shrink-0">
                 {formatMessageTime(lastMessage.timestamp)}
@@ -133,14 +127,26 @@ const ConversationButton = (props: ConversationButtonProps) => {
 };
 
 const Loading = () => (
-  <div className="flex items-center justify-center h-20">
-    <p className="text-sm text-muted-foreground">Loading chats...</p>
+  <div className="flex flex-col items-center justify-center h-40 gap-2">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    <p className="text-sm text-muted-foreground">Loading conversations...</p>
   </div>
 );
 
-const ErrorDisplay = ({ message }: { message: string }) => (
-  <div className="flex items-center justify-center h-20">
+const ErrorDisplay = ({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) => (
+  <div className="flex flex-col items-center justify-center h-40 p-4 text-center gap-2">
     <p className="text-sm text-destructive">Error: {message}</p>
+    {onRetry && (
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        Try Again
+      </Button>
+    )}
   </div>
 );
 
@@ -220,99 +226,130 @@ export function Conversation({
     selectedUser,
     setSelectedUser,
     subscribeToMessages,
-    getConversations,
     getLastMessage,
   } = useChat();
 
   const { clientId } = useWebSkt();
-  const [conversations, setConversations] = useState<ConversationData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
   const currentUserId = clientId;
   const { presenceState } = usePresence();
+  const [localChats, setLocalChats] = useState<any[]>([]);
+
+  const fetchConversations = async ({ pageParam = 0 }: { pageParam?: number }) => {
+    const res = await fetcher(`/api/chats?cursor=${pageParam}&limit=50`);
+    return {
+      chats: res.chats || [],
+      nextCursor: res.nextCursor,
+      hasMore: res.hasMore
+    };
+  };
+
+  const {
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ["chats"],
+    queryFn: fetchConversations,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  });
+
+  const chats = data?.pages.flatMap((page) => page.chats) ?? [];
+
+  useEffect(() => {
+    if (chats.length > 0 && localChats.length === 0) {
+      setLocalChats(chats);
+    }
+  }, [chats.length]);
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadConversations = async () => {
-      try {
-        setLoading(true);
-        const result = await getConversations({ limit: 50, offset: 0 });
-
-        if (isMounted) {
-          setConversations(result.conversations);
-          setHasMore(result.hasMore);
-          setLoading(false);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError((err as Error).message);
-          setLoading(false);
-        }
-      }
-    };
-
     const handleNewMessage = (message: ChatMessage) => {
       if (!isMounted) return;
       console.log("New message received:", message);
-      setConversations((prevConversations) => {
+
+      setLocalChats((prevChats) => {
         // Extract both IDs from roomId (format: "user1_user2")
         const [user1, user2] = message.roomId.split("_");
-        const recipientId = user1 === message.fromId ? user2 : user1;
+        const otherUserId = user1 === currentUserId ? user2 : user1;
 
-        const conversationExists = prevConversations.some(
-          (conv) =>
-            conv.otherUserId === message.fromId ||
-            conv.otherUserId === recipientId
+        const chatExists = prevChats.some(
+          (chat) =>
+            (chat.senderId === otherUserId && chat.recipientId === currentUserId) ||
+            (chat.recipientId === otherUserId && chat.senderId === currentUserId)
         );
 
-        if (!conversationExists) {
-          // Add new conversation at the beginning
-          const newConversation: ConversationData = {
-            roomId: message.roomId,
-            otherUserId:
-              recipientId === currentUserId ? message.fromId : recipientId,
-            lastMessage: message,
-            unreadCount: 0,
-            lastActivity: new Date(message.timestamp).getTime(),
+        if (!chatExists) {
+          const newChat = {
+            id: message.roomId,
+            senderId: message.fromId,
+            recipientId: otherUserId === message.fromId ? currentUserId : otherUserId,
+            workspaceId: "",
+            lastMessage: new Date(message.timestamp),
+            createdAt: new Date(message.timestamp),
+            updatedAt: new Date(message.timestamp),
+            sender: message.fromId === currentUserId ? null : message.metaData,
+            recipient: otherUserId === currentUserId ? null : message.toData,
+            messages: [
+              {
+                id: message.roomId,
+                content: message.message,
+                createdAt: new Date(message.timestamp),
+                read: false,
+                senderId: message.fromId,
+              },
+            ],
           };
-          return [newConversation, ...prevConversations];
+          return [newChat, ...prevChats];
         }
 
-        return prevConversations.map((conv) => {
-          const isRelevantConversation =
-            conv.otherUserId === message.fromId ||
-            conv.otherUserId === recipientId;
+        // Update existing chat
+        return prevChats.map((chat) => {
+          const isRelevantChat =
+            (chat.senderId === otherUserId && chat.recipientId === currentUserId) ||
+            (chat.recipientId === otherUserId && chat.senderId === currentUserId);
 
-          if (isRelevantConversation) {
-            console.log("Updating conversation for:", conv.otherUserId);
+          if (isRelevantChat) {
             return {
-              ...conv,
-              lastMessage: message,
-              updatedAt: message.timestamp,
+              ...chat,
+              lastMessage: new Date(message.timestamp),
+              messages: [
+                {
+                  id: message.roomId,
+                  content: message.message,
+                  createdAt: new Date(message.timestamp),
+                  read: false,
+                  senderId: message.fromId,
+                },
+              ],
             };
           }
-          return conv;
+          return chat;
         });
       });
     };
 
-    loadConversations();
     const unsubscribe = subscribeToMessages(handleNewMessage);
 
     return () => {
       isMounted = false;
       unsubscribe();
     };
-  }, [getConversations, subscribeToMessages]);
+  }, [currentUserId, subscribeToMessages]);
 
-  const displayedConversations = conversations.filter((conv) => {
+  const displayedChats = localChats.filter((chat) => {
     if (activeFilter === "unread") {
-      return conv.unreadCount > 0;
+      return chat.messages?.some(
+        (msg: any) => !msg.read && msg.senderId !== currentUserId
+      );
     }
     if (activeFilter === "favorites") {
-      return false;
+      return false; // TODO: Implement favorites logic
     }
     return true;
   });
@@ -325,43 +362,59 @@ export function Conversation({
       />
 
       <ScrollArea className="h-[calc(100vh-225px)]">
-        {loading ? (
+        {status === "pending" ? (
           <Loading />
-        ) : error ? (
-          <ErrorDisplay message={error} />
-        ) : displayedConversations.length === 0 ? (
+        ) : status === "error" ? (
+          <ErrorDisplay
+            message={error?.message || "Failed to load conversations"}
+            onRetry={() => refetch()}
+          />
+        ) : displayedChats.length === 0 ? (
           <EmptyState
             activeFilter={activeFilter}
-            hasConversations={conversations.length > 0}
+            hasConversations={localChats.length > 0}
           />
         ) : (
           <div className="space-y-1 p-2">
             <div className="space-y-1">
-              {conversations.map((conversation) => {
-                const otherUserId = conversation.otherUserId;
+              {displayedChats.map((chat) => {
+                // Determine the other user in the conversation
+                const otherUserId =
+                  chat.senderId === currentUserId
+                    ? chat.recipientId
+                    : chat.senderId;
+
+                const otherUserData =
+                  chat.senderId === currentUserId ? chat.recipient : chat.sender;
+
                 const presenceUpdate = presenceState.get(otherUserId);
                 const status = presenceUpdate?.presence.status || "unknown";
-                const lastMessage =
-                  getLastMessage(otherUserId) || conversation.lastMessage;
 
-                const isFromCurrentUser = lastMessage.fromId === currentUserId;
+                const socketLastMessage = getLastMessage(otherUserId);
+                const lastMessage: ChatMessage = socketLastMessage || {
+                  messageId: chat.messages?.[0]?.id || "",
+                  message: chat.messages?.[0]?.content || "",
+                  timestamp: chat.messages?.[0]?.createdAt?.toString() || chat.lastMessage?.toString() || "",
+                  fromId: chat.messages?.[0]?.senderId || "",
+                  toId: otherUserId,
+                  roomId: `${chat.senderId}_${chat.recipientId}`,
+                  metaData: otherUserData,
+                  toData: undefined,
+                };
 
-                const userData = isFromCurrentUser
-                  ? lastMessage.toData
-                  : lastMessage.metaData;
                 const user: User = {
                   uid: otherUserId,
                   name:
-                    userData?.name ||
-                    userData?.email?.split("@")[0] ||
+                    otherUserData?.name ||
+                    otherUserData?.email?.split("@")[0] ||
                     otherUserId.substring(0, 8),
-                  email: userData?.email || "",
-                  avatar: userData?.avatar || "",
+                  email: otherUserData?.email || "",
+                  avatar: otherUserData?.avatar || "",
                 };
 
                 return (
                   <ConversationButton
-                    key={otherUserId}
+                    key={`${chat.id}-${otherUserId}`}
                     user={user}
                     isSelected={selectedUser?.uid === otherUserId}
                     onSelect={(user) => {
@@ -374,39 +427,29 @@ export function Conversation({
                 );
               })}
             </div>
+
+            {(hasNextPage || isFetchingNextPage) && (
+              <div className="flex justify-center pt-4 pb-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fetchNextPage()}
+                  disabled={!hasNextPage || isFetchingNextPage}
+                  className="text-muted-foreground"
+                >
+                  {isFetchingNextPage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Loading more...
+                    </>
+                  ) : (
+                    "Load More"
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         )}
-      </ScrollArea>
-    </>
-  );
-}
-
-export function Contacts() {
-  return (
-    <>
-      <div className="flex justify-end p-2 border-b bg-background sticky top-[137px] z-10">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" className="text-xs">
-                <UserPlus className="h-3.5 w-3.5 mr-1" />
-                Add Contact
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Add a new contact</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-      <ScrollArea className="h-[calc(100vh-185px)]">
-        <div className="p-4 text-center">
-          <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-          <p className="text-sm text-muted-foreground">
-            Your contacts will appear here
-          </p>
-          <Button variant="link" size="sm" className="mt-2">
-            Import contacts
-          </Button>
-        </div>
       </ScrollArea>
     </>
   );
