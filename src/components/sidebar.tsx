@@ -1,12 +1,21 @@
-"use client"
-import { cn } from "@/lib/utils"
-import { ChatBubbleOvalLeftEllipsisIcon, DevicePhoneMobileIcon, CommandLineIcon } from "@heroicons/react/24/outline"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Bell } from "lucide-react"
+"use client";
+import { cn } from "@/lib/utils";
+import {
+  ChatBubbleOvalLeftEllipsisIcon,
+  DevicePhoneMobileIcon,
+  CommandLineIcon,
+} from "@heroicons/react/24/outline";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Bell } from "lucide-react";
 
 interface AppSideBarProps {
-  activeTab: string
-  setActiveTab: (tab: string) => void
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 const navigation = [
@@ -14,7 +23,7 @@ const navigation = [
   { name: "Calls", id: "calls", icon: DevicePhoneMobileIcon },
   { name: "Notifications", id: "notifications", icon: Bell },
   { name: "Admin Console", id: "console", icon: CommandLineIcon },
-]
+];
 
 export function AppSideBar({ activeTab, setActiveTab }: AppSideBarProps) {
   return (
@@ -37,7 +46,7 @@ export function AppSideBar({ activeTab, setActiveTab }: AppSideBarProps) {
                     item.id === "calls" &&
                       "hover:bg-green-50 hover:text-green-500 hover:border-green-200 dark:hover:bg-green-950/30 dark:hover:text-green-400",
                     item.id === "notifications" &&
-                    "hover:bg-orange-50 hover:text-orange-500 hover:border-orange-200 dark:hover:bg-orange-950/30 dark:hover:text-orange-400",
+                      "hover:bg-orange-50 hover:text-orange-500 hover:border-orange-200 dark:hover:bg-orange-950/30 dark:hover:text-orange-400",
                     item.id === "console" &&
                       "hover:bg-purple-50 hover:text-purple-500 hover:border-purple-200 dark:hover:bg-purple-950/30 dark:hover:text-purple-400",
                     // Active state with more prominent styling and dynamic colors
@@ -51,7 +60,7 @@ export function AppSideBar({ activeTab, setActiveTab }: AppSideBarProps) {
                         "bg-orange-100 text-orange-600 border-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-800",
                       item.id === "console" &&
                         "bg-purple-100 text-purple-600 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800",
-                    ],
+                    ]
                   )}
                 >
                   {/* Dynamic indicator dot for active state */}
@@ -61,20 +70,29 @@ export function AppSideBar({ activeTab, setActiveTab }: AppSideBarProps) {
                         "absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-background",
                         item.id === "chat" && "bg-blue-500 dark:bg-blue-400",
                         item.id === "calls" && "bg-green-500 dark:bg-green-400",
-                        item.id === "notifications" && "bg-orange-500 dark:bg-orange-400",
-                        item.id === "console" && "bg-purple-500 dark:bg-purple-400",
+                        item.id === "notifications" &&
+                          "bg-orange-500 dark:bg-orange-400",
+                        item.id === "console" &&
+                          "bg-purple-500 dark:bg-purple-400"
                       )}
                     />
                   )}
 
                   {/* Icon with subtle animation */}
                   <item.icon
-                    className={cn("h-6 w-6 transition-all", activeTab === item.id ? "scale-110" : "scale-100")}
+                    className={cn(
+                      "h-6 w-6 transition-all",
+                      activeTab === item.id ? "scale-110" : "scale-100"
+                    )}
                   />
                   <span className="sr-only">{item.name}</span>
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={6} className="font-medium">
+              <TooltipContent
+                side="right"
+                sideOffset={6}
+                className="font-medium"
+              >
                 {item.name}
               </TooltipContent>
             </Tooltip>
@@ -83,6 +101,5 @@ export function AppSideBar({ activeTab, setActiveTab }: AppSideBarProps) {
       </div>
       <div className="mt-auto"></div>
     </div>
-  )
+  );
 }
-

@@ -1,5 +1,5 @@
 import { CallService } from "./call-service";
-import type { UserData, CallerInfo } from "../type";
+import type { UserData, CallerInfo } from "@/app/type";
 
 interface CallLayoutProps {
   userData: UserData;
