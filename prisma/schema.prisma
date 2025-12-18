@@ -85,6 +85,8 @@ model users {
   receivedChats        chats[]            @relation("ChatRecipient")
   sentChats            chats[]            @relation("ChatSender")
   sentMessages         messages[]         @relation("MessageSender")
+  contacts             contacts[]         @relation("UserContacts")
+  contactOf            contacts[]         @relation("ContactOf")
 
   @@index([email])
   @@index([tenantId])
@@ -99,17 +101,21 @@ model chats {
   lastMessage DateTime?
   senderId    String      @db.VarChar(50)
   recipientId String      @db.VarChar(50)
-  workspaceId String
+  workspaceId String?
+  roomId      String?     @db.VarChar(255) // For 1-on-1 chats: room_email1_email2 (sorted)
+  type        String      @default("direct") @db.VarChar(20) // 'direct' or 'workspace'
   recipient   users       @relation("ChatRecipient", fields: [recipientId], references: [uid], onDelete: Cascade)
   sender      users       @relation("ChatSender", fields: [senderId], references: [uid], onDelete: Cascade)
-  workspace   workspaces  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   workspaces? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   messages    messages[]
 
-  @@unique([senderId, recipientId, workspaceId])
+  @@unique([roomId], map: "unique_room")
   @@index([senderId])
   @@index([recipientId])
   @@index([lastMessage])
   @@index([workspaceId])
+  @@index([roomId])
+  @@index([type])
   @@map("chats")
 }
 
@@ -129,4 +135,21 @@ model messages {
   @@index([senderId])
   @@index([createdAt])
   @@map("messages")
+}
+
+model contacts {
+  id        String   @id @default(cuid())
+  userId    String   @db.VarChar(50)
+  contactId String   @db.VarChar(50)
+  status    String   @default("accepted") @db.VarChar(20) // 'pending', 'accepted', 'blocked'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      users    @relation("UserContacts", fields: [userId], references: [uid], onDelete: Cascade)
+  contact   users    @relation("ContactOf", fields: [contactId], references: [uid], onDelete: Cascade)
+
+  @@unique([userId, contactId])
+  @@index([userId])
+  @@index([contactId])
+  @@index([status])
+  @@map("contacts")
 }

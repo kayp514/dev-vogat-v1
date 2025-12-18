@@ -8,15 +8,15 @@ export async function DELETE(
 ) {
   try {
     const { user } = await auth()
-    
+
     if (!user?.uid) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: { 
-            code: 'UNAUTHORIZED', 
-            message: 'Authentication required' 
-          } 
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required'
+          }
         },
         { status: 401 }
       )
@@ -28,7 +28,10 @@ export async function DELETE(
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: result.error },
+        {
+          success: false,
+          error: 'error' in result ? result.error : { code: 'UNKNOWN_ERROR', message: 'Failed to remove contact' }
+        },
         { status: 500 }
       )
     }
@@ -41,12 +44,12 @@ export async function DELETE(
   } catch (error) {
     console.error('Remove contact API error:', error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: { 
-          code: 'INTERNAL_ERROR', 
-          message: error instanceof Error ? error.message : 'Failed to remove contact' 
-        } 
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: error instanceof Error ? error.message : 'Failed to remove contact'
+        }
       },
       { status: 500 }
     )

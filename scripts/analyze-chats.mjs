@@ -10,7 +10,7 @@ async function analyzeChatsAndMembers() {
     // Get the specific workspace with chats
     const workspace = await prisma.workspaces.findFirst({
       where: {
-        id: 'ws_7IdoSSpKpyQBrsHmRi5qEHJL1Zp1'
+        id: 'ws_Jn9iyvPRhmbsz2C3D63k1FyMYdV2'
       },
       include: {
         workspaceMembers: {
