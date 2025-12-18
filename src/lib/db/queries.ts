@@ -378,6 +378,94 @@ export async function getChatMessages(chatId: string, workspaceId?: string) {
   }
 }
 
+/**
+ * Get messages from DB for a room (direct chat between two users)
+ * Room ID is constructed from emails: room_email1_email2
+ * Supports cursor-based pagination for infinite scroll
+ */
+export async function getRoomMessages(
+  roomId: string,
+  options?: {
+    limit?: number;
+    cursor?: string; // messageId to paginate from
+  }
+) {
+  try {
+    const limit = options?.limit || 50;
+    
+    // First, find the chat by roomId
+    const chat = await prisma.chats.findFirst({
+      where: {
+        roomId: roomId,
+        type: 'direct'
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (!chat) {
+      return {
+        success: true,
+        messages: [],
+        nextCursor: null,
+        hasMore: false
+      };
+    }
+
+    // Build where condition for messages
+    const whereCondition: any = {
+      chatId: chat.id
+    };
+
+    // Add cursor condition if provided (for pagination)
+    if (options?.cursor) {
+      whereCondition.id = {
+        lt: options.cursor // Get messages older than cursor
+      };
+    }
+
+    // Fetch messages with pagination
+    const messages = await prisma.messages.findMany({
+      where: whereCondition,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: limit + 1, // Fetch one extra to determine if there are more
+      include: {
+        sender: {
+          select: {
+            uid: true,
+            name: true,
+            email: true,
+            avatar: true,
+          }
+        }
+      }
+    });
+
+    const hasMore = messages.length > limit;
+    const paginatedMessages = hasMore ? messages.slice(0, limit) : messages;
+    const nextCursor = hasMore ? paginatedMessages[paginatedMessages.length - 1].id : null;
+
+    return {
+      success: true,
+      messages: paginatedMessages,
+      nextCursor,
+      hasMore
+    };
+  } catch (error) {
+    console.error('Error fetching room messages:', error);
+    return {
+      success: false,
+      error: {
+        code: 'FETCH_MESSAGES_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch messages'
+      }
+    };
+  }
+}
+
 
 export async function createNewChat(currentUserId: string, otherUserId: string, workspaceId: string, initialMessage: string) {
   try {

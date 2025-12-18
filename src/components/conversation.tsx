@@ -342,17 +342,34 @@ export function Conversation({
     };
   }, [currentUserId, subscribeToMessages]);
 
-  const displayedChats = localChats.filter((chat) => {
-    if (activeFilter === "unread") {
-      return chat.messages?.some(
-        (msg: any) => !msg.read && msg.senderId !== currentUserId
-      );
-    }
-    if (activeFilter === "favorites") {
-      return false; // TODO: Implement favorites logic
-    }
-    return true;
-  });
+  // Filter and sort chats - most recent message first
+  const displayedChats = localChats
+    .filter((chat) => {
+      if (activeFilter === "unread") {
+        return chat.messages?.some(
+          (msg: any) => !msg.read && msg.senderId !== currentUserId
+        );
+      }
+      if (activeFilter === "favorites") {
+        return false; // TODO: Implement favorites logic
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      // Get the latest message timestamp for each chat
+      const aTimestamp = a.lastMessage 
+        ? new Date(a.lastMessage).getTime() 
+        : a.messages?.[0]?.createdAt 
+          ? new Date(a.messages[0].createdAt).getTime() 
+          : 0;
+      const bTimestamp = b.lastMessage 
+        ? new Date(b.lastMessage).getTime() 
+        : b.messages?.[0]?.createdAt 
+          ? new Date(b.messages[0].createdAt).getTime() 
+          : 0;
+      // Sort descending (most recent first)
+      return bTimestamp - aTimestamp;
+    });
 
   return (
     <>
