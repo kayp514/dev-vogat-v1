@@ -6,6 +6,7 @@ import type { User } from "@/lib/db/types";
 import { useChat } from "@/ternsecure-realtime/ctx/ChatCtx";
 import { useWebSkt } from "@/ternsecure-realtime/ctx/SocketWebSktCtx";
 import { MessageInput } from "@/components/message-input";
+import { fetcher } from "@/lib/utils";
 
 interface ChatAreaProps {
   selectedUser: User | null;
@@ -23,7 +24,27 @@ export function ChatArea({
 
   const handleSendMessage = async (content: string) => {
     if (selectedUser && content.trim()) {
+      // 1. Send message via socket for real-time delivery
       await sendMessage(content, selectedUser.uid, selectedUser);
+      
+      // 2. Save message to database for persistence
+      try {
+        await fetcher('/api/chats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipientId: selectedUser.uid,
+            content: content.trim(),
+            workspaceId: '', // Empty string for direct chats
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to save message to database:', error);
+        // Message was sent via socket, so don't throw error to user
+        // Just log it for debugging
+      }
     }
   };
 

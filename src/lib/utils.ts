@@ -10,8 +10,8 @@ interface ApplicationError extends Error {
   status: number;
 }
 
-export const fetcher = async (url: string) => {
-  const res = await fetch(url);
+export const fetcher = async (url: string, options?: RequestInit) => {
+  const res = await fetch(url, options);
 
   if (!res.ok) {
     const error = new Error(

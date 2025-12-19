@@ -88,12 +88,8 @@ export async function createDatabaseUser(firebaseUser: FirebaseAuthUser): Promis
         email: result.user.email,
         tenantId: result.user.tenantId,
         emailVerified: result.user.emailVerified,
-      },
-      workspace: {
-        id: result.workspace.id,
-        name: result.workspace.name,
-        type: result.workspace.type
       }
+      // Workspace is no longer auto-created - 1-on-1 chats are workspace-independent
     }
   } catch (error) {
     return {
