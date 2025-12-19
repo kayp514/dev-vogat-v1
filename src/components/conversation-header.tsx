@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { MessageSquare, Users } from "lucide-react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NewMessageDialog } from "./new-message-dialog";
-import { ConversationFilter } from "./conversation-filter";
+import { NewMessageDialog } from "@/components/new-message-dialog";
+import { ConversationFilter } from "@/components/chat-filters";
 
 type ConversationHeaderProps = {
   activeTab: string;

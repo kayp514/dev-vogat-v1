@@ -37,7 +37,7 @@ export function ChatHeader({
           Select a conversation
         </h2>
       </div>
-    )
+    );
   }
 
   const name =

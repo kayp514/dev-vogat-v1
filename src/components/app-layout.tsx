@@ -120,7 +120,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
         <aside className="w-16 h-full bg-muted/20 shadow-xs">
         <AppSideBar setActiveTab={setActiveTab} activeTab={activeTab} />
         </aside>
-      <main className="flex-1  h-full overflow-hidden">
+      <main className="flex-1 h-full overflow-hidden">
         <div
           className={cn(
             "h-full transition-opacity duration-300 relative z-0",
@@ -130,7 +130,7 @@ export function AppLayout({ userData }: AppLayoutProps) {
           {activeTab === "chat" && <ChatLayout />}
           {activeTab === "calls" && <CallLayout userData={userData} onCall={handleCall} />}
           {activeTab === "notifications" && <NotificationLayout />}
-          {activeTab === "console" && <ConsoleLayout />}
+          {/**activeTab === "console" && <ConsoleLayout />**/}
         </div>
         <Toaster />
         </main>
