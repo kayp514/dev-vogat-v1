@@ -62,8 +62,7 @@ export async function POST(request: Request) {
       phoneNumber,
       emailVerified,
       createdAt,
-      lastSignInAt,
-      workspaceId
+      lastSignInAt
     } = body
 
     if (!uid || !email) {
@@ -92,13 +91,12 @@ export async function POST(request: Request) {
       lastSignInAt: lastSignInAt ? new Date(lastSignInAt) : null,
     }
 
-    const result = await createUser(userData, workspaceId)
+    const result = await createUser(userData)
 
     return NextResponse.json(
       {
         success: true,
-        user: result.user,
-        workspace: result.workspace
+        user: result.user
       },
       { status: 201 }
     )

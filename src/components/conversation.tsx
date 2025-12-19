@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageSquare, Loader2 } from "lucide-react";
 import type { User } from "@/app/type";
 import type {
-  ConversationData,
   UserStatus,
   ChatMessage,
 } from "@/ternsecure-realtime/utils/socket";
@@ -179,9 +178,11 @@ const EmptyState = ({
 const ConversationFilters = ({
   activeFilter,
   setActiveFilter,
+  unreadCount,
 }: {
   activeFilter: "all" | "unread" | "favorites";
   setActiveFilter: (filter: "all" | "unread" | "favorites") => void;
+  unreadCount: number;
 }) => (
   <div className="bg-background/80 backdrop-blur-xs border-b px-2 py-2 z-10">
     <div className="flex space-x-1 rounded-lg bg-muted/50 p-1">
@@ -199,9 +200,11 @@ const ConversationFilters = ({
         className="flex-1 text-xs h-8"
         onClick={() => setActiveFilter("unread")}
       >
-        <Badge variant="destructive" className="mr-1.5 h-5 px-1.5">
-          7
-        </Badge>
+        {unreadCount > 0 && (
+          <Badge variant="destructive" className="mr-1.5 h-5 px-1.5">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </Badge>
+        )}
         Unread
       </Button>
       <Button
@@ -371,11 +374,20 @@ export function Conversation({
       return bTimestamp - aTimestamp;
     });
 
+  // Calculate total unread messages count across all chats
+  const totalUnreadCount = localChats.reduce((total, chat) => {
+    const unreadInChat = chat.messages?.filter(
+      (msg: any) => !msg.read && msg.senderId !== currentUserId
+    )?.length || 0;
+    return total + unreadInChat;
+  }, 0);
+
   return (
     <>
       <ConversationFilters
         activeFilter={activeFilter}
         setActiveFilter={setActiveFilter}
+        unreadCount={totalUnreadCount}
       />
 
       <ScrollArea className="h-[calc(100vh-225px)]">

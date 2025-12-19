@@ -28,27 +28,47 @@ interface MessageListProps {
   selectedUser: User | null;
 }
 
-interface MessageGroup {
-  date: string;
-  messages: ChatMessage[];
+// Extended message type that includes DB read status
+interface ExtendedChatMessage extends ChatMessage {
+  read?: boolean;
+  readAt?: string | null;
+  isFromDB?: boolean; // Flag to know if message came from DB
 }
 
-const statusSounds =
+interface MessageGroup {
+  date: string;
+  messages: ExtendedChatMessage[];
+}
+
+// Extended status type to include 'read'
+type ExtendedMessageStatus = MessageStatus | "read";
+
+// Sound effects for message events
+const messageSounds =
   typeof window !== "undefined"
     ? {
         sent: new Audio("/sounds/sent.mp3"),
         delivered: new Audio("/sounds/sent.mp3"),
+        incoming: new Audio("/sounds/incoming.mp3"),
       }
     : null;
 
-if (statusSounds) {
-  Object.values(statusSounds).forEach((sound) => {
+if (messageSounds) {
+  Object.values(messageSounds).forEach((sound) => {
     sound.load();
     sound.volume = 0.4;
   });
+  // Slightly lower volume for incoming messages
+  if (messageSounds.incoming) {
+    messageSounds.incoming.volume = 0.5;
+  }
 }
 
-const MessageStatusIndicator = ({ status }: { status: MessageStatus }) => {
+const MessageStatusIndicator = ({
+  status,
+}: {
+  status: ExtendedMessageStatus;
+}) => {
   return (
     <span className="flex items-center transition-opacity duration-200">
       {status === "pending" && (
@@ -59,6 +79,9 @@ const MessageStatusIndicator = ({ status }: { status: MessageStatus }) => {
       )}
       {status === "delivered" && (
         <CheckCheckIcon className="h-3 w-3 text-current animate-in fade-in" />
+      )}
+      {status === "read" && (
+        <CheckCheckIcon className="h-3 w-3 text-blue-500 animate-in fade-in" />
       )}
       {status === "error" && (
         <AlertCircleIcon className="h-3 w-3 text-red-500 animate-in fade-in" />
@@ -76,7 +99,7 @@ const MessageBubble = ({
   shouldGroupWithNext,
   deliveryStatus,
 }: {
-  message: ChatMessage;
+  message: ExtendedChatMessage;
   isCurrentUser: boolean;
   selectedUser: User;
   showMetadata: boolean;
@@ -101,6 +124,31 @@ const MessageBubble = ({
       addSuffix: true,
     });
     return distance === "less than a minute ago" ? "now" : distance;
+  };
+
+  // Determine message status:
+  // 1. For DB messages: if read=true show "read", else show "delivered" (it's in DB = delivered)
+  // 2. For realtime messages: use socket-based deliveryStatus
+  // 3. Fallback: "pending" for new realtime messages not yet confirmed
+  const getMessageStatus = (): ExtendedMessageStatus => {
+    // Check socket-based status first (for realtime messages)
+    const socketStatus = deliveryStatus[message.messageId];
+    if (socketStatus) {
+      return socketStatus;
+    }
+
+    // For messages from DB (have isFromDB flag or no socket status)
+    if (message.isFromDB) {
+      // If read is true, show read status
+      if (message.read) {
+        return "read";
+      }
+      // Message is in DB = it was delivered
+      return "delivered";
+    }
+
+    // Default for new realtime messages
+    return "pending";
   };
 
   return (
@@ -144,9 +192,7 @@ const MessageBubble = ({
                 {formatMessageTime(message.timestamp)}
               </span>
               {isCurrentUser && (
-                <MessageStatusIndicator
-                  status={deliveryStatus[message.messageId] || "pending"}
-                />
+                <MessageStatusIndicator status={getMessageStatus()} />
               )}
             </div>
           )}
@@ -267,10 +313,7 @@ const EmptyMessageState = ({ message }: { message: string }) => (
 );
 
 export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
-  const {
-    subscribeToMessages,
-    subscribeToMessageStatus,
-  } = useChat();
+  const { subscribeToMessages, subscribeToMessageStatus } = useChat();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -296,8 +339,43 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
   useEffect(() => {
     setShouldScrollToBottom(true);
   }, [selectedUser?.uid]);
-  
 
+  // Mark messages as read when conversation is opened
+  // Uses a ref to prevent duplicate calls and debounce the request
+  const markAsReadCalledRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!roomIdFromEmails || !selectedUser) return;
+
+    // Prevent duplicate calls for the same room
+    if (markAsReadCalledRef.current === roomIdFromEmails) return;
+
+    // Debounce: wait a short moment to ensure the user is actually viewing the conversation
+    const timeoutId = setTimeout(async () => {
+      try {
+        markAsReadCalledRef.current = roomIdFromEmails;
+
+        await fetcher("/api/messages/read", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ roomId: roomIdFromEmails }),
+        });
+
+        // Invalidate the chats query to update unread counts in conversation list
+        queryClient.invalidateQueries({ queryKey: ["chats"] });
+      } catch (error) {
+        console.error("Failed to mark messages as read:", error);
+        // Reset ref so it can retry on next mount
+        markAsReadCalledRef.current = null;
+      }
+    }, 500); // 500ms debounce
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [roomIdFromEmails, selectedUser, queryClient]);
 
   // Fetch messages from DB with infinite scroll
   const fetchDBMessages = async ({
@@ -325,19 +403,22 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
       throw new Error(response.error?.message || "Failed to fetch messages");
     }
 
-    const transformedMessages: ChatMessage[] = (response.messages || []).map(
-      (msg: any) => ({
-        messageId: msg.id,
-        message: msg.content,
-        timestamp: msg.createdAt,
-        fromId: msg.senderId,
-        toId:
-          msg.senderId === currentUserId ? selectedUser!.uid : currentUserId,
-        roomId: [currentUserId, selectedUser!.uid].sort().join("_"), // Socket format
-        metaData: msg.sender,
-        toData: undefined,
-      })
-    );
+    const transformedMessages: ExtendedChatMessage[] = (
+      response.messages || []
+    ).map((msg: any) => ({
+      messageId: msg.id,
+      message: msg.content,
+      timestamp: msg.createdAt,
+      fromId: msg.senderId,
+      toId: msg.senderId === currentUserId ? selectedUser!.uid : currentUserId,
+      roomId: [currentUserId, selectedUser!.uid].sort().join("_"), // Socket format
+      metaData: msg.sender,
+      toData: undefined,
+      // DB-specific fields for status indicator
+      read: msg.read ?? false,
+      readAt: msg.readAt ?? null,
+      isFromDB: true,
+    }));
 
     return {
       messages: transformedMessages,
@@ -371,11 +452,11 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
   });
 
   // DB messages (historical) - already deduplicated and sorted
-  const allMessages = (dbData?.pages.flatMap((page) => page.messages) ?? [])
-    .sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+  const allMessages = (
+    dbData?.pages.flatMap((page) => page.messages) ?? []
+  ).sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
 
   // Subscribe to message status updates
   useEffect(() => {
@@ -386,7 +467,7 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
       const previousStatus = messageStatuses[messageId];
       if (previousStatus !== newStatus) {
         if (newStatus === "sent") {
-          statusSounds?.sent.play().catch(() => {});
+          messageSounds?.sent.play().catch(() => {});
         }
       }
     };
@@ -419,14 +500,18 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
             if (!oldData?.pages?.length) {
               // If no existing data, create initial structure
               return {
-                pages: [{ messages: [message], nextCursor: null, hasMore: false }],
+                pages: [
+                  { messages: [message], nextCursor: null, hasMore: false },
+                ],
                 pageParams: [undefined],
               };
             }
 
             // Check if message already exists in any page
             const messageExists = oldData.pages.some((page: any) =>
-              page.messages.some((m: ChatMessage) => m.messageId === message.messageId)
+              page.messages.some(
+                (m: ChatMessage) => m.messageId === message.messageId
+              )
             );
 
             if (messageExists) return oldData;
@@ -444,12 +529,12 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
             };
           }
         );
-        
+
         // Play sound for incoming messages from others
         if (message.fromId !== currentUserId) {
-          // You could add a message received sound here
+          messageSounds?.incoming.play().catch(() => {});
         }
-        
+
         // Auto-scroll to bottom for new messages
         setShouldScrollToBottom(true);
       }
@@ -460,12 +545,18 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
     return () => {
       unsubscribe();
     };
-  }, [selectedUser, currentUserId, subscribeToMessages, roomIdFromEmails, queryClient]);
+  }, [
+    selectedUser,
+    currentUserId,
+    subscribeToMessages,
+    roomIdFromEmails,
+    queryClient,
+  ]);
 
   // Auto-scroll to bottom when new messages arrive (only if shouldScrollToBottom is true)
   useEffect(() => {
     if (!shouldScrollToBottom) return;
-    
+
     if (scrollRef.current && scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector(
         "[data-radix-scroll-area-viewport]"
@@ -480,7 +571,8 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     const isNearTop = target.scrollTop < 100;
-    const isNearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 100;
+    const isNearBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight < 100;
 
     // When user scrolls up, disable auto-scroll to bottom
     if (!isNearBottom) {
@@ -496,8 +588,10 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
   };
 
   // Add this helper function to group messages by date
-  const groupMessagesByDate = (messages: ChatMessage[]): MessageGroup[] => {
-    const groups: Record<string, ChatMessage[]> = {};
+  const groupMessagesByDate = (
+    messages: ExtendedChatMessage[]
+  ): MessageGroup[] => {
+    const groups: Record<string, ExtendedChatMessage[]> = {};
 
     messages.forEach((message) => {
       const date = new Date(message.timestamp).toDateString();
@@ -543,7 +637,9 @@ export function MessageList({ currentUserId, selectedUser }: MessageListProps) {
               <AlertCircleIcon className="h-6 w-6 text-destructive" />
             </div>
             <p className="text-sm text-muted-foreground">
-              {dbError instanceof Error ? dbError.message : "Failed to load messages"}
+              {dbError instanceof Error
+                ? dbError.message
+                : "Failed to load messages"}
             </p>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               Try again

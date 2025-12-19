@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma';
-import type { DatabaseUserInput, SearchResult, WorkspaceCreateInput } from './types';
+import type { DatabaseUserInput, SearchResult } from './types';
 
 /**
  * Generate a consistent room ID for 1-on-1 chats based on user emails
@@ -157,98 +157,51 @@ export async function getAllUsers(maxResults?: number, nextPage?: number) {
 
 
 
-export async function createUser(data: DatabaseUserInput | null, workspaceId?: string) {
+export async function createUser(data: DatabaseUserInput | null) {
   if (!data) {
     console.error("user: Input is null in createUser");
     throw new Error("User input data is required")
   }
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const sanitizedData = {
+      uid: data.uid,
+      email: data.email.toLowerCase(),
+      name: data.name,
+      avatar: data.avatar,
+      tenantId: data.tenantId,
+      isAdmin: data.isAdmin,
+      phoneNumber: data.phoneNumber,
+      emailVerified: data.emailVerified,
+      createdAt: data.createdAt,
+      lastSignInAt: data.lastSignInAt,
+      updatedAt: new Date(),
+      disabled: false
+    }
 
-      const sanitizedData = {
-        uid: data.uid,
-        email: data.email.toLowerCase(),
-        name: data.name,
-        avatar: data.avatar,
-        tenantId: data.tenantId,
-        isAdmin: data.isAdmin,
-        phoneNumber: data.phoneNumber,
-        emailVerified: data.emailVerified,
-        createdAt: data.createdAt,
-        lastSignInAt: data.lastSignInAt,
-        updatedAt: new Date(),
-        disabled: false
-      }
+    const user = await prisma.users.create({
+      data: sanitizedData,
+      select: {
+        uid: true,
+        email: true,
+        name: true,
+        avatar: true,
+        tenantId: true,
+        isAdmin: true,
+        phoneNumber: true,
+        emailVerified: true,
+        disabled: true,
+        updatedAt: true,
+        createdAt: true,
+        lastSignInAt: true,
+      },
+    });
 
-      const user = await tx.users.create({
-        data: sanitizedData,
-        select: {
-          uid: true,
-          email: true,
-          name: true,
-          avatar: true,
-          tenantId: true,
-          isAdmin: true,
-          phoneNumber: true,
-          emailVerified: true,
-          disabled: true,
-          updatedAt: true,
-          createdAt: true,
-          lastSignInAt: true,
-        },
-      });
+    if (!user) {
+      throw new Error("Failed to create user: No user returned from database")
+    }
 
-      if (!user) {
-        throw new Error("Failed to create user: No user returned from database")
-      }
-
-      const workspaceName = user.name
-        ? `${user.name}'s Workspace`
-        : `${user.email.split('@')[0]}'s Workspace`
-
-      const workspaceData: WorkspaceCreateInput = {
-        name: workspaceName,
-        description: 'Personal workspace',
-        ownerId: user.uid,
-        tenantId: user.tenantId,
-        type: 'personal',
-        disabled: false
-      }
-
-      if (workspaceId) {
-        workspaceData.id = workspaceId
-      }
-
-      const workspace = await tx.workspaces.create({
-        data: workspaceData,
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          createdAt: true
-        }
-      })
-
-      await tx.workspaceMembers.create({
-        data: {
-          workspaceId: workspace.id,
-          userId: user.uid,
-          role: 'owner'
-        }
-      })
-
-      return {
-        user,
-        workspace: {
-          id: workspace.id,
-          name: workspace.name,
-          type: workspace.type
-        }
-      }
-    })
-
-    return result;
+    return { user };
   } catch (error) {
     console.error('Failed to create user in database:', error);
     throw error;
@@ -466,6 +419,63 @@ export async function getRoomMessages(
   }
 }
 
+/**
+ * Mark all unread messages in a room as read for a specific user
+ * Only marks messages sent BY OTHER users (not the current user's own messages)
+ * Uses roomId (email-based) for lookup - optimized for direct chats
+ * Uses a single batch update for efficiency
+ */
+export async function markRoomMessagesAsRead(roomId: string, currentUserId: string) {
+  try {
+    // First, find the chat by roomId
+    const chat = await prisma.chats.findFirst({
+      where: {
+        roomId: roomId,
+        type: 'direct'
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (!chat) {
+      return {
+        success: true,
+        updatedCount: 0
+      };
+    }
+
+    // Batch update all unread messages from other users in this chat
+    const result = await prisma.messages.updateMany({
+      where: {
+        chatId: chat.id,
+        read: false,
+        senderId: {
+          not: currentUserId // Only mark messages from OTHER users as read
+        }
+      },
+      data: {
+        read: true,
+        readAt: new Date()
+      }
+    });
+
+    return {
+      success: true,
+      updatedCount: result.count
+    };
+  } catch (error) {
+    console.error('Error marking room messages as read:', error);
+    return {
+      success: false,
+      error: {
+        code: 'MARK_READ_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to mark messages as read'
+      }
+    };
+  }
+}
+
 
 export async function createNewChat(currentUserId: string, otherUserId: string, workspaceId: string, initialMessage: string) {
   try {
@@ -621,63 +631,59 @@ export async function createNewChat(currentUserId: string, otherUserId: string, 
   }
 }
 
-
 export async function markMessagesAsRead(chatId: string, currentUserId: string, workspaceId?: string) {
-  try {
-    // Verify user has access to this chat
-    const whereCondition: any = {
-      id: chatId,
-      OR: [
-        { senderId: currentUserId },
-        { recipientId: currentUserId }
-      ]
-    };
+    try {
+        const whereCondition: any = {
+            id: chatId,
+            OR: [
+                { senderId: currentUserId },
+                { recipientId: currentUserId }
+            ]
+        };
 
-    // For workspace chats, verify workspace access
-    if (workspaceId) {
-      whereCondition.workspaceId = workspaceId;
-    }
-
-    const chat = await prisma.chats.findFirst({
-      where: whereCondition
-    });
-
-    if (!chat) {
-      return {
-        success: false,
-        error: {
-          code: 'CHAT_NOT_FOUND',
-          message: 'Chat not found or access denied'
+        if (workspaceId) {
+            whereCondition.workspaceId = workspaceId;
         }
-      };
+
+        const chat = await prisma.chats.findFirst({
+            where: whereCondition
+        });
+
+        if (!chat) {
+            return {
+                success: false,
+                error: {
+                    code: 'CHAT_NOT_FOUND',
+                    message: 'Chat not found or access denied'
+                }
+            };
+        }
+
+        const markAsRead = await prisma.messages.updateMany({
+            where: {
+                chatId: chatId,
+                senderId: {
+                    not: currentUserId
+                },
+                read: false
+            },
+            data: {
+                read: true,
+                readAt: new Date()
+            }
+        });
+
+        return { success: true, updatedCount: markAsRead.count };
+    } catch (error) {
+        console.error('Error marking messages as read:', error);
+        return {
+            success: false,
+            error: {
+                code: 'UPDATE_READ_STATUS_ERROR',
+                message: error instanceof Error ? error.message : 'Failed to mark messages as read'
+            }
+        };
     }
-
-    // Mark all unread messages from other user as read
-    const markAsRead = await prisma.messages.updateMany({
-      where: {
-        chatId: chatId,
-        senderId: {
-          not: currentUserId
-        },
-        read: false
-      },
-      data: {
-        read: true,
-        readAt: new Date()
-      }
-    });
-
-    return { success: true, updatedCount: markAsRead.count };
-  } catch (error) {
-    console.error('Error marking messages as read:', error);
-    return {
-      success: false,
-      error: {
-        code: 'UPDATE_READ_STATUS_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to mark messages as read'
-      }
-    };
-  }
 }
 
 
