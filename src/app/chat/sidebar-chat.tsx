@@ -17,7 +17,6 @@ export function ChatSidebar({
   selectedUser,
   onSelectChatUser,
 }: ChatSidebarProps) {
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("chats");
   const [filterOptions, setFilterOptions] = useState({
     showOnlineOnly: false,
@@ -35,8 +34,6 @@ export function ChatSidebar({
         className="flex-1 flex flex-col"
       >
         <ConversationHeader
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           filterOptions={filterOptions}
