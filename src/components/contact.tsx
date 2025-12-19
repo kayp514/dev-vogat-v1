@@ -244,15 +244,6 @@ const ContactFilters = ({
         )}
         Requests
       </Button>
-      <Button
-        variant={activeFilter === "favorites" ? "default" : "ghost"}
-        size="sm"
-        className="flex-1 text-xs h-8"
-        onClick={() => setActiveFilter("favorites")}
-      >
-        <span className="text-yellow-500 mr-1">★</span>
-        Favorites
-      </Button>
     </div>
   </div>
 );
@@ -419,10 +410,6 @@ export function Contact({ selectedUserId, onSelectChat }: ContactProps) {
 
   // Filter contacts based on active filter
   const filteredContacts = contacts.filter((contact) => {
-    if (activeFilter === "favorites") {
-      // TODO: Implement favorites logic when backend supports it
-      return false;
-    }
     if (activeFilter === "requests") {
       return false; // Requests are shown separately
     }

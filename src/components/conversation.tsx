@@ -244,15 +244,6 @@ const ConversationFilters = ({
         )}
         Unread
       </Button>
-      <Button
-        variant={activeFilter === "favorites" ? "default" : "ghost"}
-        size="sm"
-        className="flex-1 text-xs h-8"
-        onClick={() => setActiveFilter("favorites")}
-      >
-        <span className="text-yellow-500 mr-1">★</span>
-        Favorites
-      </Button>
     </div>
   </div>
 );
