@@ -2,22 +2,23 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { formatDistanceToNow } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, Loader2, Search, X } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import type { User } from "@/app/type";
-import type {
-  UserStatus,
-  ChatMessage,
-} from "@/ternsecure-realtime/utils/socket";
+import type { ChatMessage } from "@/ternsecure-realtime/utils/socket";
 import { useChat, useWebSkt } from "@/ternsecure-realtime";
 import { usePresence } from "@/ternsecure-realtime/hooks/usePresence";
 import { useEffect } from "react";
 import { fetcher } from "@/lib/utils";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { ConversationSearch } from "@/components/conversation-search";
+import { ConversationFilters } from "@/components/chat-filters";
+import { ConversationButton } from "@/components/chat-buttons";
+import {
+  Loading,
+  EmptyState,
+  ErrorDisplay,
+} from "@/components/chat-component-state";
 
 type ConversationProps = {
   activeFilter: "all" | "unread" | "favorites";
@@ -27,247 +28,13 @@ type ConversationProps = {
   onSelectChat: (user: User) => void;
 };
 
-type ConversationButtonProps = {
-  user: User;
-  isSelected: boolean;
-  onSelect: (user: User) => void;
-  lastMessage?: ChatMessage;
-  presence?: UserStatus;
-};
-
-const ConversationButton = (props: ConversationButtonProps) => {
-  const { user, isSelected, onSelect, lastMessage } = props;
-  const { presenceUpdates } = usePresence();
-  const { isTyping } = useChat();
-
-  const name =
-    user.name ||
-    (user.email ? user.email.split("@")[0] : user.uid.substring(0, 8));
-  const avatarLetter = name[0]?.toUpperCase() || "U";
-
-  const userPresence = presenceUpdates.find(
-    (update) => update.clientId === user.uid
-  )?.presence;
-
-  const isUserTyping = Boolean(isTyping[user.uid]);
-
-  const formatMessageTime = (timestamp: string) => {
-    const distance = formatDistanceToNow(new Date(timestamp), {
-      addSuffix: true,
-    });
-    return distance === "less than a minute ago" ? "now" : distance;
-  };
-
-  const truncateMessage = (message: string, maxLength: number = 30) => {
-    if (message.length <= maxLength) return message;
-    return `${message.substring(0, maxLength)}...`;
-  };
-
-  return (
-    <Button
-      key={user.uid}
-      onClick={() => onSelect(user)}
-      variant="ghost"
-      className={`w-full justify-start p-3 h-auto hover:bg-accent/50 transition-colors cursor-pointer ${
-        isSelected ? "bg-accent" : ""
-      }`}
-    >
-      <div className="flex items-center space-x-4 w-full">
-        <div className="relative shrink-0">
-          <Avatar className="h-10 w-10 ring-2 ring-background">
-            {user.avatar ? (
-              <AvatarImage src={user.avatar} alt={name} />
-            ) : (
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {avatarLetter}
-              </AvatarFallback>
-            )}
-          </Avatar>
-          <span
-            className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-background ${
-              userPresence?.status === "online"
-                ? "bg-green-500"
-                : userPresence?.status === "busy"
-                ? "bg-red-500"
-                : userPresence?.status === "away"
-                ? "bg-yellow-500"
-                : userPresence?.status === "offline"
-                ? "bg-gray-400"
-                : "bg-slate-300"
-            }`}
-          />
-        </div>
-        <div className="flex flex-col min-w-0 flex-1">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-semibold truncate">{name}</span>
-            {lastMessage?.timestamp && (
-              <span className="text-xs text-muted-foreground shrink-0">
-                {formatMessageTime(lastMessage.timestamp)}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-1">
-            {isUserTyping ? (
-              <p className="text-xs text-muted-foreground italic">Typing...</p>
-            ) : lastMessage ? (
-              <div className="flex items-center gap-2 min-w-0">
-                <p className="text-xs text-muted-foreground truncate">
-                  {lastMessage.fromId === user.uid ? `${name}: ` : "You: "}
-                  {truncateMessage(lastMessage.message)}
-                </p>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">No messages yet</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </Button>
-  );
-};
-
-const Loading = () => (
-  <div className="flex flex-col items-center justify-center h-40 gap-2">
-    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-    <p className="text-sm text-muted-foreground">Loading conversations...</p>
-  </div>
-);
-
-const ErrorDisplay = ({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry?: () => void;
-}) => (
-  <div className="flex flex-col items-center justify-center h-40 p-4 text-center gap-2">
-    <p className="text-sm text-destructive">Error: {message}</p>
-    {onRetry && (
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        Try Again
-      </Button>
-    )}
-  </div>
-);
-
-const EmptyState = ({
-  activeFilter,
-  hasConversations,
-  searchQuery,
-}: {
-  activeFilter: "all" | "unread" | "favorites";
-  hasConversations: boolean;
-  searchQuery?: string;
-}) => (
-  <div className="flex flex-col items-center justify-center h-40 p-4 text-center">
-    <MessageSquare className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-    <p className="text-sm text-muted-foreground">
-      {searchQuery
-        ? "No conversations match your search"
-        : activeFilter === "all" && !hasConversations
-        ? "No conversations yet"
-        : activeFilter === "all"
-        ? "No conversations found"
-        : activeFilter === "unread"
-        ? "No unread messages"
-        : "No favorite conversations"}
-    </p>
-    {activeFilter === "all" && !hasConversations && !searchQuery && (
-      <Button variant="link" size="sm" className="mt-2">
-        Start a new conversation
-      </Button>
-    )}
-  </div>
-);
-
-// Conversation Search Header Component
-const ConversationSearch = ({
-  searchQuery,
-  setSearchQuery,
-}: {
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-}) => (
-  <div className="p-3 border-b bg-background/80 backdrop-blur-xs sticky top-0 z-10">
-    <div className="relative">
-      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <Input
-        placeholder="Search conversations..."
-        className="pl-8 h-9 text-sm bg-background/50 border-muted focus-visible:ring-1 focus-visible:ring-primary"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
-      {searchQuery && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
-          onClick={() => setSearchQuery("")}
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      )}
-    </div>
-  </div>
-);
-
-const ConversationFilters = ({
-  activeFilter,
-  setActiveFilter,
-  unreadCount,
-}: {
-  activeFilter: "all" | "unread" | "favorites";
-  setActiveFilter: (filter: "all" | "unread" | "favorites") => void;
-  unreadCount: number;
-}) => (
-  <div className="bg-background/80 backdrop-blur-xs border-b px-2 py-2 z-10">
-    <div className="flex space-x-1 rounded-lg bg-muted/50 p-1">
-      <Button
-        variant={activeFilter === "all" ? "default" : "ghost"}
-        size="sm"
-        className="flex-1 text-xs h-8"
-        onClick={() => setActiveFilter("all")}
-      >
-        All
-      </Button>
-      <Button
-        variant={activeFilter === "unread" ? "default" : "ghost"}
-        size="sm"
-        className="flex-1 text-xs h-8"
-        onClick={() => setActiveFilter("unread")}
-      >
-        {unreadCount > 0 && (
-          <Badge variant="destructive" className="mr-1.5 h-5 px-1.5">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </Badge>
-        )}
-        Unread
-      </Button>
-      <Button
-        variant={activeFilter === "favorites" ? "default" : "ghost"}
-        size="sm"
-        className="flex-1 text-xs h-8"
-        onClick={() => setActiveFilter("favorites")}
-      >
-        <span className="text-yellow-500 mr-1">★</span>
-        Favorites
-      </Button>
-    </div>
-  </div>
-);
-
 export function Conversation({
   activeFilter,
   setActiveFilter,
   onSelectChat,
 }: ConversationProps) {
-  const {
-    selectedUser,
-    setSelectedUser,
-    subscribeToMessages,
-    getLastMessage,
-  } = useChat();
+  const { selectedUser, setSelectedUser, subscribeToMessages, getLastMessage } =
+    useChat();
 
   const { clientId } = useWebSkt();
   const currentUserId = clientId;
@@ -275,12 +42,16 @@ export function Conversation({
   const [localChats, setLocalChats] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchConversations = async ({ pageParam = 0 }: { pageParam?: number }) => {
+  const fetchConversations = async ({
+    pageParam = 0,
+  }: {
+    pageParam?: number;
+  }) => {
     const res = await fetcher(`/api/chats?cursor=${pageParam}&limit=50`);
     return {
       chats: res.chats || [],
       nextCursor: res.nextCursor,
-      hasMore: res.hasMore
+      hasMore: res.hasMore,
     };
   };
 
@@ -321,15 +92,18 @@ export function Conversation({
 
         const chatExists = prevChats.some(
           (chat) =>
-            (chat.senderId === otherUserId && chat.recipientId === currentUserId) ||
-            (chat.recipientId === otherUserId && chat.senderId === currentUserId)
+            (chat.senderId === otherUserId &&
+              chat.recipientId === currentUserId) ||
+            (chat.recipientId === otherUserId &&
+              chat.senderId === currentUserId)
         );
 
         if (!chatExists) {
           const newChat = {
             id: message.roomId,
             senderId: message.fromId,
-            recipientId: otherUserId === message.fromId ? currentUserId : otherUserId,
+            recipientId:
+              otherUserId === message.fromId ? currentUserId : otherUserId,
             workspaceId: "",
             lastMessage: new Date(message.timestamp),
             createdAt: new Date(message.timestamp),
@@ -352,8 +126,10 @@ export function Conversation({
         // Update existing chat
         return prevChats.map((chat) => {
           const isRelevantChat =
-            (chat.senderId === otherUserId && chat.recipientId === currentUserId) ||
-            (chat.recipientId === otherUserId && chat.senderId === currentUserId);
+            (chat.senderId === otherUserId &&
+              chat.recipientId === currentUserId) ||
+            (chat.recipientId === otherUserId &&
+              chat.senderId === currentUserId);
 
           if (isRelevantChat) {
             return {
@@ -410,31 +186,31 @@ export function Conversation({
     })
     .sort((a, b) => {
       // Get the latest message timestamp for each chat
-      const aTimestamp = a.lastMessage 
-        ? new Date(a.lastMessage).getTime() 
-        : a.messages?.[0]?.createdAt 
-          ? new Date(a.messages[0].createdAt).getTime() 
-          : 0;
-      const bTimestamp = b.lastMessage 
-        ? new Date(b.lastMessage).getTime() 
-        : b.messages?.[0]?.createdAt 
-          ? new Date(b.messages[0].createdAt).getTime() 
-          : 0;
+      const aTimestamp = a.lastMessage
+        ? new Date(a.lastMessage).getTime()
+        : a.messages?.[0]?.createdAt
+        ? new Date(a.messages[0].createdAt).getTime()
+        : 0;
+      const bTimestamp = b.lastMessage
+        ? new Date(b.lastMessage).getTime()
+        : b.messages?.[0]?.createdAt
+        ? new Date(b.messages[0].createdAt).getTime()
+        : 0;
       // Sort descending (most recent first)
       return bTimestamp - aTimestamp;
     });
 
   // Calculate total unread messages count across all chats
   const totalUnreadCount = localChats.reduce((total, chat) => {
-    const unreadInChat = chat.messages?.filter(
-      (msg: any) => !msg.read && msg.senderId !== currentUserId
-    )?.length || 0;
+    const unreadInChat =
+      chat.messages?.filter(
+        (msg: any) => !msg.read && msg.senderId !== currentUserId
+      )?.length || 0;
     return total + unreadInChat;
   }, 0);
 
   return (
     <>
-      {/* Search Header */}
       <ConversationSearch
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -445,7 +221,7 @@ export function Conversation({
         unreadCount={totalUnreadCount}
       />
 
-      <ScrollArea className="h-[calc(100vh-280px)]">
+      <ScrollArea className="h-[calc(100vh-300px)]">
         {status === "pending" ? (
           <Loading />
         ) : status === "error" ? (
@@ -455,9 +231,29 @@ export function Conversation({
           />
         ) : displayedChats.length === 0 ? (
           <EmptyState
-            activeFilter={activeFilter}
-            hasConversations={localChats.length > 0}
-            searchQuery={searchQuery}
+            icon={MessageSquare}
+            message={
+              searchQuery
+                ? "No conversations match your search"
+                : activeFilter === "all" && localChats.length === 0
+                ? "No conversations yet"
+                : activeFilter === "all"
+                ? "No conversations found"
+                : activeFilter === "unread"
+                ? "No unread messages"
+                : "No favorite conversations"
+            }
+            action={
+              activeFilter === "all" && localChats.length === 0 && !searchQuery
+                ? {
+                    label: "Start a new conversation",
+                    onClick: () => {
+                      // TODO: Implement new conversation action
+                      console.log("Start new conversation");
+                    },
+                  }
+                : undefined
+            }
           />
         ) : (
           <div className="space-y-1 p-2">
@@ -470,7 +266,9 @@ export function Conversation({
                     : chat.senderId;
 
                 const otherUserData =
-                  chat.senderId === currentUserId ? chat.recipient : chat.sender;
+                  chat.senderId === currentUserId
+                    ? chat.recipient
+                    : chat.sender;
 
                 const presenceUpdate = presenceState.get(otherUserId);
                 const status = presenceUpdate?.presence.status || "unknown";
@@ -479,7 +277,10 @@ export function Conversation({
                 const lastMessage: ChatMessage = socketLastMessage || {
                   messageId: chat.messages?.[0]?.id || "",
                   message: chat.messages?.[0]?.content || "",
-                  timestamp: chat.messages?.[0]?.createdAt?.toString() || chat.lastMessage?.toString() || "",
+                  timestamp:
+                    chat.messages?.[0]?.createdAt?.toString() ||
+                    chat.lastMessage?.toString() ||
+                    "",
                   fromId: chat.messages?.[0]?.senderId || "",
                   toId: otherUserId,
                   roomId: `${chat.senderId}_${chat.recipientId}`,
