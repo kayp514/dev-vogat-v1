@@ -1497,7 +1497,7 @@ export async function addContact(inviterId: string, inviteeIdentifier: string) {
 
       // Create bidirectional contact relationship
       await Promise.all([
-        // Add invitee to inviter's contacts
+        // Add invitee to inviter's contacts (inviter initiated, so accepted from their side)
         tx.contacts.create({
           data: {
             userId: inviterId,
@@ -1505,12 +1505,12 @@ export async function addContact(inviterId: string, inviteeIdentifier: string) {
             status: 'accepted'
           }
         }),
-        // Add inviter to invitee's contacts (bidirectional)
+        // Add inviter to invitee's contacts (pending - invitee needs to accept)
         tx.contacts.create({
           data: {
             userId: invitee.uid,
             contactId: inviterId,
-            status: 'accepted'
+            status: 'pending'
           }
         })
       ]);
@@ -1587,6 +1587,149 @@ export async function areContacts(userId1: string, userId2: string): Promise<boo
   });
 
   return !!contact;
+}
+
+/**
+ * Get pending contact requests for a user (requests they need to accept/reject)
+ */
+export async function getPendingContactRequests(userId: string) {
+  try {
+    const pendingRequests = await prisma.contacts.findMany({
+      where: {
+        userId: userId,
+        status: 'pending'
+      },
+      include: {
+        contact: {
+          select: {
+            uid: true,
+            name: true,
+            email: true,
+            avatar: true,
+            phoneNumber: true,
+            tenantId: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return {
+      success: true,
+      requests: pendingRequests.map(r => ({
+        ...r.contact,
+        requestedAt: r.createdAt,
+        status: r.status
+      })),
+      count: pendingRequests.length
+    };
+  } catch (error) {
+    console.error('Error fetching pending requests:', error);
+    return {
+      success: false,
+      error: {
+        code: 'FETCH_REQUESTS_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to fetch pending requests'
+      }
+    };
+  }
+}
+
+/**
+ * Accept a contact request
+ */
+export async function acceptContactRequest(userId: string, requesterId: string) {
+  try {
+    // Update the pending request to accepted
+    const updated = await prisma.contacts.updateMany({
+      where: {
+        userId: userId,
+        contactId: requesterId,
+        status: 'pending'
+      },
+      data: {
+        status: 'accepted'
+      }
+    });
+
+    if (updated.count === 0) {
+      return {
+        success: false,
+        error: {
+          code: 'REQUEST_NOT_FOUND',
+          message: 'Contact request not found or already processed'
+        }
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error accepting contact request:', error);
+    return {
+      success: false,
+      error: {
+        code: 'ACCEPT_REQUEST_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to accept contact request'
+      }
+    };
+  }
+}
+
+/**
+ * Reject/decline a contact request
+ */
+export async function rejectContactRequest(userId: string, requesterId: string) {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // Delete both directions of the contact relationship
+      await Promise.all([
+        tx.contacts.deleteMany({
+          where: {
+            userId: userId,
+            contactId: requesterId,
+            status: 'pending'
+          }
+        }),
+        tx.contacts.deleteMany({
+          where: {
+            userId: requesterId,
+            contactId: userId
+          }
+        })
+      ]);
+
+      return { success: true };
+    });
+  } catch (error) {
+    console.error('Error rejecting contact request:', error);
+    return {
+      success: false,
+      error: {
+        code: 'REJECT_REQUEST_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to reject contact request'
+      }
+    };
+  }
+}
+
+/**
+ * Get pending requests count for a user
+ */
+export async function getPendingRequestsCount(userId: string): Promise<number> {
+  try {
+    const count = await prisma.contacts.count({
+      where: {
+        userId: userId,
+        status: 'pending'
+      }
+    });
+    return count;
+  } catch (error) {
+    console.error('Error counting pending requests:', error);
+    return 0;
+  }
 }
 
 

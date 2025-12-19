@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, Loader2 } from "lucide-react";
+import { MessageSquare, Loader2, Search, X } from "lucide-react";
 import type { User } from "@/app/type";
 import type {
   UserStatus,
@@ -13,7 +15,7 @@ import type {
 } from "@/ternsecure-realtime/utils/socket";
 import { useChat, useWebSkt } from "@/ternsecure-realtime";
 import { usePresence } from "@/ternsecure-realtime/hooks/usePresence";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { fetcher } from "@/lib/utils";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
@@ -152,14 +154,18 @@ const ErrorDisplay = ({
 const EmptyState = ({
   activeFilter,
   hasConversations,
+  searchQuery,
 }: {
   activeFilter: "all" | "unread" | "favorites";
   hasConversations: boolean;
+  searchQuery?: string;
 }) => (
   <div className="flex flex-col items-center justify-center h-40 p-4 text-center">
     <MessageSquare className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
     <p className="text-sm text-muted-foreground">
-      {activeFilter === "all" && !hasConversations
+      {searchQuery
+        ? "No conversations match your search"
+        : activeFilter === "all" && !hasConversations
         ? "No conversations yet"
         : activeFilter === "all"
         ? "No conversations found"
@@ -167,11 +173,42 @@ const EmptyState = ({
         ? "No unread messages"
         : "No favorite conversations"}
     </p>
-    {activeFilter === "all" && !hasConversations && (
+    {activeFilter === "all" && !hasConversations && !searchQuery && (
       <Button variant="link" size="sm" className="mt-2">
         Start a new conversation
       </Button>
     )}
+  </div>
+);
+
+// Conversation Search Header Component
+const ConversationSearch = ({
+  searchQuery,
+  setSearchQuery,
+}: {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+}) => (
+  <div className="p-3 border-b bg-background/80 backdrop-blur-xs sticky top-0 z-10">
+    <div className="relative">
+      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        placeholder="Search conversations..."
+        className="pl-8 h-9 text-sm bg-background/50 border-muted focus-visible:ring-1 focus-visible:ring-primary"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      {searchQuery && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+          onClick={() => setSearchQuery("")}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
   </div>
 );
 
@@ -236,6 +273,7 @@ export function Conversation({
   const currentUserId = clientId;
   const { presenceState } = usePresence();
   const [localChats, setLocalChats] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchConversations = async ({ pageParam = 0 }: { pageParam?: number }) => {
     const res = await fetcher(`/api/chats?cursor=${pageParam}&limit=50`);
@@ -348,6 +386,18 @@ export function Conversation({
   // Filter and sort chats - most recent message first
   const displayedChats = localChats
     .filter((chat) => {
+      // Apply search filter
+      if (searchQuery) {
+        const otherUserData =
+          chat.senderId === currentUserId ? chat.recipient : chat.sender;
+        const name = otherUserData?.name?.toLowerCase() || "";
+        const email = otherUserData?.email?.toLowerCase() || "";
+        const query = searchQuery.toLowerCase();
+        if (!name.includes(query) && !email.includes(query)) {
+          return false;
+        }
+      }
+
       if (activeFilter === "unread") {
         return chat.messages?.some(
           (msg: any) => !msg.read && msg.senderId !== currentUserId
@@ -384,13 +434,18 @@ export function Conversation({
 
   return (
     <>
+      {/* Search Header */}
+      <ConversationSearch
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
       <ConversationFilters
         activeFilter={activeFilter}
         setActiveFilter={setActiveFilter}
         unreadCount={totalUnreadCount}
       />
 
-      <ScrollArea className="h-[calc(100vh-225px)]">
+      <ScrollArea className="h-[calc(100vh-280px)]">
         {status === "pending" ? (
           <Loading />
         ) : status === "error" ? (
@@ -402,6 +457,7 @@ export function Conversation({
           <EmptyState
             activeFilter={activeFilter}
             hasConversations={localChats.length > 0}
+            searchQuery={searchQuery}
           />
         ) : (
           <div className="space-y-1 p-2">

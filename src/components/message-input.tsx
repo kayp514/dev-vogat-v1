@@ -36,7 +36,6 @@ export function MessageInput({
   const debouncedIsTyping = useDebounce(isTyping, 1000);
 
   useEffect(() => {
-    // Notify when typing status changes
     onTyping(debouncedIsTyping);
 
     // When typing stops, reset after delay

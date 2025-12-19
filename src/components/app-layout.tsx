@@ -24,7 +24,6 @@ interface AppLayoutProps {
 
 export function AppLayout({ userData }: AppLayoutProps) {
   const [activeTab, setActiveTab] = useState("chat")
-  //const [isMaximized, setCallMaximized] = useState(false)
   const [currentCallerInfo, setCurrentCallerInfo] = useState<CallerInfo | null>(null)
   const [currentCalleeInfo, setCurrentCalleeInfo] = useState<CallerInfo | null>(null)
 
@@ -169,6 +168,5 @@ export function AppLayout({ userData }: AppLayoutProps) {
         </div>
       )}
     </div>
-
   )
 }
