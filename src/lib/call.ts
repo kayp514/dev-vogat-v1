@@ -331,8 +331,8 @@ export async function initializeSIP(): Promise<SIPResponse> {
     console.log('using viaHost:', viaHost)
   
     const transportOptions: TransportOptions = {
-      //server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/${sipConfig.socket}`,
-      server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/${sipConfig.socket}/sip/`, //when port is 1443, wss://your-ip:1443/wss/sip/.
+      server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/${sipConfig.socket}`,
+      //server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/${sipConfig.socket}/sip/`, //when port is 1443, wss://your-ip:1443/wss/sip/.
       connectionTimeout: 15000,
       keepAliveInterval: 30000,
       traceSip: true,
