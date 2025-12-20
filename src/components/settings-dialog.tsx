@@ -68,8 +68,10 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
 
     if (userData.email) {
       localStorage.setItem("sipUsername", userData.email);
-      const serverFromEmail = userData.email.split("@")[1];
-      setSipSecurityInfo((prev) => ({ ...prev, server: serverFromEmail }));
+      setSipSecurityInfo((prev) => ({
+        ...prev,
+        server: sipSecurityInfo.server,
+      }));
     }
   }, [userData.email]);
 
