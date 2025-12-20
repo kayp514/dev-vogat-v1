@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import SettingsScreen from "./settingsScreen";
+import SettingsScreen from "./settings-dialog";
 //import { SignOut } from "@tern-secure/nextjs"
 import { PstnStatus } from "./pstn-status";
 import { Logo } from "./logo";

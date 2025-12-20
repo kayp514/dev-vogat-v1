@@ -1,106 +1,116 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { UserCircle, Bell, Settings, Phone, Check } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { UserCircle, Bell, Settings, Phone, Check } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { debugAudioState } from '@/lib/call'
-import { type UserData } from "../app/type"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { debugAudioState } from "@/lib/call";
+import type { UserData } from "@/app/type";
 
 interface SettingsScreenProps {
   userData: Partial<UserData>;
 }
 
-
 type SipSecurityInfo = {
-  protocol: string
-  port: string
-  socket: string
-  server: string
-}
+  protocol: string;
+  port: string;
+  socket: string;
+  server: string;
+};
 
 const settingsMenu = [
-  { id: 'profile', name: 'Profile', icon: UserCircle },
-  { id: 'notifications', name: 'Notifications', icon: Bell },
-  { id: 'general', name: 'General', icon: Settings },
-  { id: 'call', name: 'Call', icon: Phone }
-]
+  { id: "profile", name: "Profile", icon: UserCircle },
+  { id: "notifications", name: "Notifications", icon: Bell },
+  { id: "general", name: "General", icon: Settings },
+  { id: "call", name: "Call", icon: Phone },
+];
 
 export default function SettingsScreen({ userData }: SettingsScreenProps) {
-  const [activeTab, setActiveTab] = useState('profile')
-  const [sipPassword, setSipPassword] = useState('')
-  const [savedSipPassword, setSavedSipPassword] = useState('')
+  const [activeTab, setActiveTab] = useState("profile");
+  const [sipPassword, setSipPassword] = useState("");
+  const [savedSipPassword, setSavedSipPassword] = useState("");
   const [sipSecurityInfo, setSipSecurityInfo] = useState<SipSecurityInfo>({
-    protocol: '',
-    port: '',
-    socket: '',
-    server: ''
-  })
-  const [savedSipSecurityInfo, setSavedSipSecurityInfo] = useState<SipSecurityInfo | null>(null)
+    protocol: "",
+    port: "",
+    socket: "",
+    server: "sips.lifesprintcare.ca",
+  });
+  const [savedSipSecurityInfo, setSavedSipSecurityInfo] =
+    useState<SipSecurityInfo | null>(null);
 
   useEffect(() => {
-    const savedPassword = localStorage.getItem('sipPassword')
-    const savedSecurityInfo = JSON.parse(localStorage.getItem('sipSecurityInfo') || '{}')
+    const savedPassword = localStorage.getItem("sipPassword");
+    const savedSecurityInfo = JSON.parse(
+      localStorage.getItem("sipSecurityInfo") || "{}"
+    );
 
-    if (savedPassword) setSavedSipPassword(savedPassword)
-    if (savedSecurityInfo) setSavedSipSecurityInfo(savedSecurityInfo)
+    if (savedPassword) setSavedSipPassword(savedPassword);
+    if (savedSecurityInfo) setSavedSipSecurityInfo(savedSecurityInfo);
 
     if (userData.email) {
-        localStorage.setItem('sipUsername', userData.email)
-        const serverFromEmail = userData.email.split('@')[1]
-        setSipSecurityInfo(prev => ({ ...prev, server: serverFromEmail }))
-      }
-  }, [userData.email])
+      localStorage.setItem("sipUsername", userData.email);
+      const serverFromEmail = userData.email.split("@")[1];
+      setSipSecurityInfo((prev) => ({ ...prev, server: serverFromEmail }));
+    }
+  }, [userData.email]);
 
   const handleSavePassword = () => {
-    setSavedSipPassword(sipPassword)
-    localStorage.setItem('sipPassword', sipPassword)
-    setSipPassword('')
-  }
+    setSavedSipPassword(sipPassword);
+    localStorage.setItem("sipPassword", sipPassword);
+    setSipPassword("");
+  };
 
   const handleDeletePassword = () => {
-    setSavedSipPassword('')
-    localStorage.removeItem('sipPassword')
-  }
+    setSavedSipPassword("");
+    localStorage.removeItem("sipPassword");
+  };
 
   const handleSaveSipSecurityInfo = () => {
     if (!userData.email) {
-      console.warn('Email is not available')
-      return
+      console.warn("Email is not available");
+      return;
     }
 
     const updatedSipSecurityInfo = {
       ...sipSecurityInfo,
-      server: userData.email.split('@')[1],
-      port: sipSecurityInfo.port.toString()
-    }
-    setSavedSipSecurityInfo(updatedSipSecurityInfo)
-    localStorage.setItem('sipSecurityInfo', JSON.stringify(updatedSipSecurityInfo))
-  }
+      port: sipSecurityInfo.port.toString(),
+    };
+    setSavedSipSecurityInfo(updatedSipSecurityInfo);
+    localStorage.setItem(
+      "sipSecurityInfo",
+      JSON.stringify(updatedSipSecurityInfo)
+    );
+  };
 
   const handleDeleteSipSecurityInfo = () => {
-    setSavedSipSecurityInfo(null)
+    setSavedSipSecurityInfo(null);
     setSipSecurityInfo({
-      protocol: 'udp',
-      port: '',
-      socket: '',
-      server: ''
-    })
-    localStorage.removeItem('sipSecurityInfo')
-  }
+      protocol: "udp",
+      port: "",
+      socket: "",
+      server: "",
+    });
+    localStorage.removeItem("sipSecurityInfo");
+  };
 
   return (
     <div className="flex h-full">
@@ -130,7 +140,9 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                 <TabsContent value="profile" className="mt-0 border-0">
                   <div className="space-y-6">
                     <div>
-                      <h2 className="text-2xl font-semibold tracking-tight">Profile Settings</h2>
+                      <h2 className="text-2xl font-semibold tracking-tight">
+                        Profile Settings
+                      </h2>
                       <p className="text-sm text-muted-foreground">
                         Manage your account settings and preferences.
                       </p>
@@ -139,21 +151,27 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                     <Card>
                       <CardHeader>
                         <CardTitle>User Information</CardTitle>
-                        <CardDescription>Your account details and information.</CardDescription>
+                        <CardDescription>
+                          Your account details and information.
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="space-y-1">
                           <Label>User ID</Label>
-                          <p className="text-sm text-muted-foreground">{userData.uid}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {userData.uid}
+                          </p>
                         </div>
                         <div className="space-y-1">
                           <Label>Email</Label>
-                          <p className="text-sm text-muted-foreground">{userData.email}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {userData.email}
+                          </p>
                         </div>
                         <div className="space-y-1">
                           <Label>Display Name</Label>
                           <p className="text-sm text-muted-foreground">
-                            {userData.name || 'Not set'}
+                            {userData.name || "Not set"}
                           </p>
                         </div>
                       </CardContent>
@@ -164,7 +182,9 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                 <TabsContent value="notifications" className="mt-0 border-0">
                   <div className="space-y-6">
                     <div>
-                      <h2 className="text-2xl font-semibold tracking-tight">Notifications</h2>
+                      <h2 className="text-2xl font-semibold tracking-tight">
+                        Notifications
+                      </h2>
                       <p className="text-sm text-muted-foreground">
                         Configure how you receive notifications.
                       </p>
@@ -174,7 +194,9 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                       <Card>
                         <CardHeader>
                           <CardTitle>Email Notifications</CardTitle>
-                          <CardDescription>Configure your email notification preferences.</CardDescription>
+                          <CardDescription>
+                            Configure your email notification preferences.
+                          </CardDescription>
                         </CardHeader>
                         <CardContent>
                           {/* Add email notification settings here */}
@@ -183,7 +205,9 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                       <Card>
                         <CardHeader>
                           <CardTitle>Push Notifications</CardTitle>
-                          <CardDescription>Configure your push notification preferences.</CardDescription>
+                          <CardDescription>
+                            Configure your push notification preferences.
+                          </CardDescription>
                         </CardHeader>
                         <CardContent>
                           {/* Add push notification settings here */}
@@ -196,7 +220,9 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                 <TabsContent value="general" className="mt-0 border-0">
                   <div className="space-y-6">
                     <div>
-                      <h2 className="text-2xl font-semibold tracking-tight">General Settings</h2>
+                      <h2 className="text-2xl font-semibold tracking-tight">
+                        General Settings
+                      </h2>
                       <p className="text-sm text-muted-foreground">
                         Customize your application preferences.
                       </p>
@@ -206,7 +232,9 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                       <Card>
                         <CardHeader>
                           <CardTitle>Language</CardTitle>
-                          <CardDescription>Choose your preferred language.</CardDescription>
+                          <CardDescription>
+                            Choose your preferred language.
+                          </CardDescription>
                         </CardHeader>
                         <CardContent>
                           {/* Add language settings here */}
@@ -215,7 +243,9 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                       <Card>
                         <CardHeader>
                           <CardTitle>Theme</CardTitle>
-                          <CardDescription>Customize the application appearance.</CardDescription>
+                          <CardDescription>
+                            Customize the application appearance.
+                          </CardDescription>
                         </CardHeader>
                         <CardContent>
                           {/* Add theme settings here */}
@@ -228,7 +258,9 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                 <TabsContent value="call" className="mt-0 border-0">
                   <div className="space-y-6">
                     <div>
-                      <h2 className="text-2xl font-semibold tracking-tight">Call Settings</h2>
+                      <h2 className="text-2xl font-semibold tracking-tight">
+                        Call Settings
+                      </h2>
                       <p className="text-sm text-muted-foreground">
                         Configure your call and audio preferences.
                       </p>
@@ -238,11 +270,13 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                       <Card>
                         <CardHeader>
                           <CardTitle>Audio Settings</CardTitle>
-                          <CardDescription>Configure microphone and speaker settings.</CardDescription>
+                          <CardDescription>
+                            Configure microphone and speaker settings.
+                          </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={debugAudioState}
                           >
@@ -254,12 +288,18 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                       <Card>
                         <CardHeader>
                           <CardTitle>SIP Account</CardTitle>
-                          <CardDescription>Manage your SIP credentials.</CardDescription>
+                          <CardDescription>
+                            Manage your SIP credentials.
+                          </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="sipUsername">SIP Username</Label>
-                            <Input id="sipUsername" value={userData.email} disabled />
+                            <Input
+                              id="sipUsername"
+                              value={userData.email}
+                              disabled
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="sipPassword">SIP Password</Label>
@@ -274,8 +314,8 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                               <Button onClick={handleSavePassword} size="sm">
                                 Save
                               </Button>
-                              <Button 
-                                onClick={handleDeletePassword} 
+                              <Button
+                                onClick={handleDeletePassword}
                                 variant="destructive"
                                 size="sm"
                               >
@@ -295,14 +335,19 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                       <Card>
                         <CardHeader>
                           <CardTitle>SIP Security</CardTitle>
-                          <CardDescription>Configure SIP security settings.</CardDescription>
+                          <CardDescription>
+                            Configure SIP security settings.
+                          </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="sipProtocol">SIP Protocol</Label>
-                            <Select 
-                              onValueChange={(value: 'udp' | 'tcp' | 'tls') => 
-                                setSipSecurityInfo(prev => ({...prev, protocol: value}))
+                            <Select
+                              onValueChange={(value: "udp" | "tcp" | "tls") =>
+                                setSipSecurityInfo((prev) => ({
+                                  ...prev,
+                                  protocol: value,
+                                }))
                               }
                             >
                               <SelectTrigger id="sipProtocol">
@@ -317,18 +362,27 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="sipSocket">WebSocket Protocol</Label>
-                            <Select 
-                              onValueChange={(value) => 
-                                setSipSecurityInfo(prev => ({...prev, socket: value}))
+                            <Label htmlFor="sipSocket">
+                              WebSocket Protocol
+                            </Label>
+                            <Select
+                              onValueChange={(value) =>
+                                setSipSecurityInfo((prev) => ({
+                                  ...prev,
+                                  socket: value,
+                                }))
                               }
                             >
                               <SelectTrigger id="sipSocket">
                                 <SelectValue placeholder="Select WebSocket protocol" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="ws">WS (WebSocket)</SelectItem>
-                                <SelectItem value="wss">WSS (WebSocket Secure)</SelectItem>
+                                <SelectItem value="ws">
+                                  WS (WebSocket)
+                                </SelectItem>
+                                <SelectItem value="wss">
+                                  WSS (WebSocket Secure)
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -345,9 +399,12 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="sipPort">SIP Port</Label>
-                              <Select 
-                                onValueChange={(value) => 
-                                  setSipSecurityInfo(prev => ({...prev, port: value}))
+                              <Select
+                                onValueChange={(value) =>
+                                  setSipSecurityInfo((prev) => ({
+                                    ...prev,
+                                    port: value,
+                                  }))
                                 }
                               >
                                 <SelectTrigger id="sipPort">
@@ -365,8 +422,8 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                             <Button onClick={handleSaveSipSecurityInfo}>
                               Save Settings
                             </Button>
-                            <Button 
-                              onClick={handleDeleteSipSecurityInfo} 
+                            <Button
+                              onClick={handleDeleteSipSecurityInfo}
                               variant="destructive"
                             >
                               Reset
@@ -375,9 +432,13 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
 
                           {savedSipSecurityInfo && (
                             <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-                              <div className="font-medium text-foreground mb-2">Saved Configuration</div>
+                              <div className="font-medium text-foreground mb-2">
+                                Saved Configuration
+                              </div>
                               <div className="grid gap-1">
-                                <div>Protocol: {savedSipSecurityInfo.protocol}</div>
+                                <div>
+                                  Protocol: {savedSipSecurityInfo.protocol}
+                                </div>
                                 <div>Server: {savedSipSecurityInfo.server}</div>
                                 <div>Port: {savedSipSecurityInfo.port}</div>
                                 <div>Socket: {savedSipSecurityInfo.socket}</div>
@@ -395,6 +456,5 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
         </div>
       </Tabs>
     </div>
-  )
+  );
 }
-
