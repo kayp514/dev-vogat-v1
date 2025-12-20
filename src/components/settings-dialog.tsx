@@ -413,6 +413,7 @@ export default function SettingsScreen({ userData }: SettingsScreenProps) {
                                   <SelectValue placeholder="Port" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value="1443">1443</SelectItem>
                                   <SelectItem value="6050">6050</SelectItem>
                                   <SelectItem value="6051">6051</SelectItem>
                                 </SelectContent>
