@@ -21,7 +21,7 @@ import { IncomingInviteRequest, IncomingRequestMessage, IncomingResponse } from 
 import { Emitter } from 'sip.js/lib/api/emitter';
 import { Transport, TransportOptions } from 'sip.js/lib/platform/web/transport';
 import { v4 as uuidv4 } from 'uuid';
-import { RegistrationState, SIPConfig, SIPResponse, UserInfo, SIPStatus, TransportStatus, ConnectionState, CONFIG, CallState} from './type';
+import { RegistrationState, SIPConfig, SIPResponse, UserInfo, SIPStatus, TransportStatus, ConnectionState, CONFIG, CallState } from './type';
 import { notifyConnectionState, handleReconnection, setupNetworkMonitoring } from './network';
 
 const RECONNECTION_ATTEMPTS = 3
@@ -96,7 +96,7 @@ function validateAndCorrectUri(uri: URI): URI {
     uri.host = CONFIG.ourDomain;
   }
   return uri;
-  }
+}
 
 export function setUserAgent(ua: UserAgent) {
   userAgent = ua;
@@ -164,52 +164,52 @@ function handleEarlyMedia(inviter: Inviter, response: IncomingResponse) {
   const sessionDescriptionHandler = inviter.sessionDescriptionHandler;
 
   if (sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
-      const body = response.message.body;
-      if (body) {
+    const body = response.message.body;
+    if (body) {
 
-          sessionDescriptionHandler
-          .setDescription(body)
-          .then(() => {
-              console.log('Early media description set successfully');
-
-
-              // Access currentSession within this callback
-              const peerConnection = sessionDescriptionHandler.peerConnection;
-              const currentSession = getCurrentSession(); // Get current session inside the promise chain.
+      sessionDescriptionHandler
+        .setDescription(body)
+        .then(() => {
+          console.log('Early media description set successfully');
 
 
-                  if (currentSession && peerConnection && !currentSession.sessionDescriptionHandler?.hasDescription('local') ) {
-                    peerConnection.createAnswer().then((answer) => {
-                      if(answer &&answer.sdp){
-                        currentSession.sessionDescriptionHandler?.setDescription(answer.sdp)
-                        .then(() =>{
-                          peerConnection.setLocalDescription(answer).catch(error => {
-                            console.error('Failed to set local description:', error);
-                            peerConnection.close();
-                            cleanupCall();
-                            updateCallState("terminated")
-                          }); 
-                      })
-                    } else {
-                      console.error('SDP is undefined in answer');
-                      peerConnection.close();
-                      cleanupCall();
-                      updateCallState("terminated")
-                    }
-                    }).catch((error) => {
-                      console.error('Failed to create answer:', error);
+          // Access currentSession within this callback
+          const peerConnection = sessionDescriptionHandler.peerConnection;
+          const currentSession = getCurrentSession(); // Get current session inside the promise chain.
+
+
+          if (currentSession && peerConnection && !currentSession.sessionDescriptionHandler?.hasDescription('local')) {
+            peerConnection.createAnswer().then((answer) => {
+              if (answer && answer.sdp) {
+                currentSession.sessionDescriptionHandler?.setDescription(answer.sdp)
+                  .then(() => {
+                    peerConnection.setLocalDescription(answer).catch(error => {
+                      console.error('Failed to set local description:', error);
                       peerConnection.close();
                       cleanupCall();
                       updateCallState("terminated")
                     });
-                  }
+                  })
+              } else {
+                console.error('SDP is undefined in answer');
+                peerConnection.close();
+                cleanupCall();
+                updateCallState("terminated")
+              }
+            }).catch((error) => {
+              console.error('Failed to create answer:', error);
+              peerConnection.close();
+              cleanupCall();
+              updateCallState("terminated")
+            });
+          }
 
-          })
-          .catch(error => console.error('Error setting early media description:', error));
+        })
+        .catch(error => console.error('Error setting early media description:', error));
 
-      } else {
-          console.log('No SDP in 183 Session Progress');
-      }
+    } else {
+      console.log('No SDP in 183 Session Progress');
+    }
   }
 }
 
@@ -290,9 +290,9 @@ function getAssociatedNumbers(request: IncomingRequestMessage): string[] {
 function isRequestComplete(request: IncomingRequestMessage): boolean {
   const contentLengthHeader = request.getHeader('content-length');
   const contentLength = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
-  
+
   const body = request.body || '';
-  
+
   return body.length >= contentLength;
 }
 
@@ -329,15 +329,15 @@ export async function initializeSIP(): Promise<SIPResponse> {
 
     const viaHost = await getViaHost();
     console.log('using viaHost:', viaHost)
-  
+
     const transportOptions: TransportOptions = {
-      server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/${sipConfig.socket}`,
+      server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/ws`,  //wss://your-ip:5061/ws
       //server: `${sipConfig.socket}://${sipConfig.server}:${sipConfig.port}/${sipConfig.socket}/sip/`, //when port is 1443, wss://your-ip:1443/wss/sip/.
       connectionTimeout: 15000,
       keepAliveInterval: 30000,
       traceSip: true,
     };
-  
+
     const userAgentOptions: UserAgentOptions = {
       uri,
       transportConstructor: CustomTransport,
@@ -352,7 +352,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
           console.log('callTS: UserAgent Connected')
           reconnectionAttempt = 0
           notifyConnectionState('connected', 'initialized')
-        }, 
+        },
         onDisconnect: async (error?: Error) => {
           console.log('CallTS: UserAgent Disconnected:', error)
 
@@ -381,14 +381,14 @@ export async function initializeSIP(): Promise<SIPResponse> {
       viaHost: await getViaHost(),
       userAgentString: 'Vogat/1.0',
       sendInitialProvisionalResponse: true,
-      sessionDescriptionHandlerFactoryOptions:  {
+      sessionDescriptionHandlerFactoryOptions: {
         iceGatheringTimeout: 5000,
         constraints: {
           audio: true,
           video: false,
         },
         RTCConstraints: {
-          mandatory:{
+          mandatory: {
             OfferToReceiveAudio: true,
             OfferToReceiveVideo: false,
           }
@@ -397,35 +397,35 @@ export async function initializeSIP(): Promise<SIPResponse> {
     };
 
 
-userAgent = new UserAgent(userAgentOptions);
-setupNetworkMonitoring()
+    userAgent = new UserAgent(userAgentOptions);
+    setupNetworkMonitoring()
 
 
-// Set the contact URI manually after creating the UserAgent
-const contactUri = UserAgent.makeURI(`sip:6472438101@${userAgent.configuration.viaHost}:6051;transport=wss`);
-if (contactUri) {
-  if (userAgent.contact) {
-    userAgent.contact.uri = contactUri;
-    console.log('Contact URI set to:', userAgent.contact.uri);
-  } else {
-    console.warn('UserAgent contact is null, unable to set contact URI');
-  }
-} else {
-  console.warn('Failed to create contact URI or contact URI parameters are null');
-}
+    // Set the contact URI manually after creating the UserAgent
+    const contactUri = UserAgent.makeURI(`sip:6472438101@${userAgent.configuration.viaHost}:6051;transport=wss`);
+    if (contactUri) {
+      if (userAgent.contact) {
+        userAgent.contact.uri = contactUri;
+        console.log('Contact URI set to:', userAgent.contact.uri);
+      } else {
+        console.warn('UserAgent contact is null, unable to set contact URI');
+      }
+    } else {
+      console.warn('Failed to create contact URI or contact URI parameters are null');
+    }
 
-    
 
-  // Add event listeners for connection status
-  userAgent.transport.onConnect = () => {
-    console.log('Transport connected')
-    notifyConnectionState('connected',
-      isUserAgentRegistered() ? 'registered' : 'initialized' )
-  }
-  userAgent.transport.onDisconnect = (error?: Error) => {
-    console.error('Transport disconnected:', error)
-    notifyConnectionState('disconnected', 'disconnected', error)
-  }
+
+    // Add event listeners for connection status
+    userAgent.transport.onConnect = () => {
+      console.log('Transport connected')
+      notifyConnectionState('connected',
+        isUserAgentRegistered() ? 'registered' : 'initialized')
+    }
+    userAgent.transport.onDisconnect = (error?: Error) => {
+      console.error('Transport disconnected:', error)
+      notifyConnectionState('disconnected', 'disconnected', error)
+    }
 
 
     await userAgent.start();
@@ -455,7 +455,7 @@ if (contactUri) {
 export function listenForIncomingCalls(handler: (invitation: Invitation) => void): () => void {
   if (!userAgent) {
     console.warn('UserAgent not initialized');
-    return () => {};
+    return () => { };
   }
 
   userAgent.delegate = {
@@ -464,21 +464,21 @@ export function listenForIncomingCalls(handler: (invitation: Invitation) => void
       console.log('From:', invitation.remoteIdentity.uri.toString());
       console.log('To:', invitation.localIdentity.uri.toString());
 
-    if (!isUserAgentRegistered()) {
-    console.warn('Received incoming call while not registered. Rejecting.');
-    invitation.reject({ statusCode: 480, reasonPhrase: 'Temporarily Unavailable' });
-    return;
-  }
+      if (!isUserAgentRegistered()) {
+        console.warn('Received incoming call while not registered. Rejecting.');
+        invitation.reject({ statusCode: 480, reasonPhrase: 'Temporarily Unavailable' });
+        return;
+      }
 
-  if (currentSession) {
-    console.log('Already in a call, rejecting incoming call');
-    invitation.reject({ statusCode: 486, reasonPhrase: 'Busy Here' });
-    return;
-  }
+      if (currentSession) {
+        console.log('Already in a call, rejecting incoming call');
+        invitation.reject({ statusCode: 486, reasonPhrase: 'Busy Here' });
+        return;
+      }
 
-  updateCallState('establishing');
+      updateCallState('establishing');
 
-  let isAnswered = false;
+      let isAnswered = false;
 
 
       invitation.stateChange.addListener((newState: SessionState) => {
@@ -548,13 +548,13 @@ export function acceptIncomingCall(invitation: Invitation): Promise<void> {
 
 function attemptFallback(invitation: Invitation, handler: (invitation: Invitation) => void) {
   console.log('Attempting fallback for incoming call');
-  
+
   const toHeader = invitation.request.to;
   const sipConfig = getSavedSIPConfig();
 
   if (toHeader && sipConfig && sipConfig.username) {
     const toUri = toHeader.uri;
-    
+
     // Compare the last 10 digits of the To header user with our username
     const incomingLastTen = toUri.user?.replace(/\D/g, '').slice(-10);
     const ourLastTen = sipConfig.username.replace(/\D/g, '').slice(-10);
@@ -623,7 +623,7 @@ export async function registerUserAgent(): Promise<SIPResponse> {
   }
 
   //if (registerer?.state === RegistererState.Registered) {
-   // return { status: 'success', message: 'User already registered' };
+  // return { status: 'success', message: 'User already registered' };
   //}
 
   if (isUserAgentRegistered()) {
@@ -646,7 +646,7 @@ export async function registerUserAgent(): Promise<SIPResponse> {
 
       };
       registerer = new Registerer(userAgent, registerOptions);
-      
+
       registerer.stateChange.addListener((newState) => {
         console.log(`Registration state changed to: ${newState}`);
         if (registrationStateChangeHandler) {
@@ -654,16 +654,16 @@ export async function registerUserAgent(): Promise<SIPResponse> {
         }
       });
     }
-        await registerer.register();
-        console.log('Registration successful');
-        return { status: 'success', message: 'User registered successfully' };
-      } catch (error) {
-        console.error('Registration failed:', error);
-        return { status: 'error', message: 'Failed to register user' };
-      } finally {
-        isRegistering = false;
-      }
-    };
+    await registerer.register();
+    console.log('Registration successful');
+    return { status: 'success', message: 'User registered successfully' };
+  } catch (error) {
+    console.error('Registration failed:', error);
+    return { status: 'error', message: 'Failed to register user' };
+  } finally {
+    isRegistering = false;
+  }
+};
 
 function processNextInQueue() {
   if (registrationQueue.length === 0) {
@@ -675,7 +675,7 @@ function processNextInQueue() {
   const nextRegistrationAttempt = registrationQueue.shift();
   if (nextRegistrationAttempt) {
     nextRegistrationAttempt();
-      }
+  }
 }
 
 export async function unregisterUserAgent(): Promise<SIPResponse> {
@@ -683,9 +683,9 @@ export async function unregisterUserAgent(): Promise<SIPResponse> {
     return { status: 'error', message: 'User agent not initialized or not registered' };
   }
 
- // if (registerer.state === RegistererState.Terminated) {
+  // if (registerer.state === RegistererState.Terminated) {
   //  return { status: 'success', message: 'User agent already unregistered' };
- // }
+  // }
 
   if (isUserAgentRegistered()) {
     return { status: 'warning', message: 'Already registered' }
@@ -714,7 +714,7 @@ export function getRegistrationState(): RegistrationState {
       notifyConnectionState('connected', 'initialized');
       return 'Unregistered';
     case RegistererState.Terminated:
-      notifyConnectionState('disconnected', 'disconnected'); 
+      notifyConnectionState('disconnected', 'disconnected');
       return 'Terminated';
     default:
       notifyConnectionState('error', 'error', new Error('Unknown registration state'))
@@ -734,35 +734,35 @@ export function handleRegistrationStateChange(callback: (state: RegistrationStat
 }
 
 export async function ensureUserAgentRegistered(): Promise<SIPResponse> {
-    if (!userAgent) {
-      return { status: 'error', message: 'User agent not initialized' };
-    }
-  
-    if (isUserAgentRegistered()) {
-      return { status: 'success', message: 'User agent already registered' };
-    }
-  
-    return registerUserAgent();
+  if (!userAgent) {
+    return { status: 'error', message: 'User agent not initialized' };
   }
 
-  const myMediaStreamFactory: Web.MediaStreamFactory = (
-    constraints: MediaStreamConstraints,
-    sessionDescriptionHandler: Web.SessionDescriptionHandler
-  ): Promise<MediaStream> => {
-    return navigator.mediaDevices.getUserMedia(constraints);
-  };
-  
-  const mySessionDescriptionHandlerFactory: Web.SessionDescriptionHandlerFactory = Web.defaultSessionDescriptionHandlerFactory(
-    myMediaStreamFactory
-  );
-
-  function updateCallState(newState: CallState) {
-    console.log("New state: ", newState);
-    callState = newState;
-    if (callStateChangeHandler) {
-      callStateChangeHandler(newState);
-    }
+  if (isUserAgentRegistered()) {
+    return { status: 'success', message: 'User agent already registered' };
   }
+
+  return registerUserAgent();
+}
+
+const myMediaStreamFactory: Web.MediaStreamFactory = (
+  constraints: MediaStreamConstraints,
+  sessionDescriptionHandler: Web.SessionDescriptionHandler
+): Promise<MediaStream> => {
+  return navigator.mediaDevices.getUserMedia(constraints);
+};
+
+const mySessionDescriptionHandlerFactory: Web.SessionDescriptionHandlerFactory = Web.defaultSessionDescriptionHandlerFactory(
+  myMediaStreamFactory
+);
+
+function updateCallState(newState: CallState) {
+  console.log("New state: ", newState);
+  callState = newState;
+  if (callStateChangeHandler) {
+    callStateChangeHandler(newState);
+  }
+}
 
 export function setCallStateChangeHandler(handler: ((state: CallState) => void) | null) {
   callStateChangeHandler = handler;
@@ -869,7 +869,7 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
       case SessionState.Establishing:
         break;
       case SessionState.Established:
-       // handleSession(inviter);
+        // handleSession(inviter);
         break;
       case SessionState.Terminated:
         cleanupCall();
@@ -880,126 +880,126 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
     }
   });
 
-    //inviter.invite(inviteOptions)
-    try {
-      await inviter.invite(inviteOptions);
-      return { status: 'success', message: 'Outgoing call initiated' };
-    } catch (error) {
-      console.error('Error initiating call:', error);
-      updateCallState('error');
-      cleanupCall();
-      setCurrentSession(null);
-      return { status: 'error', message: 'Failed to initiate outgoing call' };
-    }
+  //inviter.invite(inviteOptions)
+  try {
+    await inviter.invite(inviteOptions);
+    return { status: 'success', message: 'Outgoing call initiated' };
+  } catch (error) {
+    console.error('Error initiating call:', error);
+    updateCallState('error');
+    cleanupCall();
+    setCurrentSession(null);
+    return { status: 'error', message: 'Failed to initiate outgoing call' };
+  }
+}
+
+export function handleSession(session: Session): void {
+  console.log('Handling new session');
+  currentSession = session;
+
+  if (!remoteAudio) {
+    remoteAudio = new Audio();
+    remoteAudio.autoplay = true;
   }
 
-  export function handleSession(session: Session): void {
-    console.log('Handling new session');
-    currentSession = session;
-    
-    if (!remoteAudio) {
-      remoteAudio = new Audio();
-      remoteAudio.autoplay = true;
-    }
-  
-    if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
-      const sessionDescriptionHandler = session.sessionDescriptionHandler;
+  if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
+    const sessionDescriptionHandler = session.sessionDescriptionHandler;
 
 
-  
-      // Listen for track additions and removals
-      sessionDescriptionHandler.remoteMediaStream.onaddtrack = (event) => {
-        console.log('Track added:', event.track.kind);
-        updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
-      };
-  
-      sessionDescriptionHandler.remoteMediaStream.onremovetrack = (event) => {
-        console.log('Track removed:', event.track.kind);
-        updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
-      };
-  
-      // Initial setup of audio stream
+
+    // Listen for track additions and removals
+    sessionDescriptionHandler.remoteMediaStream.onaddtrack = (event) => {
+      console.log('Track added:', event.track.kind);
       updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
-  
-      // Listen for peer connection state changes
-      sessionDescriptionHandler.peerConnectionDelegate = {
-        onconnectionstatechange: () => {
-          console.log('PeerConnection state changed:', sessionDescriptionHandler.peerConnection?.connectionState);
-          if (sessionDescriptionHandler.peerConnection?.connectionState === 'connected') {
-            updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
-          }
+    };
+
+    sessionDescriptionHandler.remoteMediaStream.onremovetrack = (event) => {
+      console.log('Track removed:', event.track.kind);
+      updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
+    };
+
+    // Initial setup of audio stream
+    updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
+
+    // Listen for peer connection state changes
+    sessionDescriptionHandler.peerConnectionDelegate = {
+      onconnectionstatechange: () => {
+        console.log('PeerConnection state changed:', sessionDescriptionHandler.peerConnection?.connectionState);
+        if (sessionDescriptionHandler.peerConnection?.connectionState === 'connected') {
+          updateAudioStream(sessionDescriptionHandler.remoteMediaStream);
         }
-      };
-    }
-  
-    session.stateChange.addListener((state: SessionState) => {
-      console.log(`Session state changed to ${state}`);
-      switch (state) {
-        case SessionState.Establishing:
-          console.log('Call is being established');
-          break;
-        case SessionState.Established:
-          console.log('Call established, ensuring audio is playing');
-          remoteAudio?.play().catch(error => console.error('Error playing remote audio:', error));
-          break;
-        case SessionState.Terminating:
-          console.log('Call is terminating');
-          break;
-        case SessionState.Terminated:
-          console.log('Call has been terminated');
-          cleanupCall();
-          break;
       }
-    });
+    };
   }
 
-  function updateAudioStream(stream: MediaStream) {
-    if (remoteAudio) {
-      remoteAudio.srcObject = stream;
-      remoteAudio.load(); // Needed for Safari
-      remoteAudio.play().catch(error => console.error('Error playing remote audio:', error));
+  session.stateChange.addListener((state: SessionState) => {
+    console.log(`Session state changed to ${state}`);
+    switch (state) {
+      case SessionState.Establishing:
+        console.log('Call is being established');
+        break;
+      case SessionState.Established:
+        console.log('Call established, ensuring audio is playing');
+        remoteAudio?.play().catch(error => console.error('Error playing remote audio:', error));
+        break;
+      case SessionState.Terminating:
+        console.log('Call is terminating');
+        break;
+      case SessionState.Terminated:
+        console.log('Call has been terminated');
+        cleanupCall();
+        break;
     }
+  });
+}
+
+function updateAudioStream(stream: MediaStream) {
+  if (remoteAudio) {
+    remoteAudio.srcObject = stream;
+    remoteAudio.load(); // Needed for Safari
+    remoteAudio.play().catch(error => console.error('Error playing remote audio:', error));
   }
+}
 
 
 export async function terminateCall(): Promise<void> {
   return new Promise<void>(async (resolve, reject) => {
-      try {
-          if (currentSession) {
-              console.log(`Terminating call in state ${currentSession.state}`);
+    try {
+      if (currentSession) {
+        console.log(`Terminating call in state ${currentSession.state}`);
 
-              switch (currentSession.state) {
-                  case SessionState.Initial:
-                  case SessionState.Establishing:
-                      if (currentSession instanceof Inviter) {
-                          currentSession.cancel();
-                      } else {
-                          currentSession.dispose(); 
-                      }
-                      break;
-                  case SessionState.Established:
-                      await currentSession.bye();
-                      break;
-                  case SessionState.Terminating:
-                  case SessionState.Terminated:
-                      // Already terminating/terminated, sometimes redundant but ensures cleanup
-                      currentSession.dispose();
-                      cleanupCall(); // Ensure disposal even if already terminating
-                      break;  
-              }
+        switch (currentSession.state) {
+          case SessionState.Initial:
+          case SessionState.Establishing:
+            if (currentSession instanceof Inviter) {
+              currentSession.cancel();
+            } else {
+              currentSession.dispose();
+            }
+            break;
+          case SessionState.Established:
+            await currentSession.bye();
+            break;
+          case SessionState.Terminating:
+          case SessionState.Terminated:
+            // Already terminating/terminated, sometimes redundant but ensures cleanup
+            currentSession.dispose();
+            cleanupCall(); // Ensure disposal even if already terminating
+            break;
+        }
 
-              cleanupCall();  // Crucial: Clean up regardless of termination method
-              resolve();
+        cleanupCall();  // Crucial: Clean up regardless of termination method
+        resolve();
 
-          } else {
-              console.warn('No active call to terminate.');
-              resolve();
-          }
-      } catch (error) {
-          console.error("Error terminating call:", error);
-          cleanupCall(); // Always clean up, even on error
-          reject(error);
+      } else {
+        console.warn('No active call to terminate.');
+        resolve();
       }
+    } catch (error) {
+      console.error("Error terminating call:", error);
+      cleanupCall(); // Always clean up, even on error
+      reject(error);
+    }
   });
 }
 
@@ -1009,47 +1009,47 @@ export function cleanupCall() {
 
 
   if (currentSession) {
-      const peerConnection = currentSession.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler
-          ? currentSession.sessionDescriptionHandler.peerConnection
-          : null;
+    const peerConnection = currentSession.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler
+      ? currentSession.sessionDescriptionHandler.peerConnection
+      : null;
 
-      if (peerConnection) {
-         peerConnection.getSenders().forEach(sender => {
-              sender.track?.stop();
-              peerConnection.removeTrack(sender);
-          });
-
-
-          peerConnection.onicecandidate = null;
-          peerConnection.ontrack = null;
+    if (peerConnection) {
+      peerConnection.getSenders().forEach(sender => {
+        sender.track?.stop();
+        peerConnection.removeTrack(sender);
+      });
 
 
-          // Important to close the peer connection
-          try {
-            peerConnection.close();
-          } catch (error) {
-            console.warn("Error closing peer connection:", error);
-          }
+      peerConnection.onicecandidate = null;
+      peerConnection.ontrack = null;
 
-        currentSession.sessionDescriptionHandler?.close(); 
 
+      // Important to close the peer connection
+      try {
+        peerConnection.close();
+      } catch (error) {
+        console.warn("Error closing peer connection:", error);
       }
 
+      currentSession.sessionDescriptionHandler?.close();
 
-      if (currentSession.stateChange) {
-          currentSession.stateChange.removeListener((newState: SessionState) => updateCallState(mapSessionStateToCallState(newState)));
-      }
-
-
-      // Stop audio and detach stream
-      if (remoteAudio && remoteAudio.srcObject) {
-          remoteAudio.srcObject = null;
-          remoteAudio.pause();
-
-      }
+    }
 
 
-      currentSession = null;
+    if (currentSession.stateChange) {
+      currentSession.stateChange.removeListener((newState: SessionState) => updateCallState(mapSessionStateToCallState(newState)));
+    }
+
+
+    // Stop audio and detach stream
+    if (remoteAudio && remoteAudio.srcObject) {
+      remoteAudio.srcObject = null;
+      remoteAudio.pause();
+
+    }
+
+
+    currentSession = null;
   }
   if (previousSession && previousSession.stateChange) { // Corrected listener removal
     previousSession.stateChange.removeListener((newState: SessionState) => updateCallState(mapSessionStateToCallState(newState))); // Use correct listener function
@@ -1108,7 +1108,7 @@ export function sendDTMF(tone: string): SIPResponse {
         }
       }
     };
-    
+
     currentSession.info(options)
       .then(() => console.log('DTMF sent successfully'))
       .catch((error: Error) => console.error('Error sending DTMF:', error));
@@ -1397,7 +1397,7 @@ export function debugAudioState(): void {
     console.log('Peer connection state:', peerConnection?.connectionState);
     console.log('ICE connection state:', peerConnection?.iceConnectionState);
     console.log('Signaling state:', peerConnection?.signalingState);
-    
+
     peerConnection?.getReceivers().forEach((receiver, index) => {
       console.log(`Receiver ${index}:`, receiver.track ? receiver.track.kind : 'No track');
     });
