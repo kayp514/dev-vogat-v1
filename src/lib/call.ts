@@ -402,7 +402,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
 
 
     // Set the contact URI manually after creating the UserAgent
-    const contactUri = UserAgent.makeURI(`sip:6472438101@${userAgent.configuration.viaHost}:6051;transport=wss`);
+    const contactUri = UserAgent.makeURI(`sip:16472438101@${userAgent.configuration.viaHost}:6051;transport=wss`);
     if (contactUri) {
       if (userAgent.contact) {
         userAgent.contact.uri = contactUri;
