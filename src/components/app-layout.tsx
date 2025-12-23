@@ -13,7 +13,6 @@ import type { UserData, Participant, CallSession, CallerInfo } from "../app/type
 import { initializeCallSession} from "../app/type"
 import { Toaster } from '@/components/ui/toaster';
 import { SIPInitializer } from "../app/SIPInitializer";
-import { ConsoleLayout } from './console/console-layout'
 import { NotificationLayout } from '@/app/notifications/notification-layout'
 
 
@@ -42,6 +41,48 @@ export function AppLayout({ userData }: AppLayoutProps) {
 
 
   const [callSession, setCallSession] = useState<CallSession | null>(null)
+
+  // Initialize call session for incoming calls when they arrive
+  if (isCallActive && callType === 'incoming' && activeNumber && !callSession) {
+    console.log('🔔 AppLayout: Initializing call session for incoming call from:', activeNumber);
+    
+    const incomingCallerInfo: CallerInfo = {
+      id: activeNumber,
+      uid: '',
+      name: activeNumber,
+      phoneNumber: activeNumber,
+      email: '',
+      avatar: '',
+    };
+    
+    const incomingCalleeInfo: CallerInfo = {
+      id: userData.id,
+      uid: userData.uid,
+      name: userData.name,
+      phoneNumber: userData.phoneNumber || '',
+      email: userData.email || '',
+      avatar: userData.avatar || '',
+    };
+    
+    const newSession = initializeCallSession(
+      `call-${Date.now()}`, 
+      incomingCallerInfo, 
+      incomingCalleeInfo, 
+      "incoming"
+    );
+    
+    setCurrentCallerInfo(incomingCallerInfo);
+    setCurrentCalleeInfo(incomingCalleeInfo);
+    setCallSession(newSession);
+  }
+  
+  // Clean up call session when call ends
+  if (!isCallActive && callSession) {
+    console.log('🧹 AppLayout: Cleaning up call session');
+    setCallSession(null);
+    setCurrentCallerInfo(null);
+    setCurrentCalleeInfo(null);
+  }
 
   const handleCall = async (phoneNumber: string, callerInfo: CallerInfo, calleeInfo: CallerInfo) => {
     setCurrentCallerInfo(callerInfo)

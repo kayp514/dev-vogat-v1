@@ -14,8 +14,6 @@ import {
   Web,
   RegistererState,
   SessionDescriptionHandlerOptions,
-  SessionDescriptionHandler,
-  SessionDelegate,
 } from 'sip.js';
 import { IncomingInviteRequest, IncomingRequestMessage, IncomingResponse } from 'sip.js/lib/core/messages';
 import { Emitter } from 'sip.js/lib/api/emitter';
@@ -381,6 +379,7 @@ export async function initializeSIP(): Promise<SIPResponse> {
       viaHost: await getViaHost(),
       userAgentString: 'Vogat/1.0',
       sendInitialProvisionalResponse: true,
+      sessionDescriptionHandlerFactory: mySessionDescriptionHandlerFactory,
       sessionDescriptionHandlerFactoryOptions: {
         iceGatheringTimeout: 5000,
         constraints: {
@@ -431,6 +430,19 @@ export async function initializeSIP(): Promise<SIPResponse> {
     await userAgent.start();
     console.log('UserAgent started');
 
+    // Pre-request microphone permission during initialization
+    // This ensures browser shows permission prompt early and stream is ready for calls
+    try {
+      console.log('Requesting microphone permission during initialization...');
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      console.log('Microphone permission granted and stream acquired during initialization');
+      console.log('Local stream tracks:', localStream.getTracks().map(t => ({ kind: t.kind, id: t.id, enabled: t.enabled })));
+    } catch (error) {
+      console.error('Failed to get microphone permission during initialization:', error);
+      // Don't fail SIP initialization if mic permission is denied
+      // User can still grant it later when making/receiving calls
+      console.warn('SIP will continue without pre-acquired media stream. Permission will be requested on first call.');
+    }
 
     const acceptOptions = {
       sessionDescriptionHandlerOptions: {
@@ -439,7 +451,8 @@ export async function initializeSIP(): Promise<SIPResponse> {
     };
 
     const registrationResult = await registerUserAgent();
-    if (registrationResult.status !== 'success') {
+    // Accept both 'success' and 'warning' (already registered) as valid states
+    if (registrationResult.status === 'error') {
       throw new Error(registrationResult.message);
     }
 
@@ -476,36 +489,64 @@ export function listenForIncomingCalls(handler: (invitation: Invitation) => void
         return;
       }
 
+      // Log media stream status from initialization
+      if (localStream) {
+        const audioTrack = localStream.getAudioTracks()[0];
+        console.log('Local stream available from initialization:', {
+          hasStream: !!localStream,
+          trackState: audioTrack?.readyState,
+          trackEnabled: audioTrack?.enabled
+        });
+      } else {
+        console.log('No local stream from initialization, will request on accept');
+      }
+
       updateCallState('establishing');
 
       let isAnswered = false;
 
 
-      invitation.stateChange.addListener((newState: SessionState) => {
-        console.log(`Incoming call session state changed to: ${newState}`);
+      const stateChangeHandler = (newState: SessionState) => {
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`📞 Incoming call SESSION STATE changed to: ${newState}`);
+        console.log(`   Previous call state: ${callState}`);
+        console.log(`   Invitation state: ${invitation.state}`);
+        console.log(`   Current session exists: ${!!currentSession}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        
         switch (newState) {
+          case SessionState.Initial:
+            console.log('State: Initial - invitation created');
+            break;
           case SessionState.Establishing:
+            console.log('State: Establishing - negotiating connection');
             updateCallState('establishing');
             break;
           case SessionState.Established:
-            console.log('Incoming call has been established');
+            console.log('✅ State: Established - call is now active!');
+            console.log('Setting up session and updating to established state...');
             currentSession = invitation;
             handleSession(invitation);
             updateCallState('established');
             isAnswered = true;
+            console.log('Call state updated to established, UI should now show CallUI');
             break;
           case SessionState.Terminating:
+            console.log('State: Terminating - call ending');
             updateCallState('terminating');
             break;
           case SessionState.Terminated:
-            console.log('Incoming call has been terminated');
+            console.log('State: Terminated - call ended');
             updateCallState('terminated');
             currentSession = null;
             break;
           default:
             console.log(`Unhandled session state: ${newState}`);
         }
-      });
+      };
+      
+      invitation.stateChange.addListener(stateChangeHandler);
+      console.log('✓ State change listener attached to invitation');
 
       handler(invitation);
     }
@@ -525,23 +566,46 @@ export function acceptIncomingCall(invitation: Invitation): Promise<void> {
     return Promise.reject(new Error('Already in a call'));
   }
 
+  console.log('Accepting incoming call...');
+  
+  // Check if local stream is available and valid
+  const hasValidStream = localStream && localStream.getAudioTracks()[0]?.readyState === 'live';
+  console.log('Local stream status:', { hasStream: !!localStream, isValid: hasValidStream });
+
   const acceptOptions: InvitationAcceptOptions = {
     sessionDescriptionHandlerOptions: {
       constraints: { audio: true, video: false },
     },
   };
 
+  // Ensure we have a valid media stream before accepting
+  const ensureMediaStream = hasValidStream 
+    ? Promise.resolve(localStream)
+    : navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(stream => {
+          console.log('Acquired microphone permission on accept');
+          localStream = stream;
+          return stream;
+        });
 
-  return invitation.accept(acceptOptions)
+  return ensureMediaStream
     .then(() => {
-      console.log('Call accepted');
-      currentSession = invitation;
-      handleSession(invitation);
-      updateCallState('established');
+      console.log('Media stream ready, accepting invitation');
+      console.log('Current invitation state before accept:', invitation.state);
+      return invitation.accept(acceptOptions);
+    })
+    .then(() => {
+      console.log('invitation.accept() completed successfully');
+      console.log('Invitation state after accept:', invitation.state);
+      // Note: State will be updated by the stateChange listener in listenForIncomingCalls
+      // Do not manually set state here to avoid conflicts
     })
     .catch((error) => {
       console.error('Error accepting call:', error);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
       updateCallState('error');
+      throw error; // Re-throw for proper error handling in CallSIPProvider
     });
 }
 
@@ -749,7 +813,33 @@ const myMediaStreamFactory: Web.MediaStreamFactory = (
   constraints: MediaStreamConstraints,
   sessionDescriptionHandler: Web.SessionDescriptionHandler
 ): Promise<MediaStream> => {
-  return navigator.mediaDevices.getUserMedia(constraints);
+  console.log('MediaStreamFactory called with constraints:', constraints);
+  
+  // If we already have a local stream from initialization/previous call, reuse it
+  if (localStream && constraints.audio && !constraints.video) {
+    // Check if the stream is still active
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack && audioTrack.readyState === 'live') {
+      console.log('Reusing existing local stream from initialization');
+      return Promise.resolve(localStream);
+    } else {
+      console.log('Existing stream is not live, requesting new stream');
+      localStream = null; // Clear invalid stream
+    }
+  }
+  
+  // Request new stream if not available or invalid
+  console.log('Requesting new media stream');
+  return navigator.mediaDevices.getUserMedia(constraints)
+    .then(stream => {
+      console.log('New media stream obtained successfully');
+      localStream = stream; // Store for future reuse
+      return stream;
+    })
+    .catch(error => {
+      console.error('Failed to get media stream:', error);
+      throw error;
+    });
 };
 
 const mySessionDescriptionHandlerFactory: Web.SessionDescriptionHandlerFactory = Web.defaultSessionDescriptionHandlerFactory(
@@ -757,10 +847,22 @@ const mySessionDescriptionHandlerFactory: Web.SessionDescriptionHandlerFactory =
 );
 
 function updateCallState(newState: CallState) {
-  console.log("New state: ", newState);
+  const previousState = callState;
   callState = newState;
+  
+  console.log('═════════════════════════════════════════════════════');
+  console.log('📡 CALL STATE UPDATE');
+  console.log(`   Previous: ${previousState}`);
+  console.log(`   New:      ${newState}`);
+  console.log(`   Handler exists: ${!!callStateChangeHandler}`);
+  console.log('═════════════════════════════════════════════════════');
+  
   if (callStateChangeHandler) {
+    console.log('🔔 Notifying CallSIPProvider of state change...');
     callStateChangeHandler(newState);
+    console.log('✅ CallSIPProvider notified');
+  } else {
+    console.warn('⚠️ No callStateChangeHandler registered! State change not propagated to UI.');
   }
 }
 
@@ -894,16 +996,25 @@ export async function makeOutgoingCall(phoneNumber: string, onStateChange: (stat
 }
 
 export function handleSession(session: Session): void {
-  console.log('Handling new session');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🎧 handleSession called');
+  console.log('   Session state:', session.state);
+  console.log('   Session type:', session instanceof Invitation ? 'Invitation (incoming)' : 'Inviter (outgoing)');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
   currentSession = session;
 
   if (!remoteAudio) {
+    console.log('Creating new remote audio element');
     remoteAudio = new Audio();
     remoteAudio.autoplay = true;
+  } else {
+    console.log('Reusing existing remote audio element');
   }
 
   if (session.sessionDescriptionHandler instanceof Web.SessionDescriptionHandler) {
     const sessionDescriptionHandler = session.sessionDescriptionHandler;
+    console.log('Session has valid SessionDescriptionHandler');
 
 
 
@@ -1056,9 +1167,47 @@ export function cleanupCall() {
     previousSession = null;
   }
 
+  // Note: We keep localStream active for the next call
+  // It will only be cleaned up when SIP is completely shut down
+  // This allows immediate call handling without requesting permission again
+  console.log('Call cleanup complete. Local stream preserved for future calls.');
+  
   window.removeEventListener('unload', cleanupCall); // No need to remove if not added
 
   updateCallState('initial');
+}
+
+// Function to completely cleanup SIP and release all resources including local stream
+export function shutdownSIP(): void {
+  console.log('Shutting down SIP and releasing all resources');
+  
+  // Clean up any active call first
+  if (currentSession) {
+    cleanupCall();
+  }
+  
+  // Stop and release local stream
+  if (localStream) {
+    console.log('Releasing local media stream');
+    localStream.getTracks().forEach(track => {
+      console.log(`Stopping track: ${track.kind}, id: ${track.id}`);
+      track.stop();
+    });
+    localStream = null;
+  }
+  
+  // Unregister if registered
+  if (registerer && isUserAgentRegistered()) {
+    unregisterUserAgent();
+  }
+  
+  // Stop user agent
+  if (userAgent) {
+    userAgent.stop();
+    userAgent = null;
+  }
+  
+  console.log('SIP shutdown complete');
 }
 
 
