@@ -12,7 +12,7 @@ import { makeOutgoingCall,
   } from '@/lib/call'
 import { toast } from '@/hooks/use-toast'
 import { useSIP } from './SipProviderCtx'
-import { Inviter, Session, SessionState } from 'sip.js'
+import { Session, SessionState } from 'sip.js'
 import { CallSipProviderCtx } from './CallSipProviderCtx'
 import { type Invitation, type SIPResponse, type CallState, type CallType } from '@/lib/type'
 
@@ -98,48 +98,67 @@ export function CallSIPProvider({ children }: { children: ReactNode }) {
   }, [isInitialized, isRegistered, isCallActive, handleCallStateChangeContext])
 
   const handleIncomingCall = useCallback((invitation: Invitation) => {
-    console.log('handleIncomingCall triggered with invitation:', invitation)
+    console.log('📱 CallSipProvider: handleIncomingCall triggered');
+    console.log('   From:', invitation.remoteIdentity.uri.toString());
+    console.log('   Invitation state:', invitation.state);
+    
     setIsCallActive(true)
     setActiveNumber(invitation.remoteIdentity.uri.user || 'unknown')
     setCallType('incoming')
     setIncomingInvitation(invitation)
 
+    // Initial state set to establishing (call is ringing)
     handleCallStateChangeContext('establishing')
-
-    const stateChangeListener = (state: SessionState) => {
-      console.log(`Incoming call session state changed to: ${state}`)
-      if (state === SessionState.Terminated) {
-        console.log('Incoming call terminated before being answered')
-        handleCallStateChangeContext('terminated')
-      }
-    }
-
-    invitation.stateChange.addListener(stateChangeListener)
-
-    cleanupRef.current = () => {
-      invitation.stateChange.removeListener(stateChangeListener)
-    }
+    
+    console.log('✅ CallSipProvider: Incoming call state initialized, UI should show CallNotification');
+    
+    // Note: State change handling is done in call.ts listenForIncomingCalls
+    // We don't need duplicate listeners here
   }, [handleCallStateChangeContext]);
 
 
   const handleAcceptCall = useCallback(() => {
     if (incomingInvitation) {
+      console.log('📞 User clicked Accept button, calling acceptIncomingCall...');
       acceptIncomingCall(incomingInvitation)
         .then(() => {
-          console.log('Call accepted successfully');
-          handleCallStateChangeContext('established');
-          setIsCallActive(true);
-          currentSessionRef.current = getCurrentSession()
+          console.log('✅ acceptIncomingCall promise resolved');
+          console.log('   Note: State will be updated by stateChange listener in call.ts');
+          // DO NOT manually update state here - let the state change listener handle it
+          // The listener in listenForIncomingCalls will update to 'established' when ready
+          currentSessionRef.current = getCurrentSession();
         })
         .catch((error) => {
-          console.error('Error accepting call:', error);
+          console.error('❌ Error accepting call:', error);
+          console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+          });
+          
+          // Provide more specific error messages
+          let errorMessage = 'Failed to accept call';
+          if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            errorMessage = 'Microphone permission denied. Please allow microphone access and try again.';
+          } else if (error.name === 'NotFoundError') {
+            errorMessage = 'No microphone found. Please connect a microphone and try again.';
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
           toast({
             title: "Call Failed",
-            description: error.message,
+            description: errorMessage,
             variant: "destructive",
           });
           handleCallStateChangeContext('error');
+          
+          // Clean up and reset state
+          setIsCallActive(false);
+          setIncomingInvitation(null);
         });
+    } else {
+      console.error('⚠️ handleAcceptCall called but no incomingInvitation exists');
     }
   }, [incomingInvitation, handleCallStateChangeContext]);
 
